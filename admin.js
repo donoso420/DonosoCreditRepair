@@ -345,14 +345,9 @@ function initialize() {
     }
   });
 
-  logoutBtn?.addEventListener("click", async () => {
-    logoutBtn.disabled = true;
-    logoutBtn.textContent = "Signing out…";
-    try {
-      await supabase.auth.signOut();
-    } catch (_) {
-      // sign-out error is non-critical — always redirect
-    }
+  logoutBtn?.addEventListener("click", () => {
+    // Fire-and-forget: don't await — signOut network call can hang.
+    supabase.auth.signOut().catch(() => {});
     currentAdmin = null;
     window.location.href = "admin.html";
   });
