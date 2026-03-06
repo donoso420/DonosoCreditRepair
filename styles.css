@@ -78,10 +78,10 @@ a {
 .brand {
   text-decoration: none;
   font-family: "Syne", sans-serif;
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: #ffffff;
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ede6ff;
 }
 
 .nav-links {
