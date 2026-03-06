@@ -68,6 +68,37 @@
           <p class="statusbar" id="admin-status" role="status" aria-live="polite"></p>
         </div>
 
+        <!-- ── Invite Banner ────────────────────────────── -->
+        <div class="container invite-banner">
+          <div class="invite-inner">
+            <div class="invite-text">
+              <span class="step-badge invite-icon">✉</span>
+              <div>
+                <h2>Invite a New Client</h2>
+                <p class="muted sm">Sends a signup email with a secure link to the client portal. Their account is created automatically.</p>
+              </div>
+            </div>
+            <form id="invite-form" class="invite-form">
+              <div class="invite-fields">
+                <div>
+                  <label for="invite-email">Client Email <span class="req">*</span></label>
+                  <input id="invite-email" type="email" placeholder="client@email.com" required />
+                </div>
+                <div>
+                  <label for="invite-name">Full Name</label>
+                  <input id="invite-name" type="text" placeholder="Jane Smith" />
+                </div>
+                <div>
+                  <label for="invite-phone">Phone</label>
+                  <input id="invite-phone" type="tel" placeholder="(305) 000-0000" />
+                </div>
+              </div>
+              <button class="btn invite-btn" type="submit">Send Invite Email →</button>
+            </form>
+            <p class="status invite-status" id="invite-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
         <div class="container admin-body">
 
           <!-- ── COLUMN A: Setup ───────────────────────── -->
@@ -78,7 +109,7 @@
                 <span class="step-badge">1</span>
                 <div>
                   <h2>Client Setup</h2>
-                  <p class="muted sm">Create profile then select active client</p>
+                  <p class="muted sm">Select active client or manually create profile</p>
                 </div>
               </div>
 

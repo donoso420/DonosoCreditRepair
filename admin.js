@@ -19,6 +19,9 @@ const letterUpdateForm = document.getElementById("letter-update-form");
 const timelineForm = document.getElementById("timeline-form");
 const fileUploadForm = document.getElementById("file-upload-form");
 
+const inviteForm = document.getElementById("invite-form");
+const inviteStatus = document.getElementById("invite-status");
+
 const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
 
@@ -332,6 +335,48 @@ function initialize() {
     await supabase.auth.signOut();
     currentAdmin = null;
     window.location.href = "admin.html";
+  });
+
+  inviteForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = String(document.getElementById("invite-email")?.value || "").trim();
+    const fullName = String(document.getElementById("invite-name")?.value || "").trim();
+    const phone = String(document.getElementById("invite-phone")?.value || "").trim();
+
+    if (!email) {
+      if (inviteStatus) { inviteStatus.textContent = "Email is required."; inviteStatus.classList.add("error"); }
+      return;
+    }
+
+    if (inviteStatus) { inviteStatus.textContent = "Sending invite..."; inviteStatus.classList.remove("error"); }
+
+    const res = await fetch("/api/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, fullName }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      if (inviteStatus) { inviteStatus.textContent = "Error: " + (data.error || "Could not send invite."); inviteStatus.classList.add("error"); }
+      return;
+    }
+
+    const userId = data.userId;
+
+    // Auto-create client profile so they appear in the dropdown immediately
+    if (userId) {
+      await supabase.from("client_profiles").upsert(
+        { user_id: userId, full_name: fullName || null, phone: phone || null },
+        { onConflict: "user_id" }
+      );
+      activeClientId = userId;
+    }
+
+    inviteForm.reset();
+    if (inviteStatus) { inviteStatus.textContent = `✓ Invite sent to ${email}. They'll get an email with a login link.`; inviteStatus.classList.remove("error"); }
+    await loadClients();
   });
 
   profileForm?.addEventListener("submit", async (event) => {
