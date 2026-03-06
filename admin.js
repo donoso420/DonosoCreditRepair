@@ -648,6 +648,7 @@ function initialize() {
     adminIdentity.textContent = `Signed in as ${user.email}`;
     prefillProfileUserId(user.id);
     showAdmin();
+    initTabs();
     await loadClients();
   });
 }
