@@ -420,10 +420,22 @@ function initializePortal() {
     setAuthStatus("Password reset email sent.");
   });
 
-  logoutBtn?.addEventListener("click", () => {
-    // Fire-and-forget: don't await — signOut network call can hang.
-    // Session is cleared locally immediately; server invalidation happens async.
-    supabase.auth.signOut().catch(() => {});
+  logoutBtn?.addEventListener("click", async () => {
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = "Signing out…";
+    // Give signOut up to 1s to clear the local session; redirect regardless.
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise(resolve => setTimeout(resolve, 1000)),
+      ]);
+    } catch (_) {}
+    // Belt-and-suspenders: wipe any leftover Supabase auth tokens from storage.
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith("sb-"))
+        .forEach(k => localStorage.removeItem(k));
+    } catch (_) {}
     currentUser = null;
     window.location.href = "portal.html";
   });
