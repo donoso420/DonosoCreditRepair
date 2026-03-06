@@ -495,6 +495,68 @@ tbody tr:last-child td {
   resize: vertical;
 }
 
+/* ── Credit Report Callout ───────────────────────────────── */
+.reports-callout {
+  margin: 1.25rem 0;
+  background: linear-gradient(135deg, #f0e8ff 0%, #e8e4ff 100%);
+  border: 1px solid #cfc0eb;
+  border-left: 4px solid #7c5cbf;
+  border-radius: 12px;
+  padding: 1.3rem 1.5rem;
+}
+
+.reports-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.reports-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.reports-header h3 {
+  margin-bottom: 0.15rem;
+  color: #3a2460;
+}
+
+.reports-steps {
+  margin: 0 0 1.25rem 1.1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.reports-steps li {
+  font-size: 0.92rem;
+  color: #4a3b6b;
+  line-height: 1.5;
+}
+
+.reports-btn {
+  background: #7c5cbf;
+  color: #fff;
+  border-color: #7c5cbf;
+  font-size: 0.95rem;
+  transition: background 0.15s;
+}
+
+.reports-btn:hover {
+  background: #5c3d9a;
+  color: #fff;
+}
+
+.reports-note {
+  margin: 0.7rem 0 0;
+  font-size: 0.8rem;
+  color: #8b78aa;
+}
+
 /* ── Client upload form ─────────────────────────────────── */
 .upload-form {
   display: flex;
