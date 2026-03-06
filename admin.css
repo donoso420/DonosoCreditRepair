@@ -412,6 +412,68 @@ textarea { resize: vertical; }
 
 .reply-form { margin-top: 0; }
 
+/* ── Tab Nav ─────────────────────────────────────── */
+.tab-nav-wrap {
+  margin: 0.75rem auto 0;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 0.4rem;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  padding: 0.6rem 1.1rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.tab-btn:hover {
+  color: var(--ink);
+  background: #ede8f7;
+}
+
+.tab-btn.active {
+  color: #3a2860;
+  border-bottom-color: #7c5cbf;
+  background: #f0eafa;
+}
+
+.tab-panel {
+  padding-top: 0;
+}
+
+/* ── Client Bar (active client selector) ─────────── */
+.client-bar {
+  margin: 1.25rem auto 0;
+}
+
+.client-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.client-bar-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 280px;
+}
+
 /* ── Invite Banner ───────────────────────────────── */
 .invite-banner {
   margin: 1rem auto 0;

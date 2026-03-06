@@ -68,72 +68,38 @@
           <p class="statusbar" id="admin-status" role="status" aria-live="polite"></p>
         </div>
 
-        <!-- ── Invite Banner ────────────────────────────── -->
-        <div class="container invite-banner">
-          <div class="invite-inner">
-            <div class="invite-text">
-              <span class="step-badge invite-icon">✉</span>
-              <div>
-                <h2>Invite a New Client</h2>
-                <p class="muted sm">Sends a signup email with a secure link to the client portal. Their account is created automatically.</p>
-              </div>
-            </div>
-            <form id="invite-form" class="invite-form">
-              <div class="invite-fields">
-                <div>
-                  <label for="invite-email">Client Email <span class="req">*</span></label>
-                  <input id="invite-email" type="email" placeholder="client@email.com" required />
-                </div>
-                <div>
-                  <label for="invite-name">Full Name</label>
-                  <input id="invite-name" type="text" placeholder="Jane Smith" />
-                </div>
-                <div>
-                  <label for="invite-phone">Phone</label>
-                  <input id="invite-phone" type="tel" placeholder="(305) 000-0000" />
-                </div>
-              </div>
-              <button class="btn invite-btn" type="submit">Send Invite Email →</button>
-            </form>
-            <p class="status invite-status" id="invite-status" role="status" aria-live="polite"></p>
-          </div>
+        <!-- ── Tab Nav ───────────────────────────────────── -->
+        <div class="container tab-nav-wrap">
+          <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="dashboard">📋 Client Dashboard</button>
+            <button class="tab-btn" data-tab="invite">✉ Invite Client</button>
+            <button class="tab-btn" data-tab="profiles">⚙ Manage Profiles</button>
+          </nav>
         </div>
 
-        <div class="container admin-body">
+        <!-- ── TAB: Client Dashboard ─────────────────────── -->
+        <div class="tab-panel active" id="tab-dashboard">
 
-          <!-- ── COLUMN A: Setup ───────────────────────── -->
-          <div class="admin-col">
-
-            <div class="section-group">
-              <div class="section-label">
-                <span class="step-badge">1</span>
-                <div>
-                  <h2>Client Setup</h2>
-                  <p class="muted sm">Select active client or manually create profile</p>
-                </div>
+          <!-- Active client selector bar -->
+          <div class="container client-bar">
+            <div class="client-bar-inner card client-select-card">
+              <div class="client-bar-left">
+                <h3 class="card-title" style="margin:0">Active Client</h3>
+                <p class="muted sm" style="margin:0">All actions below apply to the selected client.</p>
               </div>
-
-              <div class="card">
-                <h3 class="card-title">Create / Update Profile</h3>
-                <form id="profile-form">
-                  <label for="profile-user-id">Client User ID <span class="req">*</span></label>
-                  <input id="profile-user-id" name="profile-user-id" type="text" placeholder="UUID from Supabase Auth" required />
-                  <label for="profile-full-name">Full Name</label>
-                  <input id="profile-full-name" name="profile-full-name" type="text" placeholder="Jane Smith" />
-                  <label for="profile-phone">Phone</label>
-                  <input id="profile-phone" name="profile-phone" type="tel" placeholder="(305) 000-0000" />
-                  <button class="btn primary full mt" type="submit">Save Profile</button>
-                </form>
-              </div>
-
-              <div class="card client-select-card">
-                <h3 class="card-title">Active Client</h3>
-                <p class="muted sm">All forms below apply to this client.</p>
-                <label for="client-select">Select Client</label>
+              <div class="client-bar-right">
                 <select id="client-select"></select>
                 <p class="active-client-id" id="active-client-id"></p>
               </div>
             </div>
+          </div>
+
+          <div class="container admin-body">
+
+          <!-- ── COLUMN A ───────────────────────── -->
+          <div class="admin-col">
+
+            <div class="section-group">
 
             <div class="section-group">
               <div class="section-label">
@@ -333,6 +299,63 @@
             </div>
           </div>
         </div>
+
+        </div>
+        <!-- end tab-dashboard -->
+
+        <!-- ── TAB: Invite Client ─────────────────────────── -->
+        <div class="tab-panel hidden" id="tab-invite">
+          <div class="container" style="max-width:680px; padding-top:1.5rem;">
+            <div class="invite-inner">
+              <div class="invite-text">
+                <span class="step-badge invite-icon">✉</span>
+                <div>
+                  <h2>Invite a New Client</h2>
+                  <p class="muted sm">Sends a signup email with a secure link to the client portal. Their account and profile are created automatically.</p>
+                </div>
+              </div>
+              <form id="invite-form" class="invite-form">
+                <div class="invite-fields">
+                  <div>
+                    <label for="invite-email">Client Email <span class="req">*</span></label>
+                    <input id="invite-email" type="email" placeholder="client@email.com" required />
+                  </div>
+                  <div>
+                    <label for="invite-name">Full Name</label>
+                    <input id="invite-name" type="text" placeholder="Jane Smith" />
+                  </div>
+                  <div>
+                    <label for="invite-phone">Phone</label>
+                    <input id="invite-phone" type="tel" placeholder="(305) 000-0000" />
+                  </div>
+                </div>
+                <button class="btn invite-btn" type="submit">Send Invite Email →</button>
+              </form>
+              <p class="status invite-status" id="invite-status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+        <!-- end tab-invite -->
+
+        <!-- ── TAB: Manage Profiles ───────────────────────── -->
+        <div class="tab-panel hidden" id="tab-profiles">
+          <div class="container" style="max-width:560px; padding-top:1.5rem;">
+            <div class="card">
+              <h3 class="card-title">Create / Update Client Profile</h3>
+              <p class="muted sm">Use this if you need to manually create or edit a profile using a Supabase user UUID.</p>
+              <form id="profile-form">
+                <label for="profile-user-id">Client User ID <span class="req">*</span></label>
+                <input id="profile-user-id" name="profile-user-id" type="text" placeholder="UUID from Supabase Auth" required />
+                <label for="profile-full-name">Full Name</label>
+                <input id="profile-full-name" name="profile-full-name" type="text" placeholder="Jane Smith" />
+                <label for="profile-phone">Phone</label>
+                <input id="profile-phone" name="profile-phone" type="tel" placeholder="(305) 000-0000" />
+                <button class="btn primary full mt" type="submit">Save Profile</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <!-- end tab-profiles -->
 
       </div>
       <!-- end admin-app -->
