@@ -454,6 +454,12 @@ h1 {
   margin: 0.08rem 0 0.64rem;
 }
 
+.plan-period {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #6a5d85;
+}
+
 .plan-card ul {
   margin: 0 0 1rem;
   padding-left: 0;
