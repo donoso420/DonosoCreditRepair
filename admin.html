@@ -4,10 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Portal | Donoso Credit Repair</title>
-    <meta
-      name="description"
-      content="Admin dashboard for managing client tracker data, letter tracking numbers, and update timelines."
-    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,10 +13,12 @@
     <link rel="stylesheet" href="admin.css" />
   </head>
   <body>
+
     <header class="admin-nav">
       <div class="container nav-row">
         <a class="brand" href="index.html">Donoso Credit Repair</a>
-        <div class="nav-links">
+        <div class="nav-right">
+          <span class="nav-badge">Admin</span>
           <a href="portal.html">Client Portal</a>
           <a href="index.html">Main Site</a>
         </div>
@@ -28,226 +26,289 @@
     </header>
 
     <main class="admin-main">
-      <section class="container intro">
-        <p class="eyebrow">Restricted Access</p>
-        <h1>Admin Tracker Dashboard</h1>
-        <p>
-          Manage client profiles, credit snapshots, mailed letter tracking, and timeline updates.
-        </p>
-      </section>
 
+      <!-- ── Sign In ─────────────────────────────────────── -->
       <section class="container">
-        <article class="card" id="auth-card">
-          <h2>Admin Sign In</h2>
-          <form id="admin-auth-form" novalidate>
-            <label for="admin-email">Email</label>
-            <input id="admin-email" name="admin-email" type="email" required />
-
-            <label for="admin-password">Password</label>
-            <input id="admin-password" name="admin-password" type="password" required />
-
-            <button class="btn primary" type="submit">Sign In</button>
-          </form>
-          <p class="status" id="admin-auth-status" role="status" aria-live="polite"></p>
-        </article>
-
-        <article class="hidden" id="admin-app">
-          <div class="app-head">
-            <div>
-              <h2>Admin Controls</h2>
-              <p class="muted" id="admin-identity"></p>
-            </div>
-            <div class="app-actions">
-              <button class="btn secondary" id="refresh-all-btn" type="button">Refresh</button>
-              <button class="btn danger" id="admin-logout-btn" type="button">Sign Out</button>
-            </div>
+        <article class="auth-card" id="auth-card">
+          <div class="auth-inner">
+            <p class="eyebrow">Restricted Access</p>
+            <h1>Admin Sign In</h1>
+            <p class="muted">Only authorized accounts can access this dashboard.</p>
+            <form id="admin-auth-form" novalidate>
+              <label for="admin-email">Email</label>
+              <input id="admin-email" name="admin-email" type="email" placeholder="admin@email.com" required />
+              <label for="admin-password">Password</label>
+              <input id="admin-password" name="admin-password" type="password" placeholder="••••••••" required />
+              <button class="btn primary full" type="submit">Sign In to Dashboard</button>
+            </form>
+            <p class="status" id="admin-auth-status" role="status" aria-live="polite"></p>
           </div>
-
-          <div class="panel-grid">
-            <section class="card">
-              <h3>1) Client Profile</h3>
-              <p class="muted">Create or update client profile by user ID.</p>
-              <form id="profile-form">
-                <label for="profile-user-id">Client User ID</label>
-                <input id="profile-user-id" name="profile-user-id" type="text" required />
-
-                <label for="profile-full-name">Full Name</label>
-                <input id="profile-full-name" name="profile-full-name" type="text" />
-
-                <label for="profile-phone">Phone</label>
-                <input id="profile-phone" name="profile-phone" type="tel" />
-
-                <button class="btn primary" type="submit">Save Profile</button>
-              </form>
-            </section>
-
-            <section class="card">
-              <h3>2) Select Active Client</h3>
-              <p class="muted">Choose client for score, letters, and updates.</p>
-              <label for="client-select">Active Client</label>
-              <select id="client-select"></select>
-              <p class="muted" id="active-client-id"></p>
-            </section>
-          </div>
-
-          <div class="panel-grid">
-            <section class="card">
-              <h3>3) Add Credit Snapshot</h3>
-              <form id="snapshot-form">
-                <label for="snapshot-bureau">Bureau</label>
-                <select id="snapshot-bureau" required>
-                  <option value="Experian">Experian</option>
-                  <option value="Equifax">Equifax</option>
-                  <option value="TransUnion">TransUnion</option>
-                </select>
-
-                <label for="snapshot-score">Score</label>
-                <input id="snapshot-score" type="number" min="300" max="850" required />
-
-                <label for="snapshot-date">Reported Date</label>
-                <input id="snapshot-date" type="date" required />
-
-                <button class="btn primary" type="submit">Add Snapshot</button>
-              </form>
-            </section>
-
-            <section class="card">
-              <h3>4) Add Letter + Tracking</h3>
-              <form id="letter-form">
-                <label for="letter-date">Sent Date</label>
-                <input id="letter-date" type="date" required />
-
-                <label for="letter-recipient">Bureau/Creditor</label>
-                <input id="letter-recipient" type="text" required />
-
-                <label for="letter-tracking">Tracking Number</label>
-                <input id="letter-tracking" type="text" required />
-
-                <label for="letter-status">Status</label>
-                <select id="letter-status" required>
-                  <option>In Transit</option>
-                  <option>Delivered</option>
-                  <option>Response Received</option>
-                </select>
-
-                <label for="letter-notes">Notes</label>
-                <textarea id="letter-notes" rows="3"></textarea>
-
-                <button class="btn primary" type="submit">Add Letter Record</button>
-              </form>
-            </section>
-          </div>
-
-          <div class="panel-grid">
-            <section class="card">
-              <h3>5) Update Existing Letter Status</h3>
-              <form id="letter-update-form">
-                <label for="letter-id">Letter ID</label>
-                <input id="letter-id" type="number" min="1" required />
-
-                <label for="letter-update-status">New Status</label>
-                <select id="letter-update-status" required>
-                  <option>In Transit</option>
-                  <option>Delivered</option>
-                  <option>Response Received</option>
-                </select>
-
-                <label for="letter-update-notes">Update Notes</label>
-                <textarea id="letter-update-notes" rows="3"></textarea>
-
-                <button class="btn secondary" type="submit">Update Letter</button>
-              </form>
-            </section>
-
-            <section class="card">
-              <h3>6) Add Timeline Update</h3>
-              <form id="timeline-form">
-                <label for="timeline-details">Update Details</label>
-                <textarea id="timeline-details" rows="4" required></textarea>
-
-                <button class="btn primary" type="submit">Add Update</button>
-              </form>
-            </section>
-          </div>
-
-          <div class="panel-grid">
-            <section class="card">
-              <h3>7) Upload Client File</h3>
-              <p class="muted">Upload PDF letter copies or screenshot attachments.</p>
-              <form id="file-upload-form">
-                <label for="file-title">File Title</label>
-                <input id="file-title" type="text" placeholder="Example: Experian deletion proof" />
-
-                <label for="file-category">Category</label>
-                <select id="file-category" required>
-                  <option value="Letter Copy">Letter Copy</option>
-                  <option value="CFPB Screenshot">CFPB Screenshot</option>
-                  <option value="Credit Report Screenshot">Credit Report Screenshot</option>
-                  <option value="Other">Other</option>
-                </select>
-
-                <label for="file-notes">Notes</label>
-                <textarea id="file-notes" rows="3"></textarea>
-
-                <label for="file-input">Attachment (PDF/JPG/PNG/WebP)</label>
-                <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
-
-                <button class="btn primary" type="submit">Upload File</button>
-              </form>
-            </section>
-          </div>
-
-          <div class="panel-grid">
-            <section class="card">
-              <h3>8) Client Messages</h3>
-              <p class="muted">View and reply to messages from the active client.</p>
-              <ul class="admin-message-thread" id="admin-message-thread">
-                <li class="muted">Select a client to load messages.</li>
-              </ul>
-              <form id="admin-message-form" style="margin-top:1rem;">
-                <label for="admin-message-input">Reply to Client</label>
-                <textarea id="admin-message-input" rows="3" placeholder="Type your reply..."></textarea>
-                <button class="btn primary" type="submit">Send Reply</button>
-              </form>
-            </section>
-
-            <section class="card">
-              <h3>Client Uploads</h3>
-              <p class="muted">Documents uploaded by the client (incoming mail, bureau letters, etc.)</p>
-              <ul id="preview-client-uploads" class="list">
-                <li class="muted">Select a client to see their uploads.</li>
-              </ul>
-            </section>
-          </div>
-
-          <section class="card">
-            <h3>Client Record Preview</h3>
-            <div class="preview-grid">
-              <div>
-                <h4>Latest Scores</h4>
-                <ul id="preview-scores" class="list"></ul>
-              </div>
-              <div>
-                <h4>Latest Letters</h4>
-                <ul id="preview-letters" class="list"></ul>
-              </div>
-              <div>
-                <h4>Latest Updates</h4>
-                <ul id="preview-updates" class="list"></ul>
-              </div>
-              <div>
-                <h4>Latest Files (Admin)</h4>
-                <ul id="preview-files" class="list"></ul>
-              </div>
-            </div>
-          </section>
-
-          <p class="status" id="admin-status" role="status" aria-live="polite"></p>
         </article>
       </section>
+
+      <!-- ── Admin App ───────────────────────────────────── -->
+      <div class="hidden" id="admin-app">
+
+        <!-- Top bar -->
+        <div class="topbar">
+          <div class="container topbar-inner">
+            <div class="topbar-left">
+              <span class="topbar-label">Signed in as</span>
+              <span id="admin-identity" class="topbar-identity"></span>
+            </div>
+            <div class="topbar-actions">
+              <button class="btn secondary sm" id="refresh-all-btn" type="button">↺ Refresh</button>
+              <button class="btn danger sm" id="admin-logout-btn" type="button">Sign Out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="statusbar-wrap container">
+          <p class="statusbar" id="admin-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="container admin-body">
+
+          <!-- ── COLUMN A: Setup ───────────────────────── -->
+          <div class="admin-col">
+
+            <div class="section-group">
+              <div class="section-label">
+                <span class="step-badge">1</span>
+                <div>
+                  <h2>Client Setup</h2>
+                  <p class="muted sm">Create profile then select active client</p>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Create / Update Profile</h3>
+                <form id="profile-form">
+                  <label for="profile-user-id">Client User ID <span class="req">*</span></label>
+                  <input id="profile-user-id" name="profile-user-id" type="text" placeholder="UUID from Supabase Auth" required />
+                  <label for="profile-full-name">Full Name</label>
+                  <input id="profile-full-name" name="profile-full-name" type="text" placeholder="Jane Smith" />
+                  <label for="profile-phone">Phone</label>
+                  <input id="profile-phone" name="profile-phone" type="tel" placeholder="(305) 000-0000" />
+                  <button class="btn primary full mt" type="submit">Save Profile</button>
+                </form>
+              </div>
+
+              <div class="card client-select-card">
+                <h3 class="card-title">Active Client</h3>
+                <p class="muted sm">All forms below apply to this client.</p>
+                <label for="client-select">Select Client</label>
+                <select id="client-select"></select>
+                <p class="active-client-id" id="active-client-id"></p>
+              </div>
+            </div>
+
+            <div class="section-group">
+              <div class="section-label">
+                <span class="step-badge">2</span>
+                <div>
+                  <h2>Credit Scores</h2>
+                  <p class="muted sm">Log bureau score snapshots</p>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Add Score Snapshot</h3>
+                <form id="snapshot-form">
+                  <label for="snapshot-bureau">Bureau <span class="req">*</span></label>
+                  <select id="snapshot-bureau" required>
+                    <option value="Experian">Experian</option>
+                    <option value="Equifax">Equifax</option>
+                    <option value="TransUnion">TransUnion</option>
+                  </select>
+                  <label for="snapshot-score">Score <span class="req">*</span></label>
+                  <input id="snapshot-score" type="number" min="300" max="850" placeholder="e.g. 612" required />
+                  <label for="snapshot-date">Reported Date <span class="req">*</span></label>
+                  <input id="snapshot-date" type="date" required />
+                  <button class="btn primary full mt" type="submit">Add Snapshot</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="section-group">
+              <div class="section-label">
+                <span class="step-badge">3</span>
+                <div>
+                  <h2>Timeline Update</h2>
+                  <p class="muted sm">Post a progress note to the client</p>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Add Update</h3>
+                <form id="timeline-form">
+                  <label for="timeline-details">Update Details <span class="req">*</span></label>
+                  <textarea id="timeline-details" rows="4" placeholder="e.g. Dispute letter mailed to Equifax via certified mail on 3/6/2026." required></textarea>
+                  <button class="btn primary full mt" type="submit">Post Update</button>
+                </form>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ── COLUMN B: Letters + Files + Messages ─── -->
+          <div class="admin-col">
+
+            <div class="section-group">
+              <div class="section-label">
+                <span class="step-badge">4</span>
+                <div>
+                  <h2>Letters &amp; Tracking</h2>
+                  <p class="muted sm">Log sent letters and update their status</p>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Add New Letter</h3>
+                <form id="letter-form">
+                  <div class="form-row">
+                    <div>
+                      <label for="letter-date">Sent Date <span class="req">*</span></label>
+                      <input id="letter-date" type="date" required />
+                    </div>
+                    <div>
+                      <label for="letter-status">Status <span class="req">*</span></label>
+                      <select id="letter-status" required>
+                        <option>In Transit</option>
+                        <option>Delivered</option>
+                        <option>Response Received</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label for="letter-recipient">Bureau / Creditor <span class="req">*</span></label>
+                  <input id="letter-recipient" type="text" placeholder="e.g. Experian, NCB Management" required />
+                  <label for="letter-tracking">Tracking Number <span class="req">*</span></label>
+                  <input id="letter-tracking" type="text" placeholder="USPS or UPS tracking number" required />
+                  <label for="letter-notes">Notes</label>
+                  <textarea id="letter-notes" rows="2" placeholder="Optional — dispute reason, account number, etc."></textarea>
+                  <button class="btn primary full mt" type="submit">Add Letter Record</button>
+                </form>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Update Existing Letter Status</h3>
+                <p class="muted sm">Use the Letter ID from the preview panel below.</p>
+                <form id="letter-update-form">
+                  <div class="form-row">
+                    <div>
+                      <label for="letter-id">Letter ID <span class="req">*</span></label>
+                      <input id="letter-id" type="number" min="1" placeholder="e.g. 3" required />
+                    </div>
+                    <div>
+                      <label for="letter-update-status">New Status</label>
+                      <select id="letter-update-status" required>
+                        <option>In Transit</option>
+                        <option>Delivered</option>
+                        <option>Response Received</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label for="letter-update-notes">Notes</label>
+                  <textarea id="letter-update-notes" rows="2" placeholder="Optional note about the update"></textarea>
+                  <button class="btn secondary full mt" type="submit">Update Letter</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="section-group">
+              <div class="section-label">
+                <span class="step-badge">5</span>
+                <div>
+                  <h2>Upload File</h2>
+                  <p class="muted sm">Attach letters, screenshots, or documents to client</p>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Upload Client Document</h3>
+                <form id="file-upload-form">
+                  <label for="file-title">File Title</label>
+                  <input id="file-title" type="text" placeholder="e.g. Experian deletion proof" />
+                  <label for="file-category">Category <span class="req">*</span></label>
+                  <select id="file-category" required>
+                    <option value="Letter Copy">Letter Copy</option>
+                    <option value="CFPB Screenshot">CFPB Screenshot</option>
+                    <option value="Credit Report Screenshot">Credit Report Screenshot</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <label for="file-notes">Notes</label>
+                  <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
+                  <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP, max 15MB)</span></label>
+                  <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
+                  <button class="btn primary full mt" type="submit">Upload File</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="section-group">
+              <div class="section-label">
+                <span class="step-badge">6</span>
+                <div>
+                  <h2>Messages</h2>
+                  <p class="muted sm">Two-way client communication</p>
+                </div>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Message Thread</h3>
+                <ul class="admin-message-thread" id="admin-message-thread">
+                  <li class="muted">Select a client to load messages.</li>
+                </ul>
+                <form id="admin-message-form" class="reply-form">
+                  <textarea id="admin-message-input" rows="3" placeholder="Type your reply to the client..."></textarea>
+                  <button class="btn primary full mt" type="submit">Send Reply</button>
+                </form>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Client Uploads</h3>
+                <p class="muted sm">Documents the client has uploaded (bureau letters, incoming mail, etc.)</p>
+                <ul id="preview-client-uploads" class="list">
+                  <li class="muted">Select a client to see their uploads.</li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Preview Panel ─────────────────────────────── -->
+        <div class="container preview-section">
+          <div class="section-label">
+            <span class="step-badge alt">↓</span>
+            <div>
+              <h2>Client Record Preview</h2>
+              <p class="muted sm">Live view of the active client's data</p>
+            </div>
+          </div>
+          <div class="preview-grid">
+            <div class="card">
+              <h4 class="preview-title">📊 Scores</h4>
+              <ul id="preview-scores" class="list"></ul>
+            </div>
+            <div class="card">
+              <h4 class="preview-title">✉️ Letters</h4>
+              <ul id="preview-letters" class="list"></ul>
+            </div>
+            <div class="card">
+              <h4 class="preview-title">📋 Updates</h4>
+              <ul id="preview-updates" class="list"></ul>
+            </div>
+            <div class="card">
+              <h4 class="preview-title">📁 Files (Admin)</h4>
+              <ul id="preview-files" class="list"></ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- end admin-app -->
+
     </main>
 
-    <script src="portal-config.js?v=20260305a"></script>
-    <script type="module" src="admin.js?v=20260305a"></script>
+    <script src="portal-config.js?v=20260306a"></script>
+    <script type="module" src="admin.js?v=20260306a"></script>
   </body>
 </html>
