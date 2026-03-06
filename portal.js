@@ -378,6 +378,23 @@ function initializePortal() {
     await loadDashboard(currentUser);
   });
 
+  const googleBtn = document.getElementById("google-signin-btn");
+  const googleBtnOriginal = googleBtn?.innerHTML;
+
+  googleBtn?.addEventListener("click", async () => {
+    googleBtn.disabled = true;
+    googleBtn.textContent = "Redirecting to Google…";
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/portal.html" },
+    });
+    if (error) {
+      setAuthStatus(error.message, true);
+      googleBtn.disabled = false;
+      googleBtn.innerHTML = googleBtnOriginal;
+    }
+  });
+
   authForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const email = String(document.getElementById("email")?.value || "").trim();
