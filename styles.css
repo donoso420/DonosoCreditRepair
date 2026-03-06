@@ -156,10 +156,10 @@ a {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: 1.4fr 0.9fr;
-  gap: 1rem;
-  align-items: start;
-  padding: 4.1rem 0 2.6rem;
+  grid-template-columns: 1fr 0.8fr;
+  gap: 3rem;
+  align-items: center;
+  padding: 4rem 0 3rem;
 }
 
 .eyebrow {
@@ -172,8 +172,8 @@ a {
 }
 
 h1 {
-  font-size: clamp(2.5rem, 7vw, 5.4rem);
-  max-width: 10ch;
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  max-width: 20ch;
 }
 
 .hero-lead {
@@ -208,8 +208,8 @@ h1 {
 .hero-panel {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid #735596;
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: 16px;
+  padding: 1.6rem 1.8rem;
 }
 
 .hero-panel h2 {
