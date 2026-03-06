@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Portal | Donoso Credit Repair</title>
+    <meta
+      name="description"
+      content="Admin dashboard for managing client tracker data, letter tracking numbers, and update timelines."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <header class="admin-nav">
+      <div class="container nav-row">
+        <a class="brand" href="index.html">Donoso Credit Repair</a>
+        <div class="nav-links">
+          <a href="portal.html">Client Portal</a>
+          <a href="index.html">Main Site</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <section class="container intro">
+        <p class="eyebrow">Restricted Access</p>
+        <h1>Admin Tracker Dashboard</h1>
+        <p>
+          Manage client profiles, credit snapshots, mailed letter tracking, and timeline updates.
+        </p>
+      </section>
+
+      <section class="container">
+        <article class="card" id="auth-card">
+          <h2>Admin Sign In</h2>
+          <form id="admin-auth-form" novalidate>
+            <label for="admin-email">Email</label>
+            <input id="admin-email" name="admin-email" type="email" required />
+
+            <label for="admin-password">Password</label>
+            <input id="admin-password" name="admin-password" type="password" required />
+
+            <button class="btn primary" type="submit">Sign In</button>
+          </form>
+          <p class="status" id="admin-auth-status" role="status" aria-live="polite"></p>
+        </article>
+
+        <article class="hidden" id="admin-app">
+          <div class="app-head">
+            <div>
+              <h2>Admin Controls</h2>
+              <p class="muted" id="admin-identity"></p>
+            </div>
+            <div class="app-actions">
+              <button class="btn secondary" id="refresh-all-btn" type="button">Refresh</button>
+              <button class="btn danger" id="admin-logout-btn" type="button">Sign Out</button>
+            </div>
+          </div>
+
+          <div class="panel-grid">
+            <section class="card">
+              <h3>1) Client Profile</h3>
+              <p class="muted">Create or update client profile by user ID.</p>
+              <form id="profile-form">
+                <label for="profile-user-id">Client User ID</label>
+                <input id="profile-user-id" name="profile-user-id" type="text" required />
+
+                <label for="profile-full-name">Full Name</label>
+                <input id="profile-full-name" name="profile-full-name" type="text" />
+
+                <label for="profile-phone">Phone</label>
+                <input id="profile-phone" name="profile-phone" type="tel" />
+
+                <button class="btn primary" type="submit">Save Profile</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <h3>2) Select Active Client</h3>
+              <p class="muted">Choose client for score, letters, and updates.</p>
+              <label for="client-select">Active Client</label>
+              <select id="client-select"></select>
+              <p class="muted" id="active-client-id"></p>
+            </section>
+          </div>
+
+          <div class="panel-grid">
+            <section class="card">
+              <h3>3) Add Credit Snapshot</h3>
+              <form id="snapshot-form">
+                <label for="snapshot-bureau">Bureau</label>
+                <select id="snapshot-bureau" required>
+                  <option value="Experian">Experian</option>
+                  <option value="Equifax">Equifax</option>
+                  <option value="TransUnion">TransUnion</option>
+                </select>
+
+                <label for="snapshot-score">Score</label>
+                <input id="snapshot-score" type="number" min="300" max="850" required />
+
+                <label for="snapshot-date">Reported Date</label>
+                <input id="snapshot-date" type="date" required />
+
+                <button class="btn primary" type="submit">Add Snapshot</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <h3>4) Add Letter + Tracking</h3>
+              <form id="letter-form">
+                <label for="letter-date">Sent Date</label>
+                <input id="letter-date" type="date" required />
+
+                <label for="letter-recipient">Bureau/Creditor</label>
+                <input id="letter-recipient" type="text" required />
+
+                <label for="letter-tracking">Tracking Number</label>
+                <input id="letter-tracking" type="text" required />
+
+                <label for="letter-status">Status</label>
+                <select id="letter-status" required>
+                  <option>In Transit</option>
+                  <option>Delivered</option>
+                  <option>Response Received</option>
+                </select>
+
+                <label for="letter-notes">Notes</label>
+                <textarea id="letter-notes" rows="3"></textarea>
+
+                <button class="btn primary" type="submit">Add Letter Record</button>
+              </form>
+            </section>
+          </div>
+
+          <div class="panel-grid">
+            <section class="card">
+              <h3>5) Update Existing Letter Status</h3>
+              <form id="letter-update-form">
+                <label for="letter-id">Letter ID</label>
+                <input id="letter-id" type="number" min="1" required />
+
+                <label for="letter-update-status">New Status</label>
+                <select id="letter-update-status" required>
+                  <option>In Transit</option>
+                  <option>Delivered</option>
+                  <option>Response Received</option>
+                </select>
+
+                <label for="letter-update-notes">Update Notes</label>
+                <textarea id="letter-update-notes" rows="3"></textarea>
+
+                <button class="btn secondary" type="submit">Update Letter</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <h3>6) Add Timeline Update</h3>
+              <form id="timeline-form">
+                <label for="timeline-details">Update Details</label>
+                <textarea id="timeline-details" rows="4" required></textarea>
+
+                <button class="btn primary" type="submit">Add Update</button>
+              </form>
+            </section>
+          </div>
+
+          <div class="panel-grid">
+            <section class="card">
+              <h3>7) Upload Client File</h3>
+              <p class="muted">Upload PDF letter copies or screenshot attachments.</p>
+              <form id="file-upload-form">
+                <label for="file-title">File Title</label>
+                <input id="file-title" type="text" placeholder="Example: Experian deletion proof" />
+
+                <label for="file-category">Category</label>
+                <select id="file-category" required>
+                  <option value="Letter Copy">Letter Copy</option>
+                  <option value="CFPB Screenshot">CFPB Screenshot</option>
+                  <option value="Credit Report Screenshot">Credit Report Screenshot</option>
+                  <option value="Other">Other</option>
+                </select>
+
+                <label for="file-notes">Notes</label>
+                <textarea id="file-notes" rows="3"></textarea>
+
+                <label for="file-input">Attachment (PDF/JPG/PNG/WebP)</label>
+                <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
+
+                <button class="btn primary" type="submit">Upload File</button>
+              </form>
+            </section>
+          </div>
+
+          <section class="card">
+            <h3>Client Record Preview</h3>
+            <div class="preview-grid">
+              <div>
+                <h4>Latest Scores</h4>
+                <ul id="preview-scores" class="list"></ul>
+              </div>
+              <div>
+                <h4>Latest Letters</h4>
+                <ul id="preview-letters" class="list"></ul>
+              </div>
+              <div>
+                <h4>Latest Updates</h4>
+                <ul id="preview-updates" class="list"></ul>
+              </div>
+              <div>
+                <h4>Latest Files</h4>
+                <ul id="preview-files" class="list"></ul>
+              </div>
+            </div>
+          </section>
+
+          <p class="status" id="admin-status" role="status" aria-live="polite"></p>
+        </article>
+      </section>
+    </main>
+
+    <script src="portal-config.js?v=20260305a"></script>
+    <script type="module" src="admin.js?v=20260305a"></script>
+  </body>
+</html>

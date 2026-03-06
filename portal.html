@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Portal | Donoso Credit Repair</title>
+    <meta
+      name="description"
+      content="Secure client portal for credit snapshots, mailed letter tracking numbers, and account updates."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="portal.css" />
+  </head>
+  <body>
+    <header class="portal-nav">
+      <div class="container nav-row">
+        <a class="brand" href="index.html">Donoso Credit Repair</a>
+        <a class="ghost-link" href="index.html">Back to Website</a>
+      </div>
+    </header>
+
+    <main class="portal-main">
+      <section class="container intro">
+        <p class="eyebrow">Secure Client Access</p>
+        <h1>Client Tracker Portal</h1>
+        <p>
+          Sign in to view your latest credit snapshots, letter tracking numbers, and account
+          updates.
+        </p>
+      </section>
+
+      <section class="container auth-grid">
+        <article class="card" id="auth-card">
+          <h2>Sign In</h2>
+          <p class="sub">
+            Use the email and password created for your portal account.
+          </p>
+          <form id="auth-form" novalidate>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required />
+
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required minlength="8" />
+
+            <div class="auth-actions">
+              <button type="submit" class="btn primary">Sign In</button>
+              <button type="button" id="signup-btn" class="btn secondary">Create Account</button>
+            </div>
+          </form>
+          <button type="button" id="reset-btn" class="inline-btn">Forgot password?</button>
+          <p id="auth-status" class="status" role="status" aria-live="polite"></p>
+        </article>
+
+        <article class="card hidden" id="dashboard-card">
+          <div class="dash-head">
+            <div>
+              <h2>Welcome, <span id="client-name">Client</span></h2>
+              <p class="sub" id="client-email"></p>
+            </div>
+            <div class="dash-head-actions">
+              <button type="button" class="btn secondary" id="refresh-btn">Refresh</button>
+              <button type="button" class="btn danger" id="logout-btn">Sign Out</button>
+            </div>
+          </div>
+
+          <section>
+            <h3>Credit Snapshot</h3>
+            <div class="score-grid" id="score-grid">
+              <article class="score-card">
+                <p class="bureau">Experian</p>
+                <p class="score">--</p>
+                <p class="stamp">No data yet</p>
+              </article>
+              <article class="score-card">
+                <p class="bureau">Equifax</p>
+                <p class="score">--</p>
+                <p class="stamp">No data yet</p>
+              </article>
+              <article class="score-card">
+                <p class="bureau">TransUnion</p>
+                <p class="score">--</p>
+                <p class="stamp">No data yet</p>
+              </article>
+            </div>
+          </section>
+
+          <section>
+            <h3>Letters Sent + Tracking Numbers</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date Sent</th>
+                    <th>Bureau/Creditor</th>
+                    <th>Tracking Number</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="letters-body">
+                  <tr>
+                    <td colspan="5" class="empty">No letters posted yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h3>Account Updates</h3>
+            <ul class="timeline" id="updates-list">
+              <li class="empty">No updates posted yet.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Documents & Attachments</h3>
+            <ul class="file-list" id="files-list">
+              <li class="empty">No files uploaded yet.</li>
+            </ul>
+          </section>
+        </article>
+      </section>
+    </main>
+
+    <script src="portal-config.js?v=20260305a"></script>
+    <script type="module" src="portal.js?v=20260305a"></script>
+  </body>
+</html>
