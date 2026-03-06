@@ -236,20 +236,20 @@ h1 {
 }
 
 .stats {
-  padding: 1.1rem 0 0.25rem;
+  padding: 2rem 0 1.5rem;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.7rem;
+  gap: 1rem;
 }
 
 .stats-grid article {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 0.95rem 0.95rem 0.88rem;
+  border-radius: 14px;
+  padding: 1.5rem 1.6rem;
 }
 
 .stat-value {
@@ -259,12 +259,11 @@ h1 {
 }
 
 .stat-label {
-  margin: 0.06rem 0 0.28rem;
-  text-transform: uppercase;
-  letter-spacing: 0.11em;
-  font-size: 0.74rem;
-  color: #816d9f;
-  font-weight: 800;
+  margin: 0 0 0.55rem;
+  font-family: "Syne", sans-serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .stat-text {
