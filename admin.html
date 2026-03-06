@@ -71,9 +71,9 @@
         <!-- ── Tab Nav ───────────────────────────────────── -->
         <div class="container tab-nav-wrap">
           <nav class="tab-nav">
-            <button class="tab-btn active" data-tab="dashboard">📋 Client Dashboard</button>
-            <button class="tab-btn" data-tab="invite">✉ Invite Client</button>
-            <button class="tab-btn" data-tab="profiles">⚙ Manage Profiles</button>
+            <button class="tab-btn active" data-tab="dashboard" onclick="adminTab('dashboard',this)">📋 Client Dashboard</button>
+            <button class="tab-btn" data-tab="invite" onclick="adminTab('invite',this)">✉ Invite Client</button>
+            <button class="tab-btn" data-tab="profiles" onclick="adminTab('profiles',this)">⚙ Manage Profiles</button>
           </nav>
         </div>
 
@@ -360,7 +360,18 @@
 
     </main>
 
-    <script src="portal-config.js?v=20260306d"></script>
-    <script type="module" src="admin.js?v=20260306d"></script>
+    <script src="portal-config.js?v=20260306e"></script>
+    <script>
+      function adminTab(target, btn) {
+        var panels = document.querySelectorAll('.tab-panel');
+        var btns = document.querySelectorAll('.tab-btn');
+        for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
+        for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+        var panel = document.getElementById('tab-' + target);
+        if (panel) panel.style.display = 'block';
+        if (btn) btn.classList.add('active');
+      }
+    </script>
+    <script type="module" src="admin.js?v=20260306e"></script>
   </body>
 </html>

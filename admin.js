@@ -266,21 +266,7 @@ async function loadClientPreview(userId) {
 }
 
 function initTabs() {
-  const tabBtns = document.querySelectorAll(".tab-btn");
-  const tabPanels = document.querySelectorAll(".tab-panel");
-
-  tabBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.dataset.tab;
-      // Hide all panels and deactivate all buttons
-      tabPanels.forEach((p) => { p.style.display = "none"; });
-      tabBtns.forEach((b) => b.classList.remove("active"));
-      // Show selected panel and mark button active
-      const panel = document.getElementById("tab-" + target);
-      if (panel) { panel.style.display = "block"; }
-      btn.classList.add("active");
-    });
-  });
+  // Tab switching is handled by adminTab() inline onclick in HTML
 }
 
 async function requireActiveClient() {
