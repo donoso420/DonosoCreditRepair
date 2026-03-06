@@ -421,15 +421,29 @@ function initializePortal() {
   });
 
   logoutBtn?.addEventListener("click", async () => {
-    await supabase.auth.signOut();
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = "Signing out…";
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {
+      // non-critical — always redirect
+    }
     currentUser = null;
     window.location.href = "portal.html";
   });
 
   refreshBtn?.addEventListener("click", async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await loadDashboard(user);
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "Refreshing…";
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await loadDashboard(user);
+    } catch (_) {
+      // silently ignore
+    } finally {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "Refresh";
+    }
   });
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
