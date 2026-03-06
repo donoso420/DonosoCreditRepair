@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Syne:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css" />
+    <link rel="stylesheet" href="admin.css?v=20260306b" />
   </head>
   <body>
 
@@ -305,17 +305,17 @@
 
         <!-- ── TAB: Invite Client ─────────────────────────── -->
         <div class="tab-panel hidden" id="tab-invite">
-          <div class="container" style="max-width:680px; padding-top:1.5rem;">
-            <div class="invite-inner">
-              <div class="invite-text">
-                <span class="step-badge invite-icon">✉</span>
-                <div>
-                  <h2>Invite a New Client</h2>
-                  <p class="muted sm">Sends a signup email with a secure link to the client portal. Their account and profile are created automatically.</p>
-                </div>
+          <div class="container" style="max-width:640px; padding-top:1.5rem;">
+            <div class="section-label" style="margin-bottom:1rem;">
+              <span class="step-badge" style="background:#2e1f50;">✉</span>
+              <div>
+                <h2>Invite a New Client</h2>
+                <p class="muted sm">Sends a signup email with a secure link to the client portal. Their account and profile are created automatically.</p>
               </div>
-              <form id="invite-form" class="invite-form">
-                <div class="invite-fields">
+            </div>
+            <div class="card">
+              <form id="invite-form">
+                <div class="form-row">
                   <div>
                     <label for="invite-email">Client Email <span class="req">*</span></label>
                     <input id="invite-email" type="email" placeholder="client@email.com" required />
@@ -324,14 +324,12 @@
                     <label for="invite-name">Full Name</label>
                     <input id="invite-name" type="text" placeholder="Jane Smith" />
                   </div>
-                  <div>
-                    <label for="invite-phone">Phone</label>
-                    <input id="invite-phone" type="tel" placeholder="(305) 000-0000" />
-                  </div>
                 </div>
-                <button class="btn invite-btn" type="submit">Send Invite Email →</button>
+                <label for="invite-phone">Phone</label>
+                <input id="invite-phone" type="tel" placeholder="(305) 000-0000" />
+                <button class="btn primary full mt" type="submit">Send Invite Email →</button>
               </form>
-              <p class="status invite-status" id="invite-status" role="status" aria-live="polite"></p>
+              <p class="statusbar" id="invite-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
             </div>
           </div>
         </div>
@@ -362,7 +360,7 @@
 
     </main>
 
-    <script src="portal-config.js?v=20260306a"></script>
-    <script type="module" src="admin.js?v=20260306a"></script>
+    <script src="portal-config.js?v=20260306b"></script>
+    <script type="module" src="admin.js?v=20260306b"></script>
   </body>
 </html>
