@@ -23,7 +23,7 @@ body {
 }
 
 body {
-  font-family: "Manrope", sans-serif;
+  font-family: "Inter", sans-serif;
   color: var(--ink);
   background:
     radial-gradient(circle at 8% -10%, #f4ddf0 0, transparent 35%),
@@ -38,7 +38,7 @@ h3 {
   margin: 0 0 0.6rem;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  font-family: "Syne", sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 p {
@@ -72,7 +72,7 @@ a {
 .brand {
   text-decoration: none;
   color: #f7f1ff;
-  font-family: "Syne", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 1.03rem;
   font-weight: 700;
 }
@@ -239,7 +239,7 @@ textarea {
 }
 
 .score {
-  font-family: "Syne", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 1.7rem;
   margin: 0;
 }
