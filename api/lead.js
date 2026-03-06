@@ -375,7 +375,7 @@ ${payload.email}
 
 If the link expires, use "Forgot password?" on the portal page.
 
-Need help now? Reply to this email or call 305-465-1919.
+Need help now? Reply to this email.
 
 Donoso Credit Repair`;
   }
@@ -385,7 +385,7 @@ Donoso Credit Repair`;
 Thank you for contacting Donoso Credit Repair.
 We received your request and will contact you soon.
 
-If you need immediate assistance, reply to this email or call 305-465-1919.
+If you need immediate assistance, reply to this email.
 
 Requested goal: ${formatGoal(payload.goal)}
 

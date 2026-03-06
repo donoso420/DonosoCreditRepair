@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   const siteUrl = requiredEnv("SITE_URL") || "https://donosocreditrepair.com";
 
   if (!secretKey || !priceId) {
-    res.status(500).send("Payment configuration is incomplete. Please contact us at 305-465-1919.");
+    res.status(500).send("Payment configuration is incomplete. Please contact us via the form on our website.");
     return;
   }
 
@@ -67,6 +67,6 @@ export default async function handler(req, res) {
     res.writeHead(303, { Location: session.url });
     res.end();
   } catch (error) {
-    res.status(500).send("Could not start checkout. Please try again or call 305-465-1919.");
+    res.status(500).send("Could not start checkout. Please try again or contact us via the form on our website.");
   }
 }
