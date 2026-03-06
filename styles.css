@@ -660,14 +660,20 @@ h1 {
   font-size: 1.08rem;
 }
 
+/* ── Tablet: stack multi-column grids ───────────────────────────────── */
 @media (max-width: 1020px) {
   .hero-grid,
-  .stats-grid,
   .results-grid,
-  .issue-grid,
-  .steps-grid,
   .pricing-grid {
     grid-template-columns: 1fr;
+  }
+
+  .issue-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .steps-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .nav-links {
@@ -675,10 +681,109 @@ h1 {
   }
 
   .hero-grid {
-    padding-top: 3rem;
+    gap: 2rem;
+    padding: 3rem 0 2.5rem;
   }
 
   h1 {
     max-width: none;
+  }
+}
+
+/* ── Mobile: tighten spacing and font sizes ─────────────────────────── */
+@media (max-width: 640px) {
+  /* Nav */
+  .nav-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* Hero */
+  .hero-grid {
+    gap: 1.75rem;
+    padding: 2.25rem 0 2rem;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+  }
+
+  .hero-panel {
+    padding: 1.2rem 1.3rem;
+  }
+
+  .hero-lead {
+    font-size: 0.97rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Sections */
+  .section {
+    padding: 2rem 0;
+  }
+
+  .section-title {
+    font-size: 1.7rem;
+  }
+
+  /* Service cards */
+  .stats-grid {
+    gap: 0.75rem;
+  }
+
+  .stats-grid article {
+    padding: 1.2rem 1.3rem;
+  }
+
+  /* Results */
+  .result-media img {
+    min-height: 160px;
+  }
+
+  /* Services grid — single column on small phones */
+  .issue-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  /* Steps — single column on small phones */
+  .steps-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  /* Pricing */
+  .plan-card {
+    padding: 1.25rem;
+  }
+
+  /* FAQ */
+  .faq-section details {
+    padding: 0.75rem 0.85rem;
+  }
+
+  /* Contact form */
+  .lead-form {
+    padding: 1.25rem;
+  }
+
+  /* Footer */
+  .footer .container {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .legal-links a {
+    margin: 0 0.4rem;
   }
 }
