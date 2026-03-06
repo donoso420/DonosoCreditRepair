@@ -269,19 +269,16 @@ function initTabs() {
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabPanels = document.querySelectorAll(".tab-panel");
 
-  // Force correct initial visibility using inline styles
-  tabPanels.forEach((p) => {
-    p.style.display = p.classList.contains("active") ? "block" : "none";
-  });
-
   tabBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       const target = btn.dataset.tab;
-      tabBtns.forEach((b) => b.classList.remove("active"));
+      // Hide all panels and deactivate all buttons
       tabPanels.forEach((p) => { p.style.display = "none"; });
-      btn.classList.add("active");
-      const panel = document.getElementById(`tab-${target}`);
+      tabBtns.forEach((b) => b.classList.remove("active"));
+      // Show selected panel and mark button active
+      const panel = document.getElementById("tab-" + target);
       if (panel) { panel.style.display = "block"; }
+      btn.classList.add("active");
     });
   });
 }
