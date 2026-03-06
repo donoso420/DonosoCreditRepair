@@ -187,6 +187,56 @@ with check (auth.uid() = user_id);
 -- Admin note:
 -- Insert/update/delete on tracker tables is restricted by admin_users policy.
 
+-- ── NEW: Portal messaging (two-way client ↔ admin) ─────────────────────────
+create table if not exists public.portal_messages (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  sender_role text not null check (sender_role in ('client', 'admin')),
+  content text not null,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.portal_messages enable row level security;
+
+-- Client can read and insert their own messages
+drop policy if exists "messages_select_own" on public.portal_messages;
+create policy "messages_select_own"
+on public.portal_messages for select
+using (auth.uid() = user_id);
+
+drop policy if exists "messages_insert_own" on public.portal_messages;
+create policy "messages_insert_own"
+on public.portal_messages for insert
+with check (auth.uid() = user_id and sender_role = 'client');
+
+-- Admin can manage all messages
+drop policy if exists "admin_manage_messages" on public.portal_messages;
+create policy "admin_manage_messages"
+on public.portal_messages for all
+using (exists (select 1 from public.admin_users a where a.user_id = auth.uid()))
+with check (exists (select 1 from public.admin_users a where a.user_id = auth.uid()));
+
+-- ── NEW: Track who uploaded each file (admin vs client) ────────────────────
+alter table public.client_files
+  add column if not exists uploaded_by text not null default 'admin'
+  check (uploaded_by in ('admin', 'client'));
+
+-- Allow clients to insert their own file records
+drop policy if exists "client_files_insert_own" on public.client_files;
+create policy "client_files_insert_own"
+on public.client_files for insert
+with check (auth.uid() = user_id and uploaded_by = 'client');
+
+-- Allow clients to upload to their own folder in storage
+drop policy if exists "client_upload_own_docs" on storage.objects;
+create policy "client_upload_own_docs"
+on storage.objects for insert
+with check (
+  bucket_id = 'client-docs'
+  and split_part(name, '/', 1) = auth.uid()::text
+);
+
 -- Storage bucket for client attachments
 insert into storage.buckets (id, name, public)
 values ('client-docs', 'client-docs', false)

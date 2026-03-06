@@ -112,6 +112,47 @@
           </section>
 
           <section>
+            <h3>Dispute Progress</h3>
+            <div class="tracker" id="progress-tracker">
+              <div class="tracker-step" data-step="1">
+                <div class="tracker-dot"></div>
+                <div class="tracker-label">
+                  <strong>Enrollment</strong>
+                  <span>Account created</span>
+                </div>
+              </div>
+              <div class="tracker-step" data-step="2">
+                <div class="tracker-dot"></div>
+                <div class="tracker-label">
+                  <strong>Credit Review</strong>
+                  <span>Report analyzed &amp; strategy built</span>
+                </div>
+              </div>
+              <div class="tracker-step" data-step="3">
+                <div class="tracker-dot"></div>
+                <div class="tracker-label">
+                  <strong>Disputes Filed</strong>
+                  <span>Letters sent to bureaus &amp; collectors</span>
+                </div>
+              </div>
+              <div class="tracker-step" data-step="4">
+                <div class="tracker-dot"></div>
+                <div class="tracker-label">
+                  <strong>Awaiting Response</strong>
+                  <span>Bureau investigation period (30–45 days)</span>
+                </div>
+              </div>
+              <div class="tracker-step" data-step="5">
+                <div class="tracker-dot"></div>
+                <div class="tracker-label">
+                  <strong>Results In</strong>
+                  <span>Responses received &amp; next cycle planned</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
             <h3>Account Updates</h3>
             <ul class="timeline" id="updates-list">
               <li class="empty">No updates posted yet.</li>
@@ -119,10 +160,35 @@
           </section>
 
           <section>
-            <h3>Documents & Attachments</h3>
+            <h3>Documents &amp; Letters</h3>
             <ul class="file-list" id="files-list">
               <li class="empty">No files uploaded yet.</li>
             </ul>
+          </section>
+
+          <section>
+            <h3>Upload Incoming Mail</h3>
+            <p class="section-sub">Received something from a bureau or creditor? Upload it here so we can review it.</p>
+            <form id="client-upload-form" class="upload-form">
+              <label for="client-file-title">Description</label>
+              <input id="client-file-title" type="text" placeholder="e.g. Experian response letter — March 2026" required />
+              <label for="client-file-input">Attachment (PDF, JPG, PNG — max 15MB)</label>
+              <input id="client-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
+              <button type="submit" class="btn primary">Upload Document</button>
+            </form>
+            <p id="upload-status" class="status" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="messages-section">
+            <h3>Messages</h3>
+            <ul class="message-thread" id="message-thread">
+              <li class="empty">No messages yet.</li>
+            </ul>
+            <form id="message-form" class="message-compose">
+              <textarea id="message-input" rows="3" placeholder="Send a message to your advisor..." required></textarea>
+              <button type="submit" class="btn primary">Send Message</button>
+            </form>
+            <p id="message-status" class="status" role="status" aria-live="polite"></p>
           </section>
         </article>
       </section>

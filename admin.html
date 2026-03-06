@@ -197,6 +197,29 @@
             </section>
           </div>
 
+          <div class="panel-grid">
+            <section class="card">
+              <h3>8) Client Messages</h3>
+              <p class="muted">View and reply to messages from the active client.</p>
+              <ul class="admin-message-thread" id="admin-message-thread">
+                <li class="muted">Select a client to load messages.</li>
+              </ul>
+              <form id="admin-message-form" style="margin-top:1rem;">
+                <label for="admin-message-input">Reply to Client</label>
+                <textarea id="admin-message-input" rows="3" placeholder="Type your reply..."></textarea>
+                <button class="btn primary" type="submit">Send Reply</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <h3>Client Uploads</h3>
+              <p class="muted">Documents uploaded by the client (incoming mail, bureau letters, etc.)</p>
+              <ul id="preview-client-uploads" class="list">
+                <li class="muted">Select a client to see their uploads.</li>
+              </ul>
+            </section>
+          </div>
+
           <section class="card">
             <h3>Client Record Preview</h3>
             <div class="preview-grid">
@@ -213,7 +236,7 @@
                 <ul id="preview-updates" class="list"></ul>
               </div>
               <div>
-                <h4>Latest Files</h4>
+                <h4>Latest Files (Admin)</h4>
                 <ul id="preview-files" class="list"></ul>
               </div>
             </div>

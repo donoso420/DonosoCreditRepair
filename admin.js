@@ -26,6 +26,10 @@ const previewScores = document.getElementById("preview-scores");
 const previewLetters = document.getElementById("preview-letters");
 const previewUpdates = document.getElementById("preview-updates");
 const previewFiles = document.getElementById("preview-files");
+const adminMessageThread = document.getElementById("admin-message-thread");
+const adminMessageForm = document.getElementById("admin-message-form");
+const adminMessageInput = document.getElementById("admin-message-input");
+const previewClientUploads = document.getElementById("preview-client-uploads");
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -136,6 +140,41 @@ async function loadClients() {
   await loadClientPreview(activeClientId);
 }
 
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleString();
+}
+
+function renderAdminMessages(messages) {
+  if (!adminMessageThread) return;
+  if (!messages || !messages.length) {
+    adminMessageThread.innerHTML = '<li class="muted">No messages from this client yet.</li>';
+    return;
+  }
+  adminMessageThread.innerHTML = messages
+    .map((row) => {
+      const isClient = row.sender_role === "client";
+      const label = isClient ? "Client" : "You (Admin)";
+      const cls = isClient ? "msg-from-client" : "msg-from-admin";
+      return `<li class="${cls}"><strong>${safeText(label)}</strong> · ${safeText(formatDateTime(row.created_at))}<br>${safeText(row.content)}</li>`;
+    })
+    .join("");
+  adminMessageThread.scrollTop = adminMessageThread.scrollHeight;
+}
+
+function renderClientUploads(files) {
+  if (!previewClientUploads) return;
+  const uploads = (files || []).filter((f) => f.uploaded_by === "client");
+  if (!uploads.length) {
+    previewClientUploads.innerHTML = "<li>No client uploads yet.</li>";
+    return;
+  }
+  previewClientUploads.innerHTML = uploads
+    .map((f) => `<li>${safeText(f.title || f.file_name || "File")} · ${safeText(formatDate(f.created_at))}</li>`)
+    .join("");
+}
+
 function renderPreview(scores, letters, updates, files) {
   previewScores.innerHTML = "";
   previewLetters.innerHTML = "";
@@ -191,35 +230,18 @@ function renderPreview(scores, letters, updates, files) {
 
 async function loadClientPreview(userId) {
   if (!userId) return;
-  const [{ data: scores }, { data: letters }, { data: updates }, { data: files }] =
+  const [{ data: scores }, { data: letters }, { data: updates }, { data: files }, { data: messages }] =
     await Promise.all([
-      supabase
-        .from("credit_snapshots")
-        .select("bureau,score,reported_at")
-      .eq("user_id", userId)
-      .order("reported_at", { ascending: false })
-      .limit(6),
-    supabase
-      .from("client_letters")
-      .select("id,recipient,bureau,tracking_number,status,sent_date")
-      .eq("user_id", userId)
-      .order("sent_date", { ascending: false })
-      .limit(8),
-      supabase
-        .from("client_updates")
-        .select("details,created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(8),
-      supabase
-        .from("client_files")
-        .select("title,category,file_name,created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(8),
+      supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", userId).order("reported_at", { ascending: false }).limit(6),
+      supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date").eq("user_id", userId).order("sent_date", { ascending: false }).limit(8),
+      supabase.from("client_updates").select("details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(8),
+      supabase.from("client_files").select("title,category,file_name,created_at,uploaded_by").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
     ]);
 
-  renderPreview(scores || [], letters || [], updates || [], files || []);
+  renderPreview(scores || [], letters || [], updates || [], (files || []).filter((f) => f.uploaded_by !== "client"));
+  renderAdminMessages(messages || []);
+  renderClientUploads(files || []);
 }
 
 async function requireActiveClient() {
@@ -512,6 +534,24 @@ function initialize() {
 
     fileUploadForm.reset();
     setAdminStatus("File uploaded and attached to client record.");
+    await loadClientPreview(activeClientId);
+  });
+
+  adminMessageForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await requireActiveClient())) return;
+    const content = String(adminMessageInput?.value || "").trim();
+    if (!content) { setAdminStatus("Message cannot be empty.", true); return; }
+
+    const { error } = await supabase.from("portal_messages").insert({
+      user_id: activeClientId,
+      sender_role: "admin",
+      content,
+    });
+
+    if (error) { setAdminStatus("Could not send message: " + error.message, true); return; }
+    if (adminMessageInput) adminMessageInput.value = "";
+    setAdminStatus("Message sent.");
     await loadClientPreview(activeClientId);
   });
 

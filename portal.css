@@ -384,3 +384,136 @@ tbody tr:last-child td {
     flex-direction: column;
   }
 }
+
+/* ── Progress Tracker ───────────────────────────────────── */
+.tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.5rem 0;
+}
+
+.tracker-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  position: relative;
+}
+
+.tracker-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 2rem;
+  bottom: -0.6rem;
+  width: 2px;
+  background: #ddd;
+}
+
+.tracker-step.complete::after { background: #a58dbf; }
+
+.tracker-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e0d8eb;
+  border: 3px solid #ccc;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.tracker-step.complete .tracker-dot {
+  background: #a58dbf;
+  border-color: #a58dbf;
+}
+
+.tracker-step.active .tracker-dot {
+  background: #fff;
+  border-color: #7c5cbf;
+  box-shadow: 0 0 0 3px rgba(124, 92, 191, 0.2);
+}
+
+.tracker-label strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #1a1a2e;
+}
+
+.tracker-step.complete .tracker-label strong { color: #a58dbf; }
+.tracker-step.active .tracker-label strong { color: #7c5cbf; font-weight: 800; }
+
+.tracker-label span {
+  font-size: 0.82rem;
+  color: #888;
+}
+
+/* ── Messages ───────────────────────────────────────────── */
+.messages-section { margin-top: 1rem; }
+
+.message-thread {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #e8dff5;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #faf7ff;
+}
+
+.msg-bubble { padding: 0.6rem 0.9rem; border-radius: 10px; max-width: 85%; }
+.msg-client { background: #ede6f9; align-self: flex-end; }
+.msg-admin  { background: #fff; border: 1px solid #e0d8eb; align-self: flex-start; }
+
+.msg-label {
+  font-size: 0.75rem;
+  color: #888;
+  margin-bottom: 0.25rem;
+}
+
+.msg-content { font-size: 0.9rem; color: #1a1a2e; }
+
+.message-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.message-compose textarea {
+  width: 100%;
+  border: 1px solid #d4c4e3;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+/* ── Client upload form ─────────────────────────────────── */
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.upload-form input[type="text"],
+.upload-form input[type="file"] {
+  border: 1px solid #d4c4e3;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.section-sub {
+  font-size: 0.88rem;
+  color: #666;
+  margin: 0 0 0.75rem;
+}
