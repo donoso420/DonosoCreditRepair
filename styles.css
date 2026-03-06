@@ -663,6 +663,7 @@ h1 {
 /* ── Tablet: stack multi-column grids ───────────────────────────────── */
 @media (max-width: 1020px) {
   .hero-grid,
+  .stats-grid,
   .results-grid,
   .pricing-grid {
     grid-template-columns: 1fr;
@@ -692,10 +693,16 @@ h1 {
 
 /* ── Mobile: tighten spacing and font sizes ─────────────────────────── */
 @media (max-width: 640px) {
-  /* Nav */
+  /* Nav — keep brand on one line */
+  .brand {
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+
   .nav-btn {
-    padding: 0.5rem 0.8rem;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
   }
 
   /* Hero */
