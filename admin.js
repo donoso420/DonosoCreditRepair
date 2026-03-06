@@ -171,7 +171,12 @@ function renderClientUploads(files) {
     return;
   }
   previewClientUploads.innerHTML = uploads
-    .map((f) => `<li>${safeText(f.title || f.file_name || "File")} · ${safeText(formatDate(f.created_at))}</li>`)
+    .map((f) => {
+      const link = f.signed_url
+        ? `<a href="${safeText(f.signed_url)}" target="_blank" rel="noopener noreferrer">Open file</a>`
+        : "Link unavailable";
+      return `<li>${safeText(f.title || f.file_name || "File")} · ${safeText(formatDate(f.created_at))} — ${link}</li>`;
+    })
     .join("");
 }
 
@@ -235,13 +240,26 @@ async function loadClientPreview(userId) {
       supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", userId).order("reported_at", { ascending: false }).limit(6),
       supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date").eq("user_id", userId).order("sent_date", { ascending: false }).limit(8),
       supabase.from("client_updates").select("details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(8),
-      supabase.from("client_files").select("title,category,file_name,created_at,uploaded_by").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("client_files").select("title,category,file_name,file_path,bucket,created_at,uploaded_by").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
       supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
     ]);
 
-  renderPreview(scores || [], letters || [], updates || [], (files || []).filter((f) => f.uploaded_by !== "client"));
+  const allFiles = files || [];
+
+  // Generate signed URLs for client uploads so admin can open them
+  const filesWithUrls = await Promise.all(
+    allFiles.map(async (f) => {
+      if (f.uploaded_by !== "client") return f;
+      const { data } = await supabase.storage
+        .from(f.bucket || "client-docs")
+        .createSignedUrl(f.file_path, 60 * 60);
+      return { ...f, signed_url: data?.signedUrl || "" };
+    })
+  );
+
+  renderPreview(scores || [], letters || [], updates || [], filesWithUrls.filter((f) => f.uploaded_by !== "client"));
   renderAdminMessages(messages || []);
-  renderClientUploads(files || []);
+  renderClientUploads(filesWithUrls);
 }
 
 async function requireActiveClient() {
@@ -313,9 +331,7 @@ function initialize() {
   logoutBtn?.addEventListener("click", async () => {
     await supabase.auth.signOut();
     currentAdmin = null;
-    showAuth();
-    setAdminStatus("");
-    setAuthStatus("Signed out.");
+    window.location.href = "admin.html";
   });
 
   profileForm?.addEventListener("submit", async (event) => {
