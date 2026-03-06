@@ -332,12 +332,27 @@ function initialize() {
   });
 
   refreshAllBtn?.addEventListener("click", async () => {
-    await loadClients();
-    setAdminStatus("Data refreshed.");
+    refreshAllBtn.disabled = true;
+    refreshAllBtn.textContent = "Refreshing…";
+    try {
+      await loadClients();
+      setAdminStatus("Data refreshed.");
+    } catch (err) {
+      setAdminStatus("Refresh failed: " + (err?.message || "Unknown error"), true);
+    } finally {
+      refreshAllBtn.disabled = false;
+      refreshAllBtn.textContent = "↺ Refresh";
+    }
   });
 
   logoutBtn?.addEventListener("click", async () => {
-    await supabase.auth.signOut();
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = "Signing out…";
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {
+      // sign-out error is non-critical — always redirect
+    }
     currentAdmin = null;
     window.location.href = "admin.html";
   });
