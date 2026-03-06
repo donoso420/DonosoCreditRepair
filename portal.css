@@ -172,9 +172,9 @@ textarea {
 }
 
 .btn.danger {
-  background: #fff1f5;
-  border-color: #d890af;
-  color: #7a2852;
+  background: #c0392b;
+  border-color: #c0392b;
+  color: #ffffff;
 }
 
 .inline-btn {

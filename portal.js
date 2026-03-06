@@ -423,8 +423,7 @@ function initializePortal() {
   logoutBtn?.addEventListener("click", async () => {
     await supabase.auth.signOut();
     currentUser = null;
-    showAuth();
-    setAuthStatus("Signed out.");
+    window.location.href = "portal.html";
   });
 
   refreshBtn?.addEventListener("click", async () => {
