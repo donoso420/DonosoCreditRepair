@@ -42,6 +42,7 @@ const scanDocumentsBtn = document.getElementById("scan-documents-btn");
 const scanDocumentsStatus = document.getElementById("scan-documents-status");
 const aiVerifyDocumentsBtn = document.getElementById("ai-verify-documents-btn");
 const aiVerifyStatus = document.getElementById("ai-verify-status");
+const reportAutofillStatus = document.getElementById("report-autofill-status");
 
 const inviteForm = document.getElementById("invite-form");
 const inviteStatus = document.getElementById("invite-status");
@@ -100,6 +101,12 @@ function setAiVerifyStatus(message, isError = false) {
   if (!aiVerifyStatus) return;
   aiVerifyStatus.textContent = message;
   aiVerifyStatus.classList.toggle("error", isError);
+}
+
+function setReportAutofillStatus(message, isError = false) {
+  if (!reportAutofillStatus) return;
+  reportAutofillStatus.textContent = message;
+  reportAutofillStatus.classList.toggle("error", isError);
 }
 
 function showAuth() {
@@ -306,6 +313,133 @@ function formatVerificationMethod(value) {
       return "Browser scan";
     default:
       return "Manual";
+  }
+}
+
+function normalizeReportBureau(value) {
+  const raw = String(value || "").toLowerCase();
+  if (raw.includes("experian")) return "Experian";
+  if (raw.includes("equifax")) return "Equifax";
+  if (raw.includes("transunion") || raw.includes("trans union")) return "TransUnion";
+  return "";
+}
+
+function buildAutoReportLabel({ bureau, reportDate, fileName }) {
+  const cleanName = String(fileName || "")
+    .replace(/\.[^.]+$/, "")
+    .replace(/[-_]+/g, " ")
+    .trim();
+  if (bureau && reportDate) {
+    return `${bureau} report pulled ${new Date(`${reportDate}T00:00:00`).toLocaleDateString()}`;
+  }
+  if (bureau) return `${bureau} credit report`;
+  return cleanName || "Credit report";
+}
+
+function buildAutoReportSummary({ result, bureau, reportDate }) {
+  const score = result?.reports?.[0]?.score;
+  const items = Array.isArray(result?.negativeItems) ? result.negativeItems.length : 0;
+  const bureauLabel = bureau || "credit";
+  const parts = [
+    `Auto-filled from PDF analysis for ${bureauLabel} report.`,
+  ];
+  if (score) parts.push(`Detected score ${score}.`);
+  if (reportDate) parts.push(`Report date ${reportDate}.`);
+  parts.push(`Detected ${items} potential negative item(s).`);
+  return parts.join(" ");
+}
+
+async function autofillCreditReportForm(file) {
+  if (!file) {
+    setReportAutofillStatus("");
+    return;
+  }
+
+  const isPdfUpload =
+    String(file.type || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(file.name);
+  if (!isPdfUpload) {
+    setReportAutofillStatus("Autofill only works on PDF credit reports.", true);
+    return;
+  }
+
+  if (file.size > MAX_BROWSER_SCAN_SIZE_BYTES) {
+    setReportAutofillStatus(
+      `This PDF is too large for browser autofill. Upload it and let AI verification handle the report details after upload.`,
+      true
+    );
+    return;
+  }
+
+  try {
+    const titleInput = document.getElementById("report-title");
+    const bureauInput = document.getElementById("report-bureau");
+    const scoreInput = document.getElementById("report-score");
+    const dateInput = document.getElementById("report-date");
+    const summaryInput = document.getElementById("report-summary");
+
+    const result = await scanCreditDocument(
+      file,
+      {
+        fileName: file.name,
+        title: titleInput?.value || file.name,
+        contentType: file.type,
+      },
+      (message) => {
+        setReportAutofillStatus(`Analyzing PDF: ${message}`);
+      }
+    );
+
+    const firstReport = Array.isArray(result?.reports) && result.reports[0] ? result.reports[0] : null;
+    const firstNegativeItem = Array.isArray(result?.negativeItems) && result.negativeItems[0]
+      ? result.negativeItems[0]
+      : null;
+    const detectedBureau =
+      normalizeReportBureau(firstReport?.bureau) ||
+      normalizeReportBureau(firstNegativeItem?.bureau) ||
+      normalizeReportBureau(file.name);
+    const detectedDate = firstReport?.report_date || "";
+    const detectedScore = firstReport?.score ?? "";
+    const detectedLabel = buildAutoReportLabel({
+      bureau: detectedBureau,
+      reportDate: detectedDate,
+      fileName: file.name,
+    });
+    const detectedSummary = buildAutoReportSummary({
+      result,
+      bureau: detectedBureau,
+      reportDate: detectedDate,
+    });
+
+    if (titleInput) titleInput.value = detectedLabel;
+    if (bureauInput && detectedBureau) bureauInput.value = detectedBureau;
+    if (scoreInput && detectedScore) scoreInput.value = String(detectedScore);
+    if (dateInput && detectedDate) dateInput.value = detectedDate;
+    if (summaryInput) summaryInput.value = detectedSummary;
+
+    const items = Array.isArray(result?.negativeItems) ? result.negativeItems.length : 0;
+    const filled = [
+      detectedBureau ? "bureau" : "",
+      detectedScore ? "score" : "",
+      detectedDate ? "report date" : "",
+      "summary",
+    ].filter(Boolean);
+
+    if (!filled.length) {
+      setReportAutofillStatus(
+        "The PDF loaded, but the browser autofill could not confidently detect report details. You can still upload and let server-side AI verification review it.",
+        true
+      );
+      return;
+    }
+
+    setReportAutofillStatus(
+      `PDF analyzed. Filled ${filled.join(", ")} and detected ${items} potential negative item(s). Review the fields, then upload.`
+    );
+  } catch (error) {
+    setReportAutofillStatus(
+      "Could not auto-fill report details from this PDF: " + (error?.message || "Unknown error"),
+      true
+    );
   }
 }
 
@@ -1239,6 +1373,12 @@ function initialize() {
   previewLetters?.addEventListener("click", handlePreviewRecordClick);
   previewUpdates?.addEventListener("click", handlePreviewRecordClick);
 
+  const reportFileInput = document.getElementById("report-file-input");
+  reportFileInput?.addEventListener("change", async () => {
+    const file = reportFileInput.files?.[0];
+    await autofillCreditReportForm(file || null);
+  });
+
   snapshotCancelBtn?.addEventListener("click", resetSnapshotForm);
   negativeCancelBtn?.addEventListener("click", resetNegativeItemForm);
   letterCancelBtn?.addEventListener("click", resetLetterForm);
@@ -1493,6 +1633,7 @@ function initialize() {
     }
 
     creditReportForm.reset();
+    setReportAutofillStatus("");
     setAdminStatus("Credit report uploaded.");
     await loadClientPreview(activeClientId);
   });

@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260307e" />
+    <link rel="stylesheet" href="admin.css?v=20260307f" />
   </head>
   <body>
 
@@ -134,6 +134,7 @@
                     <input id="report-run-scan" type="checkbox" checked />
                     <span>Verify this PDF with AI after upload and add negative items automatically</span>
                   </label>
+                  <p class="statusbar" id="report-autofill-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
                   <p class="muted sm">AI verification only accepts real PDF credit reports. Screenshots and image uploads are rejected.</p>
                   <button class="btn primary full mt" type="submit">Upload Credit Report</button>
                 </form>
@@ -483,6 +484,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260307e"></script>
+    <script type="module" src="admin.js?v=20260307f"></script>
   </body>
 </html>
