@@ -231,7 +231,7 @@ function buildPrompt(fileRecord) {
   ].join("\n");
 }
 
-async function analyzePdfWithOpenAi({ openAiKey, fileName, fileUrl, fileRecord }) {
+async function analyzePdfWithOpenAi({ openAiKey, fileUrl, fileRecord }) {
   const response = await fetch(OPENAI_RESPONSES_URL, {
     method: "POST",
     headers: {
@@ -247,7 +247,6 @@ async function analyzePdfWithOpenAi({ openAiKey, fileName, fileUrl, fileRecord }
             { type: "input_text", text: buildPrompt(fileRecord) },
             {
               type: "input_file",
-              filename: fileName || "credit-report.pdf",
               file_url: fileUrl,
             },
           ],
@@ -357,7 +356,6 @@ export default async function handler(req, res) {
 
     const { model, analysis } = await analyzePdfWithOpenAi({
       openAiKey,
-      fileName: fileRecord.file_name,
       fileUrl,
       fileRecord,
     });
