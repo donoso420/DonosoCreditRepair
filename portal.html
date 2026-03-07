@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260306l" />
+    <link rel="stylesheet" href="portal.css?v=20260306m" />
   </head>
   <body>
     <header class="portal-nav">
@@ -55,6 +55,20 @@
           <button type="button" id="reset-btn" class="inline-btn">Forgot password?</button>
           <p id="auth-status" class="status" role="status" aria-live="polite"></p>
 
+        </article>
+
+        <!-- Shown when client clicks their invite / password-reset link -->
+        <article class="card hidden" id="set-password-card">
+          <h2>Create Your Password</h2>
+          <p class="sub">Welcome! Set a password below to activate your Donoso Credit Repair account.</p>
+          <form id="set-password-form" novalidate>
+            <label for="new-password">New Password</label>
+            <input id="new-password" name="new-password" type="password" minlength="8" required placeholder="At least 8 characters" />
+            <label for="confirm-password">Confirm Password</label>
+            <input id="confirm-password" name="confirm-password" type="password" minlength="8" required placeholder="Re-enter password" />
+            <button type="submit" class="btn primary" style="margin-top:0.5rem">Activate Account →</button>
+          </form>
+          <p id="set-password-status" class="status" role="status" aria-live="polite"></p>
         </article>
 
         <article class="card hidden" id="dashboard-card">
@@ -218,6 +232,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260306l"></script>
+    <script type="module" src="portal.js?v=20260306m"></script>
   </body>
 </html>

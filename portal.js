@@ -3,6 +3,9 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const config = window.__PORTAL_CONFIG__ || {};
 const authCard = document.getElementById("auth-card");
 const dashboardCard = document.getElementById("dashboard-card");
+const setPasswordCard = document.getElementById("set-password-card");
+const setPasswordForm = document.getElementById("set-password-form");
+const setPasswordStatus = document.getElementById("set-password-status");
 const authForm = document.getElementById("auth-form");
 const authStatus = document.getElementById("auth-status");
 const signUpBtn = document.getElementById("signup-btn");
@@ -57,12 +60,20 @@ function setMessageStatus(message, isError = false) {
 
 function showDashboard() {
   if (authCard) authCard.classList.add("hidden");
+  if (setPasswordCard) setPasswordCard.classList.add("hidden");
   if (dashboardCard) dashboardCard.classList.remove("hidden");
 }
 
 function showAuth() {
   if (dashboardCard) dashboardCard.classList.add("hidden");
+  if (setPasswordCard) setPasswordCard.classList.add("hidden");
   if (authCard) authCard.classList.remove("hidden");
+}
+
+function showSetPassword() {
+  if (authCard) authCard.classList.add("hidden");
+  if (dashboardCard) dashboardCard.classList.add("hidden");
+  if (setPasswordCard) setPasswordCard.classList.remove("hidden");
 }
 
 function escapeHtml(value) {
@@ -454,9 +465,44 @@ function initializePortal() {
     }
   });
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (session?.user) { showDashboard(); await loadDashboard(session.user); }
-    else { showAuth(); }
+  // Set-password form (shown when client clicks their invite / reset link)
+  setPasswordForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const newPass = String(document.getElementById("new-password")?.value || "");
+    const confirmPass = String(document.getElementById("confirm-password")?.value || "");
+    if (newPass.length < 8) {
+      if (setPasswordStatus) { setPasswordStatus.textContent = "Password must be at least 8 characters."; setPasswordStatus.classList.add("error"); }
+      return;
+    }
+    if (newPass !== confirmPass) {
+      if (setPasswordStatus) { setPasswordStatus.textContent = "Passwords do not match."; setPasswordStatus.classList.add("error"); }
+      return;
+    }
+    const submitBtn = setPasswordForm.querySelector("button[type=submit]");
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Activating…"; }
+    if (setPasswordStatus) { setPasswordStatus.textContent = ""; setPasswordStatus.classList.remove("error"); }
+
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    if (error) {
+      if (setPasswordStatus) { setPasswordStatus.textContent = error.message; setPasswordStatus.classList.add("error"); }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Activate Account →"; }
+      return;
+    }
+    // Password set — load the dashboard
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) { showDashboard(); await loadDashboard(user); }
+  });
+
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      // Client clicked invite / password-reset link — show set-password screen
+      showSetPassword();
+    } else if (session?.user) {
+      showDashboard();
+      await loadDashboard(session.user);
+    } else {
+      showAuth();
+    }
   });
 
   supabase.auth.getSession().then(async ({ data }) => {
