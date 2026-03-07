@@ -403,7 +403,10 @@ function initialize() {
     }
 
     inviteForm.reset();
-    if (inviteStatus) { inviteStatus.textContent = `✓ Invite sent to ${email}. They'll get an email with a login link.`; inviteStatus.classList.remove("error"); }
+    if (inviteStatus) {
+      inviteStatus.textContent = `✓ Invite sent to ${email}. They'll get an email to create their portal password.`;
+      inviteStatus.classList.remove("error");
+    }
     await loadClients();
   });
 

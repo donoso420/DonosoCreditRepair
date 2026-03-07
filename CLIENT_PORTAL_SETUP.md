@@ -75,7 +75,7 @@ In Supabase Auth:
 
 For each new client:
 
-1. Create account from portal (`Create Account`) or invite via Supabase Auth admin.
+1. Create the account from the admin invite flow or via the automated lead onboarding email.
 2. Add one row in `client_profiles` with same `user_id`.
 3. Add rows in:
 - `credit_snapshots` (score updates)

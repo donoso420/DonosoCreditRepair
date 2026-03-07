@@ -244,7 +244,8 @@ async function generatePortalSetupLink({
   };
 
   if (redirectTo) {
-    body.options = { redirectTo };
+    // Raw GoTrue admin endpoints expect snake_case here.
+    body.redirect_to = redirectTo;
   }
 
   const data = await supabaseRequest({

@@ -6,9 +6,11 @@ const dashboardCard = document.getElementById("dashboard-card");
 const setPasswordCard = document.getElementById("set-password-card");
 const setPasswordForm = document.getElementById("set-password-form");
 const setPasswordStatus = document.getElementById("set-password-status");
+const setPasswordTitle = setPasswordCard?.querySelector("h2");
+const setPasswordSub = setPasswordCard?.querySelector(".sub");
+const setPasswordSubmitBtn = setPasswordForm?.querySelector("button[type=submit]");
 const authForm = document.getElementById("auth-form");
 const authStatus = document.getElementById("auth-status");
-const signUpBtn = document.getElementById("signup-btn");
 const resetBtn = document.getElementById("reset-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const refreshBtn = document.getElementById("refresh-btn");
@@ -24,6 +26,8 @@ const messageInput = document.getElementById("message-input");
 const messageStatus = document.getElementById("message-status");
 const clientUploadForm = document.getElementById("client-upload-form");
 const uploadStatus = document.getElementById("upload-status");
+const authLandingState = getAuthLandingState();
+let authEmailCooldownUntil = 0;
 
 const requiredConfig = ["supabaseUrl", "supabaseAnonKey"];
 const missingConfig = requiredConfig.filter((k) => !config[k]);
@@ -34,7 +38,6 @@ if (missingConfig.length > 0) {
     true
   );
   if (authForm) authForm.querySelectorAll("input,button").forEach((el) => { el.disabled = true; });
-  if (signUpBtn) signUpBtn.disabled = true;
   if (resetBtn) resetBtn.disabled = true;
 } else {
   initializePortal();
@@ -44,6 +47,50 @@ function setAuthStatus(message, isError = false) {
   if (!authStatus) return;
   authStatus.textContent = message;
   authStatus.classList.toggle("error", isError);
+}
+
+function setAuthControlsDisabled(disabled) {
+  authForm?.querySelectorAll("input,button").forEach((el) => {
+    el.disabled = disabled;
+  });
+  if (resetBtn) resetBtn.disabled = disabled;
+}
+
+function getAuthEmailCooldownMs() {
+  return Math.max(0, authEmailCooldownUntil - Date.now());
+}
+
+function requireAuthEmailCooldown(actionLabel) {
+  const remainingMs = getAuthEmailCooldownMs();
+  if (!remainingMs) return true;
+
+  const seconds = Math.ceil(remainingMs / 1000);
+  setAuthStatus(
+    `Please wait ${seconds} seconds before requesting another ${actionLabel} email.`,
+    true,
+  );
+  return false;
+}
+
+function startAuthEmailCooldown(ms = 60 * 1000) {
+  authEmailCooldownUntil = Date.now() + ms;
+}
+
+function formatAuthError(error, context = "auth") {
+  const message = String(error?.message || error || "").trim();
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("rate limit")) {
+    return context === "reset"
+      ? "Supabase blocked another password email because the project email limit was hit. Wait a minute and try again."
+      : "Supabase blocked another confirmation email because the project email limit was hit. Wait a minute and try again. If this keeps happening, use the admin invite flow or configure custom SMTP in Supabase.";
+  }
+
+  if (normalized.includes("user already registered")) {
+    return "This email already has an account. Sign in or use Forgot password.";
+  }
+
+  return message || "Unexpected authentication error.";
 }
 
 function setUploadStatus(message, isError = false) {
@@ -74,6 +121,89 @@ function showSetPassword() {
   if (authCard) authCard.classList.add("hidden");
   if (dashboardCard) dashboardCard.classList.add("hidden");
   if (setPasswordCard) setPasswordCard.classList.remove("hidden");
+}
+
+function getLocationParams() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  return { searchParams, hashParams };
+}
+
+function getFirstLocationParam(...keys) {
+  const { searchParams, hashParams } = getLocationParams();
+  for (const key of keys) {
+    const hashValue = hashParams.get(key);
+    if (hashValue) return hashValue;
+    const searchValue = searchParams.get(key);
+    if (searchValue) return searchValue;
+  }
+  return "";
+}
+
+function getAuthLandingState() {
+  const type = getFirstLocationParam("type").toLowerCase();
+  const error = getFirstLocationParam("error_description", "error");
+  return {
+    type,
+    error,
+    needsPasswordSetup: type === "invite" || type === "recovery",
+    isSignupConfirmation: type === "signup",
+  };
+}
+
+function configureSetPasswordFlow(flowType) {
+  const normalized = String(flowType || "invite").toLowerCase();
+  const isRecovery = normalized === "recovery";
+
+  if (setPasswordTitle) {
+    setPasswordTitle.textContent = isRecovery ? "Reset Your Password" : "Create Your Password";
+  }
+  if (setPasswordSub) {
+    setPasswordSub.textContent = isRecovery
+      ? "Set a new password to regain access to your Donoso Credit Repair account."
+      : "Welcome! Set a password below to activate your Donoso Credit Repair account.";
+  }
+  if (setPasswordSubmitBtn) {
+    setPasswordSubmitBtn.textContent = isRecovery ? "Save New Password" : "Activate Account";
+  }
+}
+
+function clearAuthRedirectState() {
+  const url = new URL(window.location.href);
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+  const keysToRemove = [
+    "access_token",
+    "refresh_token",
+    "expires_at",
+    "expires_in",
+    "token_type",
+    "type",
+    "code",
+    "error",
+    "error_code",
+    "error_description",
+    "provider_token",
+    "provider_refresh_token",
+  ];
+
+  let changed = false;
+  keysToRemove.forEach((key) => {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+    if (hashParams.has(key)) {
+      hashParams.delete(key);
+      changed = true;
+    }
+  });
+
+  if (!changed) return;
+
+  const nextSearch = url.searchParams.toString();
+  const nextHash = hashParams.toString();
+  const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${nextHash ? `#${nextHash}` : ""}`;
+  window.history.replaceState({}, document.title, nextUrl);
 }
 
 function escapeHtml(value) {
@@ -261,6 +391,11 @@ function renderMessages(messages, currentUserId) {
 function initializePortal() {
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
   let currentUser = null;
+  let pendingPasswordSetupFlow = authLandingState.needsPasswordSetup ? authLandingState.type : "";
+
+  if (pendingPasswordSetupFlow) {
+    configureSetPasswordFlow(pendingPasswordSetupFlow);
+  }
 
   async function loadDashboard(user) {
     currentUser = user;
@@ -404,31 +539,28 @@ function initializePortal() {
     await loadDashboard(data.user);
   });
 
-  signUpBtn?.addEventListener("click", async () => {
-    const email = String(document.getElementById("email")?.value || "").trim();
-    const password = String(document.getElementById("password")?.value || "");
-    if (!email || password.length < 8) {
-      setAuthStatus("Use a valid email and password with at least 8 characters.", true);
-      return;
-    }
-    setAuthStatus("Creating account...");
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin + "/portal.html" },
-    });
-    if (error) { setAuthStatus(error.message, true); return; }
-    setAuthStatus("Account created. Check your email to confirm before signing in.");
-  });
-
   resetBtn?.addEventListener("click", async () => {
     const email = String(document.getElementById("email")?.value || "").trim();
     if (!email) { setAuthStatus("Enter your email first, then click reset.", true); return; }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/portal.html",
-    });
-    if (error) { setAuthStatus(error.message, true); return; }
-    setAuthStatus("Password reset email sent.");
+    if (!requireAuthEmailCooldown("password reset")) return;
+
+    setAuthControlsDisabled(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + "/portal.html",
+      });
+      if (error) {
+        if (String(error.message || "").toLowerCase().includes("rate limit")) {
+          startAuthEmailCooldown();
+        }
+        setAuthStatus(formatAuthError(error, "reset"), true);
+        return;
+      }
+      startAuthEmailCooldown();
+      setAuthStatus("Password reset email sent.");
+    } finally {
+      setAuthControlsDisabled(false);
+    }
   });
 
   logoutBtn?.addEventListener("click", async () => {
@@ -485,28 +617,78 @@ function initializePortal() {
     const { error } = await supabase.auth.updateUser({ password: newPass });
     if (error) {
       if (setPasswordStatus) { setPasswordStatus.textContent = error.message; setPasswordStatus.classList.add("error"); }
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Activate Account →"; }
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        configureSetPasswordFlow(pendingPasswordSetupFlow || "invite");
+      }
       return;
     }
+    pendingPasswordSetupFlow = "";
+    clearAuthRedirectState();
     // Password set — load the dashboard
     const { data: { user } } = await supabase.auth.getUser();
     if (user) { showDashboard(); await loadDashboard(user); }
   });
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  supabase.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
-      // Client clicked invite / password-reset link — show set-password screen
+      pendingPasswordSetupFlow = "recovery";
+      configureSetPasswordFlow("recovery");
       showSetPassword();
-    } else if (session?.user) {
-      showDashboard();
-      await loadDashboard(session.user);
-    } else {
-      showAuth();
+      return;
     }
+
+    if (session?.user) {
+      if (pendingPasswordSetupFlow) {
+        configureSetPasswordFlow(pendingPasswordSetupFlow);
+        showSetPassword();
+        return;
+      }
+
+      clearAuthRedirectState();
+      showDashboard();
+      window.setTimeout(() => {
+        loadDashboard(session.user).catch(() => {
+          setAuthStatus("Could not load your portal data right now.", true);
+        });
+      }, 0);
+      return;
+    }
+
+    showAuth();
+    if (authLandingState.error) {
+      setAuthStatus(authLandingState.error, true);
+      return;
+    }
+    if (authLandingState.isSignupConfirmation) {
+      setAuthStatus("Email confirmed. Sign in below with the password you created.");
+      return;
+    }
+    setAuthStatus("");
   });
 
   supabase.auth.getSession().then(async ({ data }) => {
-    if (data.session?.user) { showDashboard(); await loadDashboard(data.session.user); }
-    else { showAuth(); }
+    if (data.session?.user) {
+      if (pendingPasswordSetupFlow) {
+        configureSetPasswordFlow(pendingPasswordSetupFlow);
+        showSetPassword();
+        return;
+      }
+      clearAuthRedirectState();
+      showDashboard();
+      await loadDashboard(data.session.user);
+      return;
+    }
+
+    showAuth();
+    if (authLandingState.error) {
+      setAuthStatus(authLandingState.error, true);
+      return;
+    }
+    if (authLandingState.isSignupConfirmation) {
+      setAuthStatus("Email confirmed. Sign in below with the password you created.");
+      return;
+    }
+    setAuthStatus("");
   });
 }
