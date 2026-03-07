@@ -377,6 +377,32 @@ textarea { resize: vertical; }
 
 .list li:last-child { border-bottom: none; }
 
+.file-record {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem 0;
+}
+
+.file-record-title {
+  margin: 0;
+  font-weight: 700;
+  color: #352b4f;
+}
+
+.file-record-meta {
+  margin: 0;
+  color: #75678f;
+  font-size: 0.8rem;
+}
+
+.file-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 /* ── Messages ────────────────────────────────────── */
 .admin-message-thread {
   list-style: none;

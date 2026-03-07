@@ -60,6 +60,7 @@ const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k
 let supabase = null;
 let currentAdmin = null;
 let activeClientId = null;
+let activeClientFiles = [];
 
 function setAuthStatus(message, isError = false) {
   if (!authStatus) return;
@@ -136,6 +137,20 @@ function formatMbLimit(limitMb) {
   return `${limitMb}MB`;
 }
 
+function renderFileActionButtons(fileRow) {
+  const viewButton = fileRow.signed_url
+    ? `<a class="btn secondary sm" href="${safeText(fileRow.signed_url)}" target="_blank" rel="noopener noreferrer">View</a>`
+    : `<span class="muted sm">No link</span>`;
+  return `
+    <div class="file-actions-row">
+      ${viewButton}
+      <button class="btn danger sm" type="button" data-action="delete-file" data-file-id="${safeText(
+        fileRow.id
+      )}">Delete</button>
+    </div>
+  `;
+}
+
 function formatVerificationStatus(value) {
   switch (String(value || "").toLowerCase()) {
     case "verified":
@@ -194,6 +209,7 @@ async function loadClients() {
   if (!data || data.length === 0) {
     clientSelect.innerHTML = '<option value="">No clients yet</option>';
     activeClientId = null;
+    activeClientFiles = [];
     activeClientIdEl.textContent = "";
     setScanStatus("");
     setAiVerifyStatus("");
@@ -249,10 +265,15 @@ function renderClientUploads(files) {
   }
   previewClientUploads.innerHTML = uploads
     .map((f) => {
-      const link = f.signed_url
-        ? `<a href="${safeText(f.signed_url)}" target="_blank" rel="noopener noreferrer">Open file</a>`
-        : "Link unavailable";
-      return `<li>${safeText(f.title || f.file_name || "File")} · ${safeText(formatDate(f.created_at))} — ${link}</li>`;
+      return `
+        <li class="file-record">
+          <p class="file-record-title">${safeText(f.title || f.file_name || "File")}</p>
+          <p class="file-record-meta">${safeText(
+            f.category || "Document"
+          )} · ${safeText(formatDate(f.created_at))}</p>
+          ${renderFileActionButtons(f)}
+        </li>
+      `;
     })
     .join("");
 }
@@ -339,13 +360,15 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
     previewFiles.innerHTML = "<li>No files yet.</li>";
   } else {
     for (const row of files) {
-      const openLink = row.signed_url
-        ? ` — <a href="${safeText(row.signed_url)}" target="_blank" rel="noopener noreferrer">Open</a>`
-        : "";
       const li = document.createElement("li");
-      li.innerHTML = `${safeText(row.category || "File")}: ${safeText(
-        row.title || row.file_name || "Attachment"
-      )}${openLink}`;
+      li.className = "file-record";
+      li.innerHTML = `
+        <p class="file-record-title">${safeText(row.title || row.file_name || "Attachment")}</p>
+        <p class="file-record-meta">${safeText(row.category || "File")} · ${safeText(
+        formatDate(row.created_at)
+      )}</p>
+        ${renderFileActionButtons(row)}
+      `;
       previewFiles.appendChild(li);
     }
   }
@@ -720,6 +743,7 @@ async function loadClientPreview(userId) {
     ]);
 
   const filesWithUrls = files || [];
+  activeClientFiles = filesWithUrls;
   const reportFileMap = new Map(filesWithUrls.map((row) => [row.id, row.signed_url || ""]));
   const reportsWithUrls = (reports || []).map((row) => ({
     ...row,
@@ -736,6 +760,78 @@ async function loadClientPreview(userId) {
   );
   renderAdminMessages(messages || []);
   renderClientUploads(filesWithUrls);
+}
+
+async function safeDeleteQuery(queryPromise) {
+  const { error } = await queryPromise;
+  if (!error || isMissingFeatureError(error)) return;
+  throw error;
+}
+
+async function deleteClientFile(fileId) {
+  const numericFileId = Number(fileId || 0);
+  if (!numericFileId || !activeClientId) return;
+
+  const fileRow = activeClientFiles.find((row) => Number(row.id) === numericFileId);
+  if (!fileRow) {
+    setAdminStatus("That file is no longer loaded. Refresh and try again.", true);
+    return;
+  }
+
+  const label = fileRow.title || fileRow.file_name || "this file";
+  const warning = isLikelyCreditReportCandidate(fileRow)
+    ? " This will also remove any report summary rows and negative items linked to this file."
+    : "";
+  const confirmed = window.confirm(`Delete ${label}?${warning}`);
+  if (!confirmed) return;
+
+  setAdminStatus(`Deleting ${label}...`);
+
+  try {
+    await safeDeleteQuery(
+      supabase
+        .from("negative_items")
+        .delete()
+        .eq("user_id", activeClientId)
+        .eq("source_file_id", numericFileId)
+    );
+
+    await safeDeleteQuery(
+      supabase
+        .from("credit_reports")
+        .delete()
+        .eq("user_id", activeClientId)
+        .eq("file_id", numericFileId)
+    );
+
+    const { error: rowError } = await supabase
+      .from("client_files")
+      .delete()
+      .eq("user_id", activeClientId)
+      .eq("id", numericFileId);
+
+    if (rowError) {
+      throw rowError;
+    }
+
+    const { error: storageError } = await supabase
+      .storage
+      .from(fileRow.bucket || "client-docs")
+      .remove([fileRow.file_path]);
+
+    if (storageError) {
+      setAdminStatus(
+        `${label} was removed from the client record, but storage cleanup failed: ${storageError.message}`,
+        true
+      );
+    } else {
+      setAdminStatus(`${label} deleted.`);
+    }
+
+    await loadClientPreview(activeClientId);
+  } catch (error) {
+    setAdminStatus("Could not delete file: " + (error?.message || error), true);
+  }
 }
 
 function initTabs() {
@@ -800,11 +896,27 @@ function initialize() {
 
   clientSelect?.addEventListener("change", async () => {
     activeClientId = clientSelect.value || null;
+    activeClientFiles = [];
     activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
     setScanStatus("");
     setAiVerifyStatus("");
     await loadClientPreview(activeClientId);
   });
+
+  const handleFileActionClick = async (event) => {
+    const actionEl = event.target.closest("[data-action]");
+    if (!actionEl) return;
+
+    const action = String(actionEl.getAttribute("data-action") || "");
+    const fileId = actionEl.getAttribute("data-file-id");
+    if (action !== "delete-file" || !fileId) return;
+
+    event.preventDefault();
+    await deleteClientFile(fileId);
+  };
+
+  previewFiles?.addEventListener("click", handleFileActionClick);
+  previewClientUploads?.addEventListener("click", handleFileActionClick);
 
   refreshAllBtn?.addEventListener("click", async () => {
     refreshAllBtn.disabled = true;
