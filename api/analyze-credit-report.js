@@ -79,6 +79,13 @@ function json(res, status, body) {
   res.status(status).json(body);
 }
 
+function buildApiError(message, statusCode = 500, code = "") {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  error.code = code;
+  return error;
+}
+
 function formatSupabaseError(status, data, rawText) {
   const message =
     (data && (data.message || data.msg || data.error_description || data.error)) || rawText;
@@ -267,9 +274,39 @@ async function analyzePdfWithOpenAi({ openAiKey, fileUrl, fileRecord }) {
   const data = parseMaybeJson(rawText);
 
   if (!response.ok) {
-    const message =
-      data?.error?.message || data?.message || rawText || "OpenAI request failed.";
-    throw new Error(String(message));
+    const code = String(data?.error?.code || data?.code || "").toLowerCase();
+    const message = String(data?.error?.message || data?.message || rawText || "OpenAI request failed.");
+    const combined = `${code} ${message}`.toLowerCase();
+
+    if (
+      code === "insufficient_quota" ||
+      combined.includes("insufficient quota") ||
+      combined.includes("check your plan and billing details")
+    ) {
+      throw buildApiError(
+        "The OpenAI API key for this deployment has no active API billing or quota. Add billing/credits in OpenAI Platform, then retry.",
+        503,
+        "openai_insufficient_quota"
+      );
+    }
+
+    if (response.status === 401) {
+      throw buildApiError(
+        "OPENAI_API_KEY is missing, invalid, or not authorized for this project.",
+        500,
+        "openai_auth"
+      );
+    }
+
+    if (response.status === 429) {
+      throw buildApiError(
+        "OpenAI rate limit reached for this API key. Wait a minute and retry.",
+        429,
+        "openai_rate_limit"
+      );
+    }
+
+    throw buildApiError(message, response.status || 500, code || "openai_request_failed");
   }
 
   const outputText = extractResponseText(data);
@@ -369,11 +406,12 @@ export default async function handler(req, res) {
   } catch (error) {
     const message = String(error?.message || error || "Unknown error");
     const status =
-      message === "Unauthorized."
+      Number(error?.statusCode) ||
+      (message === "Unauthorized."
         ? 401
         : message === "Forbidden."
           ? 403
-          : 500;
-    json(res, status, { error: message });
+          : 500);
+    json(res, status, { error: message, code: error?.code || "" });
   }
 }

@@ -168,6 +168,27 @@ function dedupeItems(items, getKey) {
   return Array.from(seen.values());
 }
 
+function looksLikeCreditReport(text, fileMeta = {}) {
+  const haystack = normalizeWhitespace(
+    [
+      text,
+      fileMeta.fileName,
+      fileMeta.title,
+      fileMeta.category,
+      fileMeta.bureau,
+    ]
+      .filter(Boolean)
+      .join("\n")
+  ).toLowerCase();
+
+  return (
+    /\b(experian|equifax|transunion|trans union)\b/.test(haystack) ||
+    /\b(credit report|annualcreditreport|tri[- ]merge|tradeline|account review|consumer disclosure)\b/.test(
+      haystack
+    )
+  );
+}
+
 function extractScores(text, fileMeta = {}) {
   const normalized = normalizeWhitespace(text);
   const fallbackBureau = inferBureauFromText(fileMeta.bureau, fileMeta.fileName, fileMeta.title);
@@ -211,6 +232,22 @@ function extractScores(text, fileMeta = {}) {
         file_id: fileMeta.fileId || null,
       });
     }
+  }
+
+  if (!results.length && looksLikeCreditReport(normalized, fileMeta)) {
+    results.push({
+      bureau: fallbackBureau || "Other",
+      score: null,
+      report_date: fallbackDate || fileMeta.reportDate || "",
+      report_label: fileMeta.title || fileMeta.fileName || `${fallbackBureau || "Credit"} report`,
+      summary: `Detected a likely credit report from ${fileMeta.title || fileMeta.fileName || "the uploaded document"}, but no score was extracted from the scanned text.`,
+      source: "scanned",
+      verification_status: "verified",
+      verification_method: "browser_scan",
+      verification_notes:
+        "Detected by the browser document scanner from report text or file metadata. No score was confidently extracted.",
+      file_id: fileMeta.fileId || null,
+    });
   }
 
   return dedupeItems(results, (item) => `${item.bureau}|${item.score}|${item.report_date || ""}`);

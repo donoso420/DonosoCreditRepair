@@ -109,6 +109,31 @@ function setReportAutofillStatus(message, isError = false) {
   reportAutofillStatus.classList.toggle("error", isError);
 }
 
+function buildAiReviewErrorMessage(error, prefix = "AI review failed.") {
+  const code = String(error?.code || "").toLowerCase();
+  const message = String(error?.message || error || "Unknown error");
+  const lower = message.toLowerCase();
+
+  if (
+    code === "openai_insufficient_quota" ||
+    lower.includes("insufficient_quota") ||
+    lower.includes("no active quota or billing") ||
+    lower.includes("check your plan and billing details")
+  ) {
+    return `${prefix} The OpenAI API key on this live site has no active API billing or quota. Add billing/credits in OpenAI Platform, then retry. Browser scan still works, but it is not the AI verification step.`;
+  }
+
+  if (code === "openai_auth" || lower.includes("openai_api_key is missing") || lower.includes("invalid api key")) {
+    return `${prefix} The server-side OPENAI_API_KEY is missing or invalid for this deployment. Update the env var on the live host and redeploy.`;
+  }
+
+  if (code === "openai_rate_limit" || lower.includes("rate limit")) {
+    return `${prefix} OpenAI is rate-limiting this API key right now. Wait a minute and retry.`;
+  }
+
+  return `${prefix} ${message}`;
+}
+
 function showAuth() {
   authCard?.classList.remove("hidden");
   adminApp?.classList.add("hidden");
@@ -776,7 +801,10 @@ async function callAiReviewEndpoint(body, accessToken) {
     }
 
     if (!response.ok) {
-      throw new Error(data?.error || "AI review request failed.");
+      const error = new Error(data?.error || "AI review request failed.");
+      error.status = response.status;
+      error.code = data?.code || "";
+      throw error;
     }
 
     return data;
@@ -1622,10 +1650,7 @@ function initialize() {
           }
         }
       } catch (error) {
-        setAiVerifyStatus(
-          "Report uploaded, but AI verification failed: " + (error?.message || "Unknown error"),
-          true
-        );
+        setAiVerifyStatus(buildAiReviewErrorMessage(error, "Report uploaded, but AI verification failed."), true);
       }
     } else {
       setAiVerifyStatus("");
@@ -1988,7 +2013,7 @@ function initialize() {
       if (isMissingFeatureError(error)) {
         setAiVerifyStatus("Run the updated supabase-portal-schema.sql before using AI review.", true);
       } else {
-        setAiVerifyStatus("AI review failed: " + (error?.message || "Unknown error"), true);
+        setAiVerifyStatus(buildAiReviewErrorMessage(error), true);
       }
     } finally {
       aiVerifyDocumentsBtn.disabled = false;

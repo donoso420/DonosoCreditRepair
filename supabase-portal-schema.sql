@@ -288,6 +288,22 @@ create table if not exists public.credit_reports (
   created_at timestamptz not null default now()
 );
 
+alter table public.credit_reports
+  add column if not exists bureau text not null default 'Other',
+  add column if not exists report_date date,
+  add column if not exists score integer,
+  add column if not exists report_label text,
+  add column if not exists summary text,
+  add column if not exists source text not null default 'manual',
+  add column if not exists verification_status text not null default 'pending',
+  add column if not exists verification_method text not null default 'manual',
+  add column if not exists verification_notes text,
+  add column if not exists verified_at timestamptz,
+  add column if not exists ai_model text,
+  add column if not exists fingerprint text,
+  add column if not exists file_id bigint references public.client_files(id) on delete set null,
+  add column if not exists created_at timestamptz not null default now();
+
 create unique index if not exists credit_reports_user_fingerprint_idx
 on public.credit_reports (user_id, fingerprint);
 
@@ -339,6 +355,26 @@ create table if not exists public.negative_items (
   created_at timestamptz not null default now()
 );
 
+alter table public.negative_items
+  add column if not exists bureau text,
+  add column if not exists account_reference text,
+  add column if not exists status text,
+  add column if not exists balance numeric(12, 2),
+  add column if not exists notes text,
+  add column if not exists is_active boolean not null default true,
+  add column if not exists source text not null default 'manual',
+  add column if not exists verification_method text not null default 'manual',
+  add column if not exists verification_notes text,
+  add column if not exists evidence_excerpt text,
+  add column if not exists verified_at timestamptz,
+  add column if not exists ai_model text,
+  add column if not exists confidence numeric(4, 3),
+  add column if not exists fingerprint text,
+  add column if not exists source_file_id bigint references public.client_files(id) on delete set null,
+  add column if not exists report_id bigint references public.credit_reports(id) on delete set null,
+  add column if not exists last_seen_at date,
+  add column if not exists created_at timestamptz not null default now();
+
 create unique index if not exists negative_items_user_fingerprint_idx
 on public.negative_items (user_id, fingerprint);
 
@@ -362,18 +398,3 @@ with check (
     select 1 from public.admin_users a where a.user_id = auth.uid()
   )
 );
-
-alter table public.credit_reports
-  add column if not exists verification_status text not null default 'pending',
-  add column if not exists verification_method text not null default 'manual',
-  add column if not exists verification_notes text,
-  add column if not exists verified_at timestamptz,
-  add column if not exists ai_model text;
-
-alter table public.negative_items
-  add column if not exists verification_method text not null default 'manual',
-  add column if not exists verification_notes text,
-  add column if not exists evidence_excerpt text,
-  add column if not exists verified_at timestamptz,
-  add column if not exists ai_model text,
-  add column if not exists confidence numeric(4, 3);
