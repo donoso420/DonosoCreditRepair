@@ -40,8 +40,6 @@ const timelineCancelBtn = document.getElementById("timeline-cancel-btn");
 const fileUploadForm = document.getElementById("file-upload-form");
 const scanDocumentsBtn = document.getElementById("scan-documents-btn");
 const scanDocumentsStatus = document.getElementById("scan-documents-status");
-const aiVerifyDocumentsBtn = document.getElementById("ai-verify-documents-btn");
-const aiVerifyStatus = document.getElementById("ai-verify-status");
 const reportAutofillStatus = document.getElementById("report-autofill-status");
 
 const inviteForm = document.getElementById("invite-form");
@@ -63,11 +61,8 @@ const previewClientUploads = document.getElementById("preview-client-uploads");
 
 const MAX_UPLOAD_SIZE_MB = 500;
 const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
-const MAX_AI_REVIEW_SIZE_MB = 45;
-const MAX_AI_REVIEW_SIZE_BYTES = MAX_AI_REVIEW_SIZE_MB * 1024 * 1024;
 const MAX_BROWSER_SCAN_SIZE_MB = 40;
 const MAX_BROWSER_SCAN_SIZE_BYTES = MAX_BROWSER_SCAN_SIZE_MB * 1024 * 1024;
-const AI_REVIEW_ENDPOINTS = ["/api/analyze-credit-report", "/.netlify/functions/analyze-credit-report"];
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -97,41 +92,10 @@ function setScanStatus(message, isError = false) {
   scanDocumentsStatus.classList.toggle("error", isError);
 }
 
-function setAiVerifyStatus(message, isError = false) {
-  if (!aiVerifyStatus) return;
-  aiVerifyStatus.textContent = message;
-  aiVerifyStatus.classList.toggle("error", isError);
-}
-
 function setReportAutofillStatus(message, isError = false) {
   if (!reportAutofillStatus) return;
   reportAutofillStatus.textContent = message;
   reportAutofillStatus.classList.toggle("error", isError);
-}
-
-function buildAiReviewErrorMessage(error, prefix = "AI review failed.") {
-  const code = String(error?.code || "").toLowerCase();
-  const message = String(error?.message || error || "Unknown error");
-  const lower = message.toLowerCase();
-
-  if (
-    code === "openai_insufficient_quota" ||
-    lower.includes("insufficient_quota") ||
-    lower.includes("no active quota or billing") ||
-    lower.includes("check your plan and billing details")
-  ) {
-    return `${prefix} The OpenAI API key on this live site has no active API billing or quota. Add billing/credits in OpenAI Platform, then retry. Browser scan still works, but it is not the AI verification step.`;
-  }
-
-  if (code === "openai_auth" || lower.includes("openai_api_key is missing") || lower.includes("invalid api key")) {
-    return `${prefix} The server-side OPENAI_API_KEY is missing or invalid for this deployment. Update the env var on the live host and redeploy.`;
-  }
-
-  if (code === "openai_rate_limit" || lower.includes("rate limit")) {
-    return `${prefix} OpenAI is rate-limiting this API key right now. Wait a minute and retry.`;
-  }
-
-  return `${prefix} ${message}`;
 }
 
 function showAuth() {
@@ -320,7 +284,7 @@ function populateLetterForm(row) {
 function formatVerificationStatus(value) {
   switch (String(value || "").toLowerCase()) {
     case "verified":
-      return "AI verified";
+      return "Verified";
     case "rejected":
       return "Rejected";
     case "needs_review":
@@ -333,9 +297,9 @@ function formatVerificationStatus(value) {
 function formatVerificationMethod(value) {
   switch (String(value || "").toLowerCase()) {
     case "ai_pdf":
-      return "AI PDF review";
+      return "PDF review";
     case "browser_scan":
-      return "Browser scan";
+      return "Document scan";
     default:
       return "Manual";
   }
@@ -426,7 +390,7 @@ async function autofillCreditReportForm(file) {
 
   if (file.size > MAX_BROWSER_SCAN_SIZE_BYTES) {
     setReportAutofillStatus(
-      `This PDF is too large for browser autofill. Upload it and let AI verification handle the report details after upload.`,
+      "This PDF is too large for browser autofill. Upload it first, then use document scan or enter the report details manually.",
       true
     );
     return;
@@ -488,7 +452,7 @@ async function autofillCreditReportForm(file) {
 
     if (!filled.length) {
       setReportAutofillStatus(
-        "The PDF loaded, but the browser autofill could not confidently detect report details. You can still upload and let server-side AI verification review it.",
+        "The PDF loaded, but browser autofill could not confidently detect report details. You can still upload it and use document scan or enter the report details manually.",
         true
       );
       return;
@@ -546,7 +510,6 @@ async function loadClients() {
     activeUpdateRows = [];
     activeClientIdEl.textContent = "";
     setScanStatus("");
-    setAiVerifyStatus("");
     resetSnapshotForm();
     resetNegativeItemForm();
     resetLetterForm();
@@ -817,137 +780,6 @@ function isLikelyCreditReportCandidate(fileRow) {
       haystack
     )
   );
-}
-
-function inferReportSource(fileRow) {
-  return fileRow?.uploaded_by === "client" ? "client_upload" : "admin_upload";
-}
-
-async function getAccessToken() {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  return data?.session?.access_token || "";
-}
-
-async function callAiReviewEndpoint(body, accessToken) {
-  let lastResponse = null;
-  let lastData = null;
-
-  for (const endpoint of AI_REVIEW_ENDPOINTS) {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (response.status === 404) {
-      lastResponse = response;
-      lastData = data;
-      continue;
-    }
-
-    if (!response.ok) {
-      const error = new Error(data?.error || "AI review request failed.");
-      error.status = response.status;
-      error.code = data?.code || "";
-      throw error;
-    }
-
-    return data;
-  }
-
-  throw new Error(lastData?.error || "AI review endpoint is not deployed.");
-}
-
-async function verifyFileRowWithAi(fileRow) {
-  if (!isPdfFile(fileRow)) {
-    throw new Error("AI verification only works on PDF reports.");
-  }
-
-  if (Number(fileRow.file_size || 0) > MAX_AI_REVIEW_SIZE_BYTES) {
-    throw new Error(
-      `AI verification only handles PDFs up to ${formatMbLimit(MAX_AI_REVIEW_SIZE_MB)}.`
-    );
-  }
-
-  const accessToken = await getAccessToken();
-  if (!accessToken) {
-    throw new Error("Admin session expired. Sign in again.");
-  }
-
-  return callAiReviewEndpoint({ fileId: fileRow.id }, accessToken);
-}
-
-async function applyAiReviewResult(fileRow, analysis, fallback = {}) {
-  const documentResult = analysis?.document || {};
-  const negativeItems = Array.isArray(analysis?.negative_items) ? analysis.negative_items : [];
-  const verifiedAt = new Date().toISOString();
-  const reportSource = fallback.source || inferReportSource(fileRow);
-  const reportDate =
-    documentResult.report_date || fallback.report_date || String(fileRow.created_at || "").slice(0, 10);
-  const reportLabel =
-    documentResult.report_label || fallback.report_label || fileRow.title || fileRow.file_name || "Credit report";
-  let reportId = null;
-
-  if (documentResult.accepted || fallback.persistRejectedReport) {
-    reportId = await upsertCreditReportRow(
-      buildManualCreditReport({
-        bureau: documentResult.bureau || fallback.bureau || "Other",
-        report_date: reportDate,
-        score:
-          documentResult.score == null || documentResult.score === ""
-            ? fallback.score ?? ""
-            : documentResult.score,
-        report_label: reportLabel,
-        summary: documentResult.summary || fallback.summary || "",
-        source: reportSource,
-        verification_status: documentResult.accepted ? "verified" : "rejected",
-        verification_method: "ai_pdf",
-        verification_notes: documentResult.reason || fallback.verification_notes || "",
-        verified_at: verifiedAt,
-        ai_model: analysis?.model || "",
-        file_id: fileRow.id,
-      })
-    );
-  }
-
-  if (!documentResult.accepted) {
-    return { accepted: false, reportId, itemsCreated: 0 };
-  }
-
-  let itemsCreated = 0;
-  for (const item of negativeItems) {
-    await upsertNegativeItemRow(
-      buildManualNegativeItem({
-        bureau: item.bureau || documentResult.bureau || "",
-        creditor: item.creditor || "Reported Item",
-        item_type: item.item_type || "Negative Item",
-        account_reference: item.account_reference || "",
-        status: item.status || "",
-        balance: item.balance ?? null,
-        notes: item.notes || "",
-        is_active: true,
-        source: "scanned",
-        verification_method: "ai_pdf",
-        verification_notes:
-          documentResult.reason || "Verified from an uploaded PDF credit report.",
-        evidence_excerpt: item.evidence_excerpt || "",
-        verified_at: verifiedAt,
-        ai_model: analysis?.model || "",
-        confidence: item.confidence ?? null,
-        source_file_id: fileRow.id,
-        report_id: reportId,
-        last_seen_at: reportDate,
-      })
-    );
-    itemsCreated += 1;
-  }
-
-  return { accepted: true, reportId, itemsCreated };
 }
 
 async function upsertCreditReportRow(report) {
@@ -1411,7 +1243,6 @@ function initialize() {
     activeUpdateRows = [];
     activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
     setScanStatus("");
-    setAiVerifyStatus("");
     resetSnapshotForm();
     resetNegativeItemForm();
     resetLetterForm();
@@ -1588,7 +1419,6 @@ function initialize() {
     const scoreRaw = String(document.getElementById("report-score")?.value || "").trim();
     const summary = String(document.getElementById("report-summary")?.value || "").trim();
     const titleInput = String(document.getElementById("report-title")?.value || "").trim();
-    const runAiReview = Boolean(document.getElementById("report-run-scan")?.checked);
 
     if (!file) {
       setAdminStatus("Choose a credit report file to upload.", true);
@@ -1667,49 +1497,10 @@ function initialize() {
       return;
     }
 
-    if (runAiReview) {
-      try {
-        setScanStatus("");
-        if (file.size > MAX_AI_REVIEW_SIZE_BYTES) {
-          setAiVerifyStatus(
-            `Report uploaded. AI verification skipped because PDF review only handles files up to ${formatMbLimit(MAX_AI_REVIEW_SIZE_MB)}. Use browser scan for a smaller excerpt or add negative items manually.`,
-            true
-          );
-        } else {
-          setAiVerifyStatus("AI reviewing uploaded PDF report...");
-          const analysis = await verifyFileRowWithAi(fileRow);
-          const result = await applyAiReviewResult(fileRow, analysis, {
-            bureau,
-            report_date: reportDate,
-            score: scoreRaw,
-            report_label: reportLabel,
-            summary,
-            source: "admin_upload",
-            persistRejectedReport: true,
-          });
-          if (result.accepted) {
-            setAiVerifyStatus(
-              `AI verification complete: ${result.itemsCreated} negative item(s) verified from the PDF report.`
-            );
-          } else {
-            setAiVerifyStatus(
-              analysis?.document?.reason ||
-                "AI review rejected this file because it does not look like a real credit report PDF.",
-              true
-            );
-          }
-        }
-      } catch (error) {
-        setAiVerifyStatus(buildAiReviewErrorMessage(error, "Report uploaded, but AI verification failed."), true);
-      }
-    } else {
-      setAiVerifyStatus("");
-      setScanStatus("");
-    }
-
     creditReportForm.reset();
     setReportAutofillStatus("");
-    setAdminStatus("Credit report uploaded.");
+    setScanStatus("");
+    setAdminStatus("Credit report uploaded. Use document scan if you want help pulling report details from the PDF.");
     await loadClientPreview(activeClientId);
   });
 
@@ -2001,73 +1792,6 @@ function initialize() {
     fileUploadForm.reset();
     setAdminStatus("File uploaded and attached to client record.");
     await loadClientPreview(activeClientId);
-  });
-
-  aiVerifyDocumentsBtn?.addEventListener("click", async () => {
-    if (!(await requireActiveClient())) return;
-
-    aiVerifyDocumentsBtn.disabled = true;
-    setAiVerifyStatus("Loading uploaded PDF reports...");
-
-    try {
-      const files = await loadClientFiles(activeClientId);
-      const candidates = files.filter(isLikelyCreditReportCandidate);
-
-      if (!candidates.length) {
-        setAiVerifyStatus(
-          "No likely credit report PDFs found. Upload the file in the Credit Reports section or use a title that clearly marks it as a credit report.",
-          true
-        );
-        return;
-      }
-
-      let reviewed = 0;
-      let verifiedReports = 0;
-      let rejectedReports = 0;
-      let itemsCreated = 0;
-      let skippedOversize = 0;
-
-      for (let index = 0; index < candidates.length; index += 1) {
-        const row = candidates[index];
-        const label = row.title || row.file_name || `PDF ${index + 1}`;
-
-        if (Number(row.file_size || 0) > MAX_AI_REVIEW_SIZE_BYTES) {
-          skippedOversize += 1;
-          continue;
-        }
-
-        setAiVerifyStatus(`AI reviewing ${index + 1}/${candidates.length}: ${label}`);
-        const analysis = await verifyFileRowWithAi(row);
-        const result = await applyAiReviewResult(row, analysis, {
-          source: inferReportSource(row),
-        });
-
-        reviewed += 1;
-        if (result.accepted) {
-          verifiedReports += 1;
-          itemsCreated += result.itemsCreated;
-        } else {
-          rejectedReports += 1;
-        }
-      }
-
-      const skippedNote = skippedOversize
-        ? ` ${skippedOversize} oversized PDF(s) were skipped because AI review is limited to ${formatMbLimit(MAX_AI_REVIEW_SIZE_MB)}.`
-        : "";
-      setAiVerifyStatus(
-        `AI review complete: ${reviewed} PDF(s) reviewed, ${verifiedReports} verified, ${rejectedReports} rejected, ${itemsCreated} negative item(s) added.${skippedNote}`
-      );
-      setAdminStatus("AI review finished.");
-      await loadClientPreview(activeClientId);
-    } catch (error) {
-      if (isMissingFeatureError(error)) {
-        setAiVerifyStatus("Run the updated supabase-portal-schema.sql before using AI review.", true);
-      } else {
-        setAiVerifyStatus(buildAiReviewErrorMessage(error), true);
-      }
-    } finally {
-      aiVerifyDocumentsBtn.disabled = false;
-    }
   });
 
   scanDocumentsBtn?.addEventListener("click", async () => {

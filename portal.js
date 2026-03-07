@@ -236,7 +236,7 @@ function formatDateTime(value) {
 function formatVerificationStatus(value) {
   switch (String(value || "").toLowerCase()) {
     case "verified":
-      return "AI verified";
+      return "Verified";
     case "rejected":
       return "Rejected";
     case "needs_review":
@@ -249,9 +249,9 @@ function formatVerificationStatus(value) {
 function formatVerificationMethod(value) {
   switch (String(value || "").toLowerCase()) {
     case "ai_pdf":
-      return "AI PDF review";
+      return "PDF review";
     case "browser_scan":
-      return "Browser scan";
+      return "Document scan";
     default:
       return "Manual";
   }

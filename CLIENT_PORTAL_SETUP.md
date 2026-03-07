@@ -46,8 +46,7 @@ window.__PORTAL_CONFIG__ = {
 2. Run `supabase-portal-schema.sql`.
    If you already ran an older version, run this latest file again to add `client_files`
    and storage policies. The latest version also adds `credit_reports` and
-   `negative_items` for report summaries and scanned derogatory accounts, plus
-   AI verification fields for PDF report review.
+   `negative_items` for report summaries and scanned derogatory accounts.
 
 This creates:
 
@@ -108,7 +107,6 @@ Admin dashboard lets you:
 
 - create/update client profile
 - upload current PDF credit reports
-- AI verify uploaded PDF credit reports and reject screenshots/non-reports
 - browser-scan uploaded documents for negative items
 - manually add or correct negative items
 - add credit snapshots
@@ -145,14 +143,13 @@ Max upload size in UI:
 Browser scanning note:
 
 - the built-in credit report scanner skips files over 40MB to avoid locking up the browser on very large PDFs
-- AI PDF verification only runs on real PDF reports up to 45MB and requires `OPENAI_API_KEY` on the server
 
 ## 9) Client experience
 
 Client logs into `portal.html` and can view:
 
 - 3 bureau score cards (latest values)
-- current credit report cards with file links and AI verification status
+- current credit report cards with file links and review status
 - negative items currently on file with verification method
 - letter tracking table
 - update timeline

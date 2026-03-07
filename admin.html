@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260307h" />
+    <link rel="stylesheet" href="admin.css?v=20260307i" />
   </head>
   <body>
 
@@ -128,24 +128,17 @@
                   <input id="report-date" type="date" />
                   <label for="report-summary">Summary</label>
                   <textarea id="report-summary" rows="3" placeholder="Key notes about this report, bureau pull, or file set"></textarea>
-                  <label for="report-file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF only, max 500MB upload, AI verify up to 45MB)</span></label>
+                  <label for="report-file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF only, max 500MB upload)</span></label>
                   <input id="report-file-input" type="file" accept=".pdf,application/pdf" required />
-                  <label class="checkbox-row" for="report-run-scan">
-                    <input id="report-run-scan" type="checkbox" checked />
-                    <span>Verify this PDF with AI after upload and add negative items automatically</span>
-                  </label>
                   <p class="statusbar" id="report-autofill-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
-                  <p class="muted sm">AI verification only accepts real PDF credit reports. Screenshots and image uploads are rejected.</p>
+                  <p class="muted sm">Upload the original PDF report here. Use document scan after upload if you want help pulling report details, then review the negative item tracker manually.</p>
                   <button class="btn primary full mt" type="submit">Upload Credit Report</button>
                 </form>
               </div>
               <div class="card">
-                <h3 class="card-title">Review Uploaded Documents</h3>
-                <p class="muted sm">AI review checks uploaded PDF reports, rejects screenshots/non-reports, and upserts verified negative items. Files over 45MB still upload, but AI review skips them.</p>
-                <button class="btn secondary full" id="ai-verify-documents-btn" type="button">AI Verify Uploaded PDF Reports</button>
-                <p class="statusbar" id="ai-verify-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
-                <p class="muted sm" style="margin-top:1rem;">Browser scan is still available as a fallback for smaller PDFs or images, but it is not a verification step.</p>
-                <button class="btn secondary full" id="scan-documents-btn" type="button">Browser Scan All Uploaded Documents</button>
+                <h3 class="card-title">Scan Uploaded Documents</h3>
+                <p class="muted sm">Document scan reviews smaller PDFs or images, creates report summary rows when possible, and pulls potential negative items for you to review manually.</p>
+                <button class="btn secondary full" id="scan-documents-btn" type="button">Scan All Uploaded Documents</button>
                 <p class="statusbar" id="scan-documents-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
               </div>
             </div>
@@ -484,6 +477,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260307h"></script>
+    <script type="module" src="admin.js?v=20260307i"></script>
   </body>
 </html>

@@ -27,8 +27,6 @@ Set these environment variables in your hosting platform:
 - `LEAD_WEBHOOK_URL` (optional): webhook URL for Google Sheets or CRM lead tracking.
 - `SUPABASE_URL`: your Supabase project URL (example: `https://YOUR_PROJECT.supabase.co`).
 - `SUPABASE_SERVICE_ROLE_KEY`: your Supabase service role key (server-side only; never expose in frontend).
-- `OPENAI_API_KEY`: required for AI PDF credit-report verification in the admin portal.
-- `OPENAI_CREDIT_REPORT_MODEL` (optional): override the default OpenAI model used for PDF review.
 - `PORTAL_LOGIN_URL`: your live client portal page URL (example: `https://yourdomain.com/portal.html`).
 - `PORTAL_REDIRECT_URL` (optional): URL used in the password setup email redirect.
 - `AUTO_CREATE_PORTAL_USERS` (optional): `true`/`false` toggle. Defaults to enabled when Supabase env vars exist.
@@ -39,7 +37,6 @@ Important:
 - Public visible email on the page can remain different from `LEADS_TO_EMAIL`.
 - Local `python3 -m http.server` preview will not run serverless functions.
 - If `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are missing, lead emails still work but portal auto-onboarding is skipped.
-- If `OPENAI_API_KEY` is missing, the new AI PDF verification buttons in the admin portal will fail.
 
 ## Deploy to Netlify
 
@@ -101,7 +98,5 @@ The backend will POST this JSON payload:
 - `disclosures.html`
 - `cancellation.html`
 - `api/lead.js`
-- `api/analyze-credit-report.js`
 - `netlify/functions/lead.js`
-- `netlify/functions/analyze-credit-report.js`
 - `netlify.toml`
