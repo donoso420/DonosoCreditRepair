@@ -234,7 +234,7 @@ a { color: var(--accent-strong); text-decoration: none; }
 
 .preview-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
   margin-top: 0.75rem;
 }
@@ -287,6 +287,24 @@ textarea:focus {
 }
 
 textarea { resize: vertical; }
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: auto;
+  margin: 0.2rem 0 0;
+}
+
+.checkbox-row span {
+  color: #4a3f63;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
 
 .form-row {
   display: grid;

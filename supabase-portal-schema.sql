@@ -266,3 +266,114 @@ with check (
     select 1 from public.admin_users a where a.user_id = auth.uid()
   )
 );
+
+-- ── NEW: Credit report summaries tied to uploaded documents ────────────────
+create table if not exists public.credit_reports (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  bureau text not null default 'Other',
+  report_date date,
+  score integer check (score is null or (score >= 300 and score <= 850)),
+  report_label text,
+  summary text,
+  source text not null default 'manual'
+    check (source in ('manual', 'scanned', 'admin_upload', 'client_upload')),
+  verification_status text not null default 'pending',
+  verification_method text not null default 'manual',
+  verification_notes text,
+  verified_at timestamptz,
+  ai_model text,
+  fingerprint text not null,
+  file_id bigint references public.client_files(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists credit_reports_user_fingerprint_idx
+on public.credit_reports (user_id, fingerprint);
+
+alter table public.credit_reports enable row level security;
+
+drop policy if exists "credit_reports_select_own" on public.credit_reports;
+create policy "credit_reports_select_own"
+on public.credit_reports for select
+using (auth.uid() = user_id);
+
+drop policy if exists "admin_manage_credit_reports" on public.credit_reports;
+create policy "admin_manage_credit_reports"
+on public.credit_reports for all
+using (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+);
+
+-- ── NEW: Negative items found on credit reports or bureau responses ────────
+create table if not exists public.negative_items (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  bureau text,
+  creditor text not null,
+  item_type text not null,
+  account_reference text,
+  status text,
+  balance numeric(12, 2),
+  notes text,
+  is_active boolean not null default true,
+  source text not null default 'manual'
+    check (source in ('manual', 'scanned')),
+  verification_method text not null default 'manual',
+  verification_notes text,
+  evidence_excerpt text,
+  verified_at timestamptz,
+  ai_model text,
+  confidence numeric(4, 3),
+  fingerprint text not null,
+  source_file_id bigint references public.client_files(id) on delete set null,
+  report_id bigint references public.credit_reports(id) on delete set null,
+  last_seen_at date,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists negative_items_user_fingerprint_idx
+on public.negative_items (user_id, fingerprint);
+
+alter table public.negative_items enable row level security;
+
+drop policy if exists "negative_items_select_own" on public.negative_items;
+create policy "negative_items_select_own"
+on public.negative_items for select
+using (auth.uid() = user_id);
+
+drop policy if exists "admin_manage_negative_items" on public.negative_items;
+create policy "admin_manage_negative_items"
+on public.negative_items for all
+using (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+);
+
+alter table public.credit_reports
+  add column if not exists verification_status text not null default 'pending',
+  add column if not exists verification_method text not null default 'manual',
+  add column if not exists verification_notes text,
+  add column if not exists verified_at timestamptz,
+  add column if not exists ai_model text;
+
+alter table public.negative_items
+  add column if not exists verification_method text not null default 'manual',
+  add column if not exists verification_notes text,
+  add column if not exists evidence_excerpt text,
+  add column if not exists verified_at timestamptz,
+  add column if not exists ai_model text,
+  add column if not exists confidence numeric(4, 3);

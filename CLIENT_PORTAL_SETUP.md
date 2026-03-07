@@ -19,6 +19,7 @@ It also includes an admin dashboard for managing those records from a UI.
 - `admin.html`
 - `admin.css`
 - `admin.js`
+- `credit-report-tools.js`
 
 ## 1) Create Supabase project
 
@@ -44,7 +45,9 @@ window.__PORTAL_CONFIG__ = {
 1. Open Supabase SQL Editor.
 2. Run `supabase-portal-schema.sql`.
    If you already ran an older version, run this latest file again to add `client_files`
-   and storage policies.
+   and storage policies. The latest version also adds `credit_reports` and
+   `negative_items` for report summaries and scanned derogatory accounts, plus
+   AI verification fields for PDF report review.
 
 This creates:
 
@@ -54,6 +57,8 @@ This creates:
 - `client_letters`
 - `client_updates`
 - `client_files`
+- `credit_reports`
+- `negative_items`
 
 And enables Row Level Security so:
 
@@ -102,6 +107,10 @@ insert into public.admin_users (user_id) values ('YOUR_ADMIN_USER_UUID');
 Admin dashboard lets you:
 
 - create/update client profile
+- upload current PDF credit reports
+- AI verify uploaded PDF credit reports and reject screenshots/non-reports
+- browser-scan uploaded documents for negative items
+- manually add or correct negative items
 - add credit snapshots
 - add letters with tracking numbers
 - update letter status
@@ -131,13 +140,20 @@ Supported types in admin upload form:
 
 Max upload size in UI:
 
-- 15MB per file
+- 500MB per file
+
+Browser scanning note:
+
+- the built-in credit report scanner skips files over 40MB to avoid locking up the browser on very large PDFs
+- AI PDF verification only runs on real PDF reports up to 45MB and requires `OPENAI_API_KEY` on the server
 
 ## 9) Client experience
 
 Client logs into `portal.html` and can view:
 
 - 3 bureau score cards (latest values)
+- current credit report cards with file links and AI verification status
+- negative items currently on file with verification method
 - letter tracking table
 - update timeline
 - secure file list with signed links

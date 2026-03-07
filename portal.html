@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260306m" />
+    <link rel="stylesheet" href="portal.css?v=20260307c" />
   </head>
   <body>
     <header class="portal-nav">
@@ -100,6 +100,39 @@
                 <p class="score">--</p>
                 <p class="stamp">No data yet</p>
               </article>
+            </div>
+          </section>
+
+          <section>
+            <h3>Current Credit Reports</h3>
+            <div class="report-grid" id="report-grid">
+              <article class="report-card empty-card">
+                <p class="empty">No current credit reports uploaded yet.</p>
+              </article>
+            </div>
+          </section>
+
+          <section>
+            <h3>Negative Items On File</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Bureau</th>
+                    <th>Creditor</th>
+                    <th>Item Type</th>
+                    <th>Verified</th>
+                    <th>Status</th>
+                    <th>Balance</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="negative-items-body">
+                  <tr>
+                    <td colspan="7" class="empty">No negative items logged yet.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </section>
 
@@ -204,11 +237,11 @@
 
           <section>
             <h3>Upload Incoming Mail</h3>
-            <p class="section-sub">Received something from a bureau or creditor — or downloaded your credit reports? Upload here so we can review.</p>
+            <p class="section-sub">Received something from a bureau or creditor — or downloaded your credit reports? Upload here so we can review. For automatic negative-item verification, upload the original PDF report from AnnualCreditReport or the bureau. Screenshots will not be AI-verified.</p>
             <form id="client-upload-form" class="upload-form">
               <label for="client-file-title">Description</label>
               <input id="client-file-title" type="text" placeholder="e.g. Experian response letter — March 2026" required />
-              <label for="client-file-input">Attachment (PDF, JPG, PNG — max 15MB)</label>
+              <label for="client-file-input">Attachment (PDF, JPG, PNG — max 500MB upload)</label>
               <input id="client-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
               <button type="submit" class="btn primary">Upload Document</button>
             </form>
@@ -231,6 +264,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260306n"></script>
+    <script type="module" src="portal.js?v=20260307c"></script>
   </body>
 </html>

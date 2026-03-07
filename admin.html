@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260306d" />
+    <link rel="stylesheet" href="admin.css?v=20260307c" />
   </head>
   <body>
 
@@ -101,6 +101,56 @@
 
             <div class="section-group">
               <div class="section-label">
+                <h2>🧾 Credit Reports</h2>
+                <p class="muted sm">Upload the current PDF report and verify its negative items</p>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Upload Current Credit Report</h3>
+                <form id="credit-report-form">
+                  <label for="report-title">Report Label</label>
+                  <input id="report-title" type="text" placeholder="e.g. Experian report pulled March 2026" />
+                  <div class="form-row">
+                    <div>
+                      <label for="report-bureau">Bureau <span class="req">*</span></label>
+                      <select id="report-bureau" required>
+                        <option value="Experian">Experian</option>
+                        <option value="Equifax">Equifax</option>
+                        <option value="TransUnion">TransUnion</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="report-score">Current Score</label>
+                      <input id="report-score" type="number" min="300" max="850" placeholder="e.g. 612" />
+                    </div>
+                  </div>
+                  <label for="report-date">Report Date</label>
+                  <input id="report-date" type="date" />
+                  <label for="report-summary">Summary</label>
+                  <textarea id="report-summary" rows="3" placeholder="Key notes about this report, bureau pull, or file set"></textarea>
+                  <label for="report-file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF only, max 500MB upload, AI verify up to 45MB)</span></label>
+                  <input id="report-file-input" type="file" accept=".pdf,application/pdf" required />
+                  <label class="checkbox-row" for="report-run-scan">
+                    <input id="report-run-scan" type="checkbox" checked />
+                    <span>Verify this PDF with AI after upload and add negative items automatically</span>
+                  </label>
+                  <p class="muted sm">AI verification only accepts real PDF credit reports. Screenshots and image uploads are rejected.</p>
+                  <button class="btn primary full mt" type="submit">Upload Credit Report</button>
+                </form>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Review Uploaded Documents</h3>
+                <p class="muted sm">AI review checks uploaded PDF reports, rejects screenshots/non-reports, and upserts verified negative items. Files over 45MB still upload, but AI review skips them.</p>
+                <button class="btn secondary full" id="ai-verify-documents-btn" type="button">AI Verify Uploaded PDF Reports</button>
+                <p class="statusbar" id="ai-verify-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
+                <p class="muted sm" style="margin-top:1rem;">Browser scan is still available as a fallback for smaller PDFs or images, but it is not a verification step.</p>
+                <button class="btn secondary full" id="scan-documents-btn" type="button">Browser Scan All Uploaded Documents</button>
+                <p class="statusbar" id="scan-documents-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
+              </div>
+            </div>
+
+            <div class="section-group">
+              <div class="section-label">
                 <h2>📊 Credit Scores</h2>
                 <p class="muted sm">Log bureau score snapshots</p>
               </div>
@@ -133,6 +183,66 @@
                   <label for="timeline-details">Update Details <span class="req">*</span></label>
                   <textarea id="timeline-details" rows="4" placeholder="e.g. Dispute letter mailed to Equifax via certified mail on 3/6/2026." required></textarea>
                   <button class="btn primary full mt" type="submit">Post Update</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="section-group">
+              <div class="section-label">
+                <h2>⚠️ Negative Items</h2>
+                <p class="muted sm">Add or correct negative accounts showing on the current report</p>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Add / Update Negative Item</h3>
+                <form id="negative-item-form">
+                  <div class="form-row">
+                    <div>
+                      <label for="negative-bureau">Bureau</label>
+                      <select id="negative-bureau">
+                        <option value="">All Bureaus / Unknown</option>
+                        <option value="Experian">Experian</option>
+                        <option value="Equifax">Equifax</option>
+                        <option value="TransUnion">TransUnion</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="negative-type">Item Type <span class="req">*</span></label>
+                      <select id="negative-type" required>
+                        <option value="Collection">Collection</option>
+                        <option value="Charge Off">Charge Off</option>
+                        <option value="Late Payment">Late Payment</option>
+                        <option value="Delinquent">Delinquent</option>
+                        <option value="Derogatory">Derogatory</option>
+                        <option value="Repossession">Repossession</option>
+                        <option value="Bankruptcy">Bankruptcy</option>
+                        <option value="Foreclosure">Foreclosure</option>
+                        <option value="Judgment">Judgment</option>
+                        <option value="Lien">Lien</option>
+                        <option value="Settlement">Settlement</option>
+                      </select>
+                    </div>
+                  </div>
+                  <label for="negative-creditor">Creditor / Furnisher <span class="req">*</span></label>
+                  <input id="negative-creditor" type="text" placeholder="e.g. Midland Credit Management" required />
+                  <div class="form-row">
+                    <div>
+                      <label for="negative-account-ref">Account / Reference</label>
+                      <input id="negative-account-ref" type="text" placeholder="Last 4 or masked account number" />
+                    </div>
+                    <div>
+                      <label for="negative-balance">Balance</label>
+                      <input id="negative-balance" type="number" min="0" step="0.01" placeholder="e.g. 850.00" />
+                    </div>
+                  </div>
+                  <label for="negative-status">Status</label>
+                  <input id="negative-status" type="text" placeholder="e.g. Open collection, 90 days late" />
+                  <label for="negative-notes">Notes</label>
+                  <textarea id="negative-notes" rows="3" placeholder="Optional details, dates, or dispute notes"></textarea>
+                  <label class="checkbox-row" for="negative-active">
+                    <input id="negative-active" type="checkbox" checked />
+                    <span>Item is still active on the current report</span>
+                  </label>
+                  <button class="btn primary full mt" type="submit">Save Negative Item</button>
                 </form>
               </div>
             </div>
@@ -212,6 +322,7 @@
                   <input id="file-title" type="text" placeholder="e.g. Experian deletion proof" />
                   <label for="file-category">Category <span class="req">*</span></label>
                   <select id="file-category" required>
+                    <option value="Credit Report">Credit Report</option>
                     <option value="Letter Copy">Letter Copy</option>
                     <option value="CFPB Screenshot">CFPB Screenshot</option>
                     <option value="Credit Report Screenshot">Credit Report Screenshot</option>
@@ -219,7 +330,7 @@
                   </select>
                   <label for="file-notes">Notes</label>
                   <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
-                  <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP, max 15MB)</span></label>
+                  <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP, max 500MB upload)</span></label>
                   <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
                   <button class="btn primary full mt" type="submit">Upload File</button>
                 </form>
@@ -261,6 +372,14 @@
             <p class="muted sm">Live view of the active client's data</p>
           </div>
           <div class="preview-grid">
+            <div class="card">
+              <h4 class="preview-title">🧾 Credit Reports</h4>
+              <ul id="preview-reports" class="list"></ul>
+            </div>
+            <div class="card">
+              <h4 class="preview-title">⚠️ Negative Items</h4>
+              <ul id="preview-negative-items" class="list"></ul>
+            </div>
             <div class="card">
               <h4 class="preview-title">📊 Scores</h4>
               <ul id="preview-scores" class="list"></ul>
@@ -348,6 +467,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260306j"></script>
+    <script type="module" src="admin.js?v=20260307c"></script>
   </body>
 </html>

@@ -1,4 +1,10 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import {
+  buildManualCreditReport,
+  buildManualNegativeItem,
+  formatCurrency,
+  scanCreditDocument,
+} from "./credit-report-tools.js";
 
 const config = window.__PORTAL_CONFIG__ || {};
 
@@ -14,10 +20,16 @@ const clientSelect = document.getElementById("client-select");
 const activeClientIdEl = document.getElementById("active-client-id");
 
 const snapshotForm = document.getElementById("snapshot-form");
+const creditReportForm = document.getElementById("credit-report-form");
+const negativeItemForm = document.getElementById("negative-item-form");
 const letterForm = document.getElementById("letter-form");
 const letterUpdateForm = document.getElementById("letter-update-form");
 const timelineForm = document.getElementById("timeline-form");
 const fileUploadForm = document.getElementById("file-upload-form");
+const scanDocumentsBtn = document.getElementById("scan-documents-btn");
+const scanDocumentsStatus = document.getElementById("scan-documents-status");
+const aiVerifyDocumentsBtn = document.getElementById("ai-verify-documents-btn");
+const aiVerifyStatus = document.getElementById("ai-verify-status");
 
 const inviteForm = document.getElementById("invite-form");
 const inviteStatus = document.getElementById("invite-status");
@@ -26,6 +38,8 @@ const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
 
 const previewScores = document.getElementById("preview-scores");
+const previewReports = document.getElementById("preview-reports");
+const previewNegativeItems = document.getElementById("preview-negative-items");
 const previewLetters = document.getElementById("preview-letters");
 const previewUpdates = document.getElementById("preview-updates");
 const previewFiles = document.getElementById("preview-files");
@@ -33,6 +47,14 @@ const adminMessageThread = document.getElementById("admin-message-thread");
 const adminMessageForm = document.getElementById("admin-message-form");
 const adminMessageInput = document.getElementById("admin-message-input");
 const previewClientUploads = document.getElementById("preview-client-uploads");
+
+const MAX_UPLOAD_SIZE_MB = 500;
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+const MAX_AI_REVIEW_SIZE_MB = 45;
+const MAX_AI_REVIEW_SIZE_BYTES = MAX_AI_REVIEW_SIZE_MB * 1024 * 1024;
+const MAX_BROWSER_SCAN_SIZE_MB = 40;
+const MAX_BROWSER_SCAN_SIZE_BYTES = MAX_BROWSER_SCAN_SIZE_MB * 1024 * 1024;
+const AI_REVIEW_ENDPOINTS = ["/api/analyze-credit-report", "/.netlify/functions/analyze-credit-report"];
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -49,6 +71,18 @@ function setAdminStatus(message, isError = false) {
   if (!adminStatus) return;
   adminStatus.textContent = message;
   adminStatus.classList.toggle("error", isError);
+}
+
+function setScanStatus(message, isError = false) {
+  if (!scanDocumentsStatus) return;
+  scanDocumentsStatus.textContent = message;
+  scanDocumentsStatus.classList.toggle("error", isError);
+}
+
+function setAiVerifyStatus(message, isError = false) {
+  if (!aiVerifyStatus) return;
+  aiVerifyStatus.textContent = message;
+  aiVerifyStatus.classList.toggle("error", isError);
 }
 
 function showAuth() {
@@ -88,6 +122,44 @@ function sanitizeFileName(name) {
     .replace(/-+/g, "-");
 }
 
+function isMissingFeatureError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    message.includes("does not exist") ||
+    message.includes("could not find the table") ||
+    message.includes("column") ||
+    message.includes("schema cache")
+  );
+}
+
+function formatMbLimit(limitMb) {
+  return `${limitMb}MB`;
+}
+
+function formatVerificationStatus(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "verified":
+      return "AI verified";
+    case "rejected":
+      return "Rejected";
+    case "needs_review":
+      return "Needs review";
+    default:
+      return "Pending review";
+  }
+}
+
+function formatVerificationMethod(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "ai_pdf":
+      return "AI PDF review";
+    case "browser_scan":
+      return "Browser scan";
+    default:
+      return "Manual";
+  }
+}
+
 function prefillProfileUserId(userId) {
   const input = document.getElementById("profile-user-id");
   if (!input || !isUuid(userId)) return;
@@ -123,7 +195,9 @@ async function loadClients() {
     clientSelect.innerHTML = '<option value="">No clients yet</option>';
     activeClientId = null;
     activeClientIdEl.textContent = "";
-    renderPreview([], [], [], []);
+    setScanStatus("");
+    setAiVerifyStatus("");
+    renderPreview([], [], [], [], [], []);
     return;
   }
 
@@ -183,11 +257,49 @@ function renderClientUploads(files) {
     .join("");
 }
 
-function renderPreview(scores, letters, updates, files) {
+function renderPreview(reports, negativeItems, scores, letters, updates, files) {
+  if (previewReports) previewReports.innerHTML = "";
+  if (previewNegativeItems) previewNegativeItems.innerHTML = "";
   previewScores.innerHTML = "";
   previewLetters.innerHTML = "";
   previewUpdates.innerHTML = "";
   previewFiles.innerHTML = "";
+
+  if (previewReports) {
+    if (!reports.length) {
+      previewReports.innerHTML = "<li>No current credit reports yet.</li>";
+    } else {
+      for (const row of reports) {
+        const li = document.createElement("li");
+        const score = row.score ? ` • Score ${safeText(row.score)}` : "";
+        const review = ` • ${safeText(formatVerificationStatus(row.verification_status))} (${safeText(
+          formatVerificationMethod(row.verification_method)
+        )})`;
+        const fileLink = row.signed_url
+          ? ` <a href="${safeText(row.signed_url)}" target="_blank" rel="noopener noreferrer">Open</a>`
+          : "";
+        li.innerHTML = `${safeText(row.bureau || "Other")} · ${safeText(formatDate(row.report_date || row.created_at))}${score}${review}${fileLink}`;
+        previewReports.appendChild(li);
+      }
+    }
+  }
+
+  if (previewNegativeItems) {
+    if (!negativeItems.length) {
+      previewNegativeItems.innerHTML = "<li>No negative items yet.</li>";
+    } else {
+      for (const row of negativeItems) {
+        const li = document.createElement("li");
+        const bureau = row.bureau ? `${safeText(row.bureau)} · ` : "";
+        const balance = row.balance != null ? ` · ${safeText(formatCurrency(row.balance))}` : "";
+        const review = ` · ${safeText(formatVerificationMethod(row.verification_method))}`;
+        li.innerHTML = `${bureau}<strong>${safeText(row.creditor)}</strong> — ${safeText(
+          row.item_type
+        )}${balance}${review}`;
+        previewNegativeItems.appendChild(li);
+      }
+    }
+  }
 
   if (!scores.length) {
     previewScores.innerHTML = "<li>No score records yet.</li>";
@@ -227,40 +339,401 @@ function renderPreview(scores, letters, updates, files) {
     previewFiles.innerHTML = "<li>No files yet.</li>";
   } else {
     for (const row of files) {
+      const openLink = row.signed_url
+        ? ` — <a href="${safeText(row.signed_url)}" target="_blank" rel="noopener noreferrer">Open</a>`
+        : "";
       const li = document.createElement("li");
       li.innerHTML = `${safeText(row.category || "File")}: ${safeText(
         row.title || row.file_name || "Attachment"
-      )}`;
+      )}${openLink}`;
       previewFiles.appendChild(li);
     }
   }
 }
 
+async function safeTableQuery(queryPromise, fallback = []) {
+  const { data, error } = await queryPromise;
+  if (!error) return data || fallback;
+  if (isMissingFeatureError(error)) return fallback;
+  throw error;
+}
+
+async function getSignedFileUrl(fileRow) {
+  const { data } = await supabase.storage
+    .from(fileRow.bucket || "client-docs")
+    .createSignedUrl(fileRow.file_path, 60 * 60);
+  return data?.signedUrl || "";
+}
+
+async function loadClientFiles(userId) {
+  const { data, error } = await supabase
+    .from("client_files")
+    .select("id,title,notes,category,file_name,file_path,bucket,created_at,uploaded_by,content_type,file_size")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  if (error) throw error;
+
+  const files = data || [];
+  return Promise.all(
+    files.map(async (row) => ({
+      ...row,
+      signed_url: await getSignedFileUrl(row),
+    }))
+  );
+}
+
+function isScannableFile(fileRow) {
+  const contentType = String(fileRow.content_type || "").toLowerCase();
+  const fileName = String(fileRow.file_name || "").toLowerCase();
+  return (
+    contentType === "application/pdf" ||
+    /image\/(png|jpeg|jpg|webp)/.test(contentType) ||
+    /\.(pdf|png|jpe?g|webp)$/.test(fileName)
+  );
+}
+
+function isPdfFile(fileRow) {
+  const contentType = String(fileRow?.content_type || "").toLowerCase();
+  const fileName = String(fileRow?.file_name || "").toLowerCase();
+  return contentType === "application/pdf" || /\.pdf$/.test(fileName);
+}
+
+function isLikelyCreditReportCandidate(fileRow) {
+  if (!isPdfFile(fileRow)) return false;
+  const path = String(fileRow.file_path || "").toLowerCase();
+  const haystack = [
+    fileRow.category,
+    fileRow.title,
+    fileRow.notes,
+    fileRow.file_name,
+    path,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    path.includes("/reports/") ||
+    String(fileRow.category || "").toLowerCase() === "credit report" ||
+    /\b(credit report|annualcreditreport|experian|equifax|transunion|tri[- ]merge)\b/.test(
+      haystack
+    )
+  );
+}
+
+function inferReportSource(fileRow) {
+  return fileRow?.uploaded_by === "client" ? "client_upload" : "admin_upload";
+}
+
+async function getAccessToken() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  return data?.session?.access_token || "";
+}
+
+async function callAiReviewEndpoint(body, accessToken) {
+  let lastResponse = null;
+  let lastData = null;
+
+  for (const endpoint of AI_REVIEW_ENDPOINTS) {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 404) {
+      lastResponse = response;
+      lastData = data;
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new Error(data?.error || "AI review request failed.");
+    }
+
+    return data;
+  }
+
+  throw new Error(lastData?.error || "AI review endpoint is not deployed.");
+}
+
+async function verifyFileRowWithAi(fileRow) {
+  if (!isPdfFile(fileRow)) {
+    throw new Error("AI verification only works on PDF reports.");
+  }
+
+  if (Number(fileRow.file_size || 0) > MAX_AI_REVIEW_SIZE_BYTES) {
+    throw new Error(
+      `AI verification only handles PDFs up to ${formatMbLimit(MAX_AI_REVIEW_SIZE_MB)}.`
+    );
+  }
+
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    throw new Error("Admin session expired. Sign in again.");
+  }
+
+  return callAiReviewEndpoint({ fileId: fileRow.id }, accessToken);
+}
+
+async function applyAiReviewResult(fileRow, analysis, fallback = {}) {
+  const documentResult = analysis?.document || {};
+  const negativeItems = Array.isArray(analysis?.negative_items) ? analysis.negative_items : [];
+  const verifiedAt = new Date().toISOString();
+  const reportSource = fallback.source || inferReportSource(fileRow);
+  const reportDate =
+    documentResult.report_date || fallback.report_date || String(fileRow.created_at || "").slice(0, 10);
+  const reportLabel =
+    documentResult.report_label || fallback.report_label || fileRow.title || fileRow.file_name || "Credit report";
+  let reportId = null;
+
+  if (documentResult.accepted || fallback.persistRejectedReport) {
+    reportId = await upsertCreditReportRow(
+      buildManualCreditReport({
+        bureau: documentResult.bureau || fallback.bureau || "Other",
+        report_date: reportDate,
+        score:
+          documentResult.score == null || documentResult.score === ""
+            ? fallback.score ?? ""
+            : documentResult.score,
+        report_label: reportLabel,
+        summary: documentResult.summary || fallback.summary || "",
+        source: reportSource,
+        verification_status: documentResult.accepted ? "verified" : "rejected",
+        verification_method: "ai_pdf",
+        verification_notes: documentResult.reason || fallback.verification_notes || "",
+        verified_at: verifiedAt,
+        ai_model: analysis?.model || "",
+        file_id: fileRow.id,
+      })
+    );
+  }
+
+  if (!documentResult.accepted) {
+    return { accepted: false, reportId, itemsCreated: 0 };
+  }
+
+  let itemsCreated = 0;
+  for (const item of negativeItems) {
+    await upsertNegativeItemRow(
+      buildManualNegativeItem({
+        bureau: item.bureau || documentResult.bureau || "",
+        creditor: item.creditor || "Reported Item",
+        item_type: item.item_type || "Negative Item",
+        account_reference: item.account_reference || "",
+        status: item.status || "",
+        balance: item.balance ?? null,
+        notes: item.notes || "",
+        is_active: true,
+        source: "scanned",
+        verification_method: "ai_pdf",
+        verification_notes:
+          documentResult.reason || "Verified from an uploaded PDF credit report.",
+        evidence_excerpt: item.evidence_excerpt || "",
+        verified_at: verifiedAt,
+        ai_model: analysis?.model || "",
+        confidence: item.confidence ?? null,
+        source_file_id: fileRow.id,
+        report_id: reportId,
+        last_seen_at: reportDate,
+      })
+    );
+    itemsCreated += 1;
+  }
+
+  return { accepted: true, reportId, itemsCreated };
+}
+
+async function upsertCreditReportRow(report) {
+  const payload = {
+    ...report,
+    user_id: activeClientId,
+    report_date: report.report_date || null,
+    score: report.score ?? null,
+    report_label: report.report_label || null,
+    summary: report.summary || null,
+    verification_status: report.verification_status || "pending",
+    verification_method: report.verification_method || "manual",
+    verification_notes: report.verification_notes || null,
+    verified_at: report.verified_at || null,
+    ai_model: report.ai_model || null,
+    file_id: report.file_id || null,
+  };
+
+  const { data, error } = await supabase
+    .from("credit_reports")
+    .upsert(payload, { onConflict: "user_id,fingerprint" })
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id || null;
+}
+
+async function upsertNegativeItemRow(item) {
+  const payload = {
+    ...item,
+    user_id: activeClientId,
+    bureau: item.bureau || null,
+    account_reference: item.account_reference || null,
+    status: item.status || null,
+    balance: item.balance ?? null,
+    notes: item.notes || null,
+    verification_method: item.verification_method || "manual",
+    verification_notes: item.verification_notes || null,
+    evidence_excerpt: item.evidence_excerpt || null,
+    verified_at: item.verified_at || null,
+    ai_model: item.ai_model || null,
+    confidence: item.confidence ?? null,
+    source_file_id: item.source_file_id || null,
+    report_id: item.report_id || null,
+    last_seen_at: item.last_seen_at || null,
+  };
+
+  const { error } = await supabase
+    .from("negative_items")
+    .upsert(payload, { onConflict: "user_id,fingerprint" });
+
+  if (error) throw error;
+}
+
+async function scanFileRows(fileRows, { storeReports = true } = {}) {
+  const scannableFiles = fileRows.filter(isScannableFile);
+  if (!scannableFiles.length) {
+    return { scannedFiles: 0, reportsCreated: 0, itemsCreated: 0, skippedFiles: 0 };
+  }
+
+  let reportsCreated = 0;
+  let itemsCreated = 0;
+  let skippedFiles = 0;
+
+  for (let index = 0; index < scannableFiles.length; index += 1) {
+    const row = scannableFiles[index];
+    const label = row.title || row.file_name || `document ${index + 1}`;
+
+    if (Number(row.file_size || 0) > MAX_BROWSER_SCAN_SIZE_BYTES) {
+      skippedFiles += 1;
+      continue;
+    }
+
+    setScanStatus(`Scanning ${index + 1}/${scannableFiles.length}: ${label}`);
+
+    const signedUrl = row.signed_url || (await getSignedFileUrl(row));
+    if (!signedUrl) {
+      throw new Error(`Could not generate a signed URL for ${label}.`);
+    }
+
+    const response = await fetch(signedUrl);
+    if (!response.ok) {
+      throw new Error(`Could not read ${label} for scanning.`);
+    }
+
+    const blob = await response.blob();
+    const file = new File([blob], row.file_name || `${label}.pdf`, {
+      type: row.content_type || blob.type || "application/octet-stream",
+    });
+
+    const result = await scanCreditDocument(
+      file,
+      {
+        fileId: row.id,
+        fileName: row.file_name,
+        title: row.title,
+        contentType: row.content_type || blob.type,
+        reportDate: String(row.created_at || "").slice(0, 10),
+        bureau: [row.title, row.category, row.notes].filter(Boolean).join(" "),
+      },
+      (message) => {
+        setScanStatus(`Scanning ${index + 1}/${scannableFiles.length}: ${message}`);
+      }
+    );
+
+    if (storeReports) {
+      for (const report of result.reports) {
+        await upsertCreditReportRow({
+          ...report,
+          file_id: row.id,
+        });
+        reportsCreated += 1;
+      }
+    }
+
+    for (const item of result.negativeItems) {
+      await upsertNegativeItemRow({
+        ...item,
+        source_file_id: row.id,
+      });
+      itemsCreated += 1;
+    }
+  }
+
+  return {
+    scannedFiles: scannableFiles.length,
+    reportsCreated,
+    itemsCreated,
+    skippedFiles,
+  };
+}
+
 async function loadClientPreview(userId) {
   if (!userId) return;
-  const [{ data: scores }, { data: letters }, { data: updates }, { data: files }, { data: messages }] =
+  const [
+    { data: scores },
+    { data: letters },
+    { data: updates },
+    files,
+    { data: messages },
+    reports,
+    negativeItems,
+  ] =
     await Promise.all([
       supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", userId).order("reported_at", { ascending: false }).limit(6),
       supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date").eq("user_id", userId).order("sent_date", { ascending: false }).limit(8),
       supabase.from("client_updates").select("details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(8),
-      supabase.from("client_files").select("title,category,file_name,file_path,bucket,created_at,uploaded_by").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+      loadClientFiles(userId),
       supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
+      safeTableQuery(
+        supabase
+          .from("credit_reports")
+          .select("id,bureau,score,report_date,report_label,summary,verification_status,verification_method,file_id,created_at")
+          .eq("user_id", userId)
+          .order("report_date", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(12)
+      ),
+      safeTableQuery(
+        supabase
+          .from("negative_items")
+          .select("id,bureau,creditor,item_type,balance,status,notes,is_active,verification_method,confidence,created_at")
+          .eq("user_id", userId)
+          .order("is_active", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(40)
+      ),
     ]);
 
-  const allFiles = files || [];
+  const filesWithUrls = files || [];
+  const reportFileMap = new Map(filesWithUrls.map((row) => [row.id, row.signed_url || ""]));
+  const reportsWithUrls = (reports || []).map((row) => ({
+    ...row,
+    signed_url: reportFileMap.get(row.file_id) || "",
+  }));
 
-  // Generate signed URLs for client uploads so admin can open them
-  const filesWithUrls = await Promise.all(
-    allFiles.map(async (f) => {
-      if (f.uploaded_by !== "client") return f;
-      const { data } = await supabase.storage
-        .from(f.bucket || "client-docs")
-        .createSignedUrl(f.file_path, 60 * 60);
-      return { ...f, signed_url: data?.signedUrl || "" };
-    })
+  renderPreview(
+    reportsWithUrls,
+    negativeItems || [],
+    scores || [],
+    letters || [],
+    updates || [],
+    filesWithUrls.filter((f) => f.uploaded_by !== "client")
   );
-
-  renderPreview(scores || [], letters || [], updates || [], filesWithUrls.filter((f) => f.uploaded_by !== "client"));
   renderAdminMessages(messages || []);
   renderClientUploads(filesWithUrls);
 }
@@ -328,6 +801,8 @@ function initialize() {
   clientSelect?.addEventListener("change", async () => {
     activeClientId = clientSelect.value || null;
     activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
+    setScanStatus("");
+    setAiVerifyStatus("");
     await loadClientPreview(activeClientId);
   });
 
@@ -444,6 +919,186 @@ function initialize() {
     activeClientId = userId;
     setAdminStatus("Profile saved.");
     await loadClients();
+  });
+
+  creditReportForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await requireActiveClient())) return;
+
+    const fileInput = document.getElementById("report-file-input");
+    const file = fileInput?.files?.[0];
+    const bureau = String(document.getElementById("report-bureau")?.value || "").trim();
+    const reportDate = String(document.getElementById("report-date")?.value || "").trim();
+    const scoreRaw = String(document.getElementById("report-score")?.value || "").trim();
+    const summary = String(document.getElementById("report-summary")?.value || "").trim();
+    const titleInput = String(document.getElementById("report-title")?.value || "").trim();
+    const runAiReview = Boolean(document.getElementById("report-run-scan")?.checked);
+
+    if (!file) {
+      setAdminStatus("Choose a credit report file to upload.", true);
+      return;
+    }
+
+    const isPdfUpload =
+      String(file.type || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isPdfUpload) {
+      setAdminStatus("Only PDF credit reports are allowed in this upload form.", true);
+      return;
+    }
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      setAdminStatus(`File must be ${formatMbLimit(MAX_UPLOAD_SIZE_MB)} or smaller.`, true);
+      return;
+    }
+
+    const bucket = "client-docs";
+    const safeName = sanitizeFileName(file.name);
+    const objectPath = `${activeClientId}/reports/${Date.now()}-${safeName}`;
+    const reportLabel = titleInput || `${bureau || "Credit"} report`;
+
+    setAdminStatus("Uploading credit report...");
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, file, {
+      upsert: false,
+      contentType: file.type,
+    });
+
+    if (uploadError) {
+      setAdminStatus("Could not upload credit report: " + uploadError.message, true);
+      return;
+    }
+
+    const { data: fileRow, error: rowError } = await supabase
+      .from("client_files")
+      .insert({
+        user_id: activeClientId,
+        bucket,
+        file_path: objectPath,
+        file_name: file.name,
+        content_type: file.type,
+        file_size: file.size,
+        category: "Credit Report",
+        title: reportLabel,
+        notes: summary || null,
+        uploaded_by: "admin",
+      })
+      .select("id,title,notes,category,file_name,file_path,bucket,created_at,uploaded_by,content_type,file_size")
+      .single();
+
+    if (rowError) {
+      setAdminStatus("Report uploaded but metadata save failed: " + rowError.message, true);
+      return;
+    }
+
+    try {
+      await upsertCreditReportRow(
+        buildManualCreditReport({
+          bureau,
+          report_date: reportDate,
+          score: scoreRaw,
+          report_label: reportLabel,
+          summary,
+          source: "admin_upload",
+          verification_status: "pending",
+          verification_method: "manual",
+          file_id: fileRow.id,
+        })
+      );
+    } catch (error) {
+      if (isMissingFeatureError(error)) {
+        setAdminStatus("Run the updated supabase-portal-schema.sql before using credit reports.", true);
+        return;
+      }
+      setAdminStatus("Credit report saved but report record failed: " + (error?.message || error), true);
+      return;
+    }
+
+    if (runAiReview) {
+      try {
+        setScanStatus("");
+        if (file.size > MAX_AI_REVIEW_SIZE_BYTES) {
+          setAiVerifyStatus(
+            `Report uploaded. AI verification skipped because PDF review only handles files up to ${formatMbLimit(MAX_AI_REVIEW_SIZE_MB)}. Use browser scan for a smaller excerpt or add negative items manually.`,
+            true
+          );
+        } else {
+          setAiVerifyStatus("AI reviewing uploaded PDF report...");
+          const analysis = await verifyFileRowWithAi(fileRow);
+          const result = await applyAiReviewResult(fileRow, analysis, {
+            bureau,
+            report_date: reportDate,
+            score: scoreRaw,
+            report_label: reportLabel,
+            summary,
+            source: "admin_upload",
+            persistRejectedReport: true,
+          });
+          if (result.accepted) {
+            setAiVerifyStatus(
+              `AI verification complete: ${result.itemsCreated} negative item(s) verified from the PDF report.`
+            );
+          } else {
+            setAiVerifyStatus(
+              analysis?.document?.reason ||
+                "AI review rejected this file because it does not look like a real credit report PDF.",
+              true
+            );
+          }
+        }
+      } catch (error) {
+        setAiVerifyStatus(
+          "Report uploaded, but AI verification failed: " + (error?.message || "Unknown error"),
+          true
+        );
+      }
+    } else {
+      setAiVerifyStatus("");
+      setScanStatus("");
+    }
+
+    creditReportForm.reset();
+    setAdminStatus("Credit report uploaded.");
+    await loadClientPreview(activeClientId);
+  });
+
+  negativeItemForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await requireActiveClient())) return;
+
+    const creditor = String(document.getElementById("negative-creditor")?.value || "").trim();
+    const itemType = String(document.getElementById("negative-type")?.value || "").trim();
+
+    if (!creditor || !itemType) {
+      setAdminStatus("Creditor and item type are required.", true);
+      return;
+    }
+
+    try {
+      await upsertNegativeItemRow(
+        buildManualNegativeItem({
+          bureau: String(document.getElementById("negative-bureau")?.value || "").trim(),
+          creditor,
+          item_type: itemType,
+          account_reference: String(document.getElementById("negative-account-ref")?.value || "").trim(),
+          balance: String(document.getElementById("negative-balance")?.value || "").trim(),
+          status: String(document.getElementById("negative-status")?.value || "").trim(),
+          notes: String(document.getElementById("negative-notes")?.value || "").trim(),
+          is_active: Boolean(document.getElementById("negative-active")?.checked),
+          source: "manual",
+        })
+      );
+    } catch (error) {
+      if (isMissingFeatureError(error)) {
+        setAdminStatus("Run the updated supabase-portal-schema.sql before using negative items.", true);
+        return;
+      }
+      setAdminStatus("Could not save negative item: " + (error?.message || error), true);
+      return;
+    }
+
+    negativeItemForm.reset();
+    const activeCheckbox = document.getElementById("negative-active");
+    if (activeCheckbox) activeCheckbox.checked = true;
+    setAdminStatus("Negative item saved.");
+    await loadClientPreview(activeClientId);
   });
 
   snapshotForm?.addEventListener("submit", async (event) => {
@@ -588,8 +1243,8 @@ function initialize() {
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      setAdminStatus("File must be 15MB or smaller.", true);
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      setAdminStatus(`File must be ${formatMbLimit(MAX_UPLOAD_SIZE_MB)} or smaller.`, true);
       return;
     }
 
@@ -627,6 +1282,101 @@ function initialize() {
     fileUploadForm.reset();
     setAdminStatus("File uploaded and attached to client record.");
     await loadClientPreview(activeClientId);
+  });
+
+  aiVerifyDocumentsBtn?.addEventListener("click", async () => {
+    if (!(await requireActiveClient())) return;
+
+    aiVerifyDocumentsBtn.disabled = true;
+    setAiVerifyStatus("Loading uploaded PDF reports...");
+
+    try {
+      const files = await loadClientFiles(activeClientId);
+      const candidates = files.filter(isLikelyCreditReportCandidate);
+
+      if (!candidates.length) {
+        setAiVerifyStatus(
+          "No likely credit report PDFs found. Upload the file in the Credit Reports section or use a title that clearly marks it as a credit report.",
+          true
+        );
+        return;
+      }
+
+      let reviewed = 0;
+      let verifiedReports = 0;
+      let rejectedReports = 0;
+      let itemsCreated = 0;
+      let skippedOversize = 0;
+
+      for (let index = 0; index < candidates.length; index += 1) {
+        const row = candidates[index];
+        const label = row.title || row.file_name || `PDF ${index + 1}`;
+
+        if (Number(row.file_size || 0) > MAX_AI_REVIEW_SIZE_BYTES) {
+          skippedOversize += 1;
+          continue;
+        }
+
+        setAiVerifyStatus(`AI reviewing ${index + 1}/${candidates.length}: ${label}`);
+        const analysis = await verifyFileRowWithAi(row);
+        const result = await applyAiReviewResult(row, analysis, {
+          source: inferReportSource(row),
+        });
+
+        reviewed += 1;
+        if (result.accepted) {
+          verifiedReports += 1;
+          itemsCreated += result.itemsCreated;
+        } else {
+          rejectedReports += 1;
+        }
+      }
+
+      const skippedNote = skippedOversize
+        ? ` ${skippedOversize} oversized PDF(s) were skipped because AI review is limited to ${formatMbLimit(MAX_AI_REVIEW_SIZE_MB)}.`
+        : "";
+      setAiVerifyStatus(
+        `AI review complete: ${reviewed} PDF(s) reviewed, ${verifiedReports} verified, ${rejectedReports} rejected, ${itemsCreated} negative item(s) added.${skippedNote}`
+      );
+      setAdminStatus("AI review finished.");
+      await loadClientPreview(activeClientId);
+    } catch (error) {
+      if (isMissingFeatureError(error)) {
+        setAiVerifyStatus("Run the updated supabase-portal-schema.sql before using AI review.", true);
+      } else {
+        setAiVerifyStatus("AI review failed: " + (error?.message || "Unknown error"), true);
+      }
+    } finally {
+      aiVerifyDocumentsBtn.disabled = false;
+    }
+  });
+
+  scanDocumentsBtn?.addEventListener("click", async () => {
+    if (!(await requireActiveClient())) return;
+
+    scanDocumentsBtn.disabled = true;
+    setScanStatus("Loading uploaded documents...");
+
+    try {
+      const files = await loadClientFiles(activeClientId);
+      const result = await scanFileRows(files, { storeReports: true });
+      const skippedNote = result.skippedFiles
+        ? ` ${result.skippedFiles} oversized file(s) were skipped because browser scanning is limited to ${formatMbLimit(MAX_BROWSER_SCAN_SIZE_MB)}.`
+        : "";
+      setScanStatus(
+        `Scan complete: ${result.scannedFiles} file(s), ${result.reportsCreated} report summary row(s), ${result.itemsCreated} negative item(s).${skippedNote}`
+      );
+      setAdminStatus("Document scan finished.");
+      await loadClientPreview(activeClientId);
+    } catch (error) {
+      if (isMissingFeatureError(error)) {
+        setScanStatus("Run the updated supabase-portal-schema.sql before using the scanner.", true);
+      } else {
+        setScanStatus("Scanner failed: " + (error?.message || error), true);
+      }
+    } finally {
+      scanDocumentsBtn.disabled = false;
+    }
   });
 
   adminMessageForm?.addEventListener("submit", async (event) => {

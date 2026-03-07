@@ -222,11 +222,30 @@ textarea {
   gap: 0.65rem;
 }
 
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
 .score-card {
   border: 1px solid var(--line);
   border-radius: 11px;
   padding: 0.78rem;
   background: #fff;
+}
+
+.report-card {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 0.9rem;
+  background: linear-gradient(180deg, #fff 0%, #faf7ff 100%);
+}
+
+.empty-card {
+  display: flex;
+  align-items: center;
+  min-height: 110px;
 }
 
 .bureau {
@@ -244,10 +263,41 @@ textarea {
   margin: 0;
 }
 
+.report-score {
+  font-family: "Inter", sans-serif;
+  font-size: 1.5rem;
+  margin: 0 0 0.15rem;
+}
+
 .stamp {
   margin: 0.2rem 0 0;
   font-size: 0.87rem;
   color: var(--muted);
+}
+
+.report-summary {
+  margin: 0.55rem 0;
+  color: #51466a;
+  font-size: 0.92rem;
+}
+
+.report-review {
+  margin: 0 0 0.35rem;
+  color: #5f5278;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.report-review-note {
+  margin: 0 0 0.55rem;
+  color: #695c83;
+  font-size: 0.84rem;
+}
+
+.report-link {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .table-wrap {
@@ -304,6 +354,26 @@ tbody tr:last-child td {
 }
 
 .badge.response-received {
+  background: #f5e8ff;
+  color: #7e4ca0;
+}
+
+.badge.verified {
+  background: #e7fbf6;
+  color: var(--ok);
+}
+
+.badge.rejected {
+  background: #fdeaea;
+  color: #b53e3e;
+}
+
+.badge.pending {
+  background: #fff3dc;
+  color: var(--warn);
+}
+
+.badge.needs-review {
   background: #f5e8ff;
   color: #7e4ca0;
 }
@@ -377,6 +447,10 @@ tbody tr:last-child td {
 
 @media (max-width: 960px) {
   .score-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-grid {
     grid-template-columns: 1fr;
   }
 

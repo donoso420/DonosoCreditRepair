@@ -17,6 +17,8 @@ const refreshBtn = document.getElementById("refresh-btn");
 const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
 const scoreGridEl = document.getElementById("score-grid");
+const reportGridEl = document.getElementById("report-grid");
+const negativeItemsBodyEl = document.getElementById("negative-items-body");
 const lettersBodyEl = document.getElementById("letters-body");
 const updatesListEl = document.getElementById("updates-list");
 const filesListEl = document.getElementById("files-list");
@@ -28,6 +30,9 @@ const clientUploadForm = document.getElementById("client-upload-form");
 const uploadStatus = document.getElementById("upload-status");
 const authLandingState = getAuthLandingState();
 let authEmailCooldownUntil = 0;
+
+const MAX_UPLOAD_SIZE_MB = 500;
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
 const requiredConfig = ["supabaseUrl", "supabaseAnonKey"];
 const missingConfig = requiredConfig.filter((k) => !config[k]);
@@ -227,6 +232,74 @@ function formatDateTime(value) {
   return date.toLocaleString();
 }
 
+function formatVerificationStatus(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "verified":
+      return "AI verified";
+    case "rejected":
+      return "Rejected";
+    case "needs_review":
+      return "Needs review";
+    default:
+      return "Pending review";
+  }
+}
+
+function formatVerificationMethod(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "ai_pdf":
+      return "AI PDF review";
+    case "browser_scan":
+      return "Browser scan";
+    default:
+      return "Manual";
+  }
+}
+
+function verificationBadgeClass(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "verified":
+      return "verified";
+    case "rejected":
+      return "rejected";
+    case "needs_review":
+      return "needs-review";
+    default:
+      return "pending";
+  }
+}
+
+function formatCurrency(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "N/A";
+  return amount.toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatMbLimit(limitMb) {
+  return `${limitMb}MB`;
+}
+
+function isMissingFeatureError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return (
+    message.includes("does not exist") ||
+    message.includes("could not find the table") ||
+    message.includes("column") ||
+    message.includes("schema cache")
+  );
+}
+
+async function safeTableQuery(queryPromise, fallback = []) {
+  const { data, error } = await queryPromise;
+  if (!error) return data || fallback;
+  if (isMissingFeatureError(error)) return fallback;
+  throw error;
+}
+
 function sanitizeFileName(name) {
   return String(name || "file")
     .trim()
@@ -309,6 +382,88 @@ function renderLetters(letters) {
           <td>${escapeHtml(row.recipient || row.bureau || "N/A")}</td>
           <td>${escapeHtml(row.tracking_number || "N/A")}</td>
           <td><span class="badge ${escapeHtml(badgeClass)}">${escapeHtml(status)}</span></td>
+          <td>${escapeHtml(row.notes || "")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderReports(reports) {
+  if (!reportGridEl) return;
+  if (!reports.length) {
+    reportGridEl.innerHTML = `
+      <article class="report-card empty-card">
+        <p class="empty">No current credit reports uploaded yet.</p>
+      </article>
+    `;
+    return;
+  }
+
+  const preferredOrder = ["Experian", "Equifax", "TransUnion", "Other"];
+  const latestByBureau = new Map();
+  reports.forEach((row) => {
+    const bureau = row.bureau || "Other";
+    if (!latestByBureau.has(bureau)) latestByBureau.set(bureau, row);
+  });
+
+  const orderedReports = [
+    ...preferredOrder.map((bureau) => latestByBureau.get(bureau)).filter(Boolean),
+    ...Array.from(latestByBureau.values()).filter((row) => !preferredOrder.includes(row.bureau || "Other")),
+  ];
+
+  reportGridEl.innerHTML = orderedReports
+    .map((row) => {
+      const reportDate = formatDate(row.report_date || row.created_at);
+      const summary = row.summary || "Current report on file.";
+      const reviewLabel = formatVerificationStatus(row.verification_status);
+      const reviewMethod = formatVerificationMethod(row.verification_method);
+      const reviewNotes = row.verification_notes
+        ? `<p class="report-review-note">${escapeHtml(row.verification_notes)}</p>`
+        : "";
+      const openLink = row.signed_url
+        ? `<a href="${escapeHtml(row.signed_url)}" target="_blank" rel="noopener noreferrer">Open report</a>`
+        : "File link unavailable";
+      return `
+        <article class="report-card">
+          <p class="bureau">${escapeHtml(row.bureau || "Other")}</p>
+          <p class="report-review"><span class="badge ${escapeHtml(
+            verificationBadgeClass(row.verification_status)
+          )}">${escapeHtml(reviewLabel)}</span> ${escapeHtml(reviewMethod)}</p>
+          <p class="report-score">${escapeHtml(row.score != null ? row.score : "--")}</p>
+          <p class="stamp">${escapeHtml(reportDate)}</p>
+          <p class="report-summary">${escapeHtml(summary)}</p>
+          ${reviewNotes}
+          <p class="report-link">${openLink}</p>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderNegativeItems(items) {
+  if (!negativeItemsBodyEl) return;
+  if (!items.length) {
+    negativeItemsBodyEl.innerHTML = '<tr><td colspan="7" class="empty">No negative items logged yet.</td></tr>';
+    return;
+  }
+
+  negativeItemsBodyEl.innerHTML = items
+    .map((row) => {
+      const status = row.status || (row.is_active === false ? "Resolved / removed" : "Under review");
+      const balance = row.balance == null ? "N/A" : formatCurrency(row.balance);
+      const reviewLabel = formatVerificationMethod(row.verification_method);
+      const reviewDetail = row.evidence_excerpt
+        ? `${reviewLabel}: ${row.evidence_excerpt}`
+        : reviewLabel;
+      return `
+        <tr>
+          <td>${escapeHtml(row.bureau || "All Bureaus")}</td>
+          <td>${escapeHtml(row.creditor || "Unknown")}</td>
+          <td>${escapeHtml(row.item_type || "Negative Item")}</td>
+          <td>${escapeHtml(reviewDetail)}</td>
+          <td>${escapeHtml(status)}</td>
+          <td>${escapeHtml(balance)}</td>
           <td>${escapeHtml(row.notes || "")}</td>
         </tr>
       `;
@@ -404,6 +559,8 @@ function initializePortal() {
     const [
       { data: profile },
       { data: snapshots },
+      reports,
+      negativeItems,
       { data: letters },
       { data: updates },
       { data: files },
@@ -411,6 +568,24 @@ function initializePortal() {
     ] = await Promise.all([
       supabase.from("client_profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
       supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", user.id).order("reported_at", { ascending: false }),
+      safeTableQuery(
+        supabase
+          .from("credit_reports")
+          .select("id,bureau,score,report_date,summary,verification_status,verification_method,verification_notes,file_id,created_at")
+          .eq("user_id", user.id)
+          .order("report_date", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(12)
+      ),
+      safeTableQuery(
+        supabase
+          .from("negative_items")
+          .select("bureau,creditor,item_type,balance,status,notes,is_active,verification_method,evidence_excerpt,created_at")
+          .eq("user_id", user.id)
+          .order("is_active", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(40)
+      ),
       supabase.from("client_letters").select("sent_date,bureau,recipient,tracking_number,status,notes").eq("user_id", user.id).order("sent_date", { ascending: false }),
       supabase.from("client_updates").select("details,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("client_files").select("id,title,category,notes,file_name,file_path,bucket,created_at,uploaded_by").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -427,7 +602,15 @@ function initializePortal() {
       })
     );
 
+    const fileMap = new Map(filesWithSignedUrls.map((row) => [row.id, row.signed_url || ""]));
+    const reportsWithUrls = (reports || []).map((row) => ({
+      ...row,
+      signed_url: fileMap.get(row.file_id) || "",
+    }));
+
     renderScores(snapshots || []);
+    renderReports(reportsWithUrls);
+    renderNegativeItems(negativeItems || []);
     renderTracker(letters || [], snapshots || []);
     renderLetters(letters || []);
     renderUpdates(updates || []);
@@ -482,8 +665,8 @@ function initializePortal() {
       setUploadStatus("Only PDF, PNG, JPG, or WebP files are allowed.", true);
       return;
     }
-    if (file.size > 15 * 1024 * 1024) {
-      setUploadStatus("File must be 15MB or smaller.", true);
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      setUploadStatus(`File must be ${formatMbLimit(MAX_UPLOAD_SIZE_MB)} or smaller.`, true);
       return;
     }
 
