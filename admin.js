@@ -341,6 +341,43 @@ function formatVerificationMethod(value) {
   }
 }
 
+function getNegativeItemStage(row = {}) {
+  const status = String(row.status || "").toLowerCase();
+  const notes = String(row.notes || "").toLowerCase();
+  const combined = `${status} ${notes}`;
+
+  if (
+    row.is_active === false ||
+    /\b(resolved|removed|deleted|completed|closed|cleared)\b/.test(combined)
+  ) {
+    return { label: "Resolved", step: 3, className: "stage-resolved" };
+  }
+
+  if (
+    /\b(disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif)\w*\b/.test(
+      combined
+    )
+  ) {
+    return { label: "In progress", step: 2, className: "stage-working" };
+  }
+
+  return { label: "Logged", step: 1, className: "stage-logged" };
+}
+
+function renderNegativeAdminStage(step) {
+  return ["Logged", "Working", "Resolved"]
+    .map((label, index) => {
+      const complete = index + 1 <= step ? "complete" : "";
+      return `
+        <span class="mini-stage-step ${complete}">
+          <span class="mini-stage-dot"></span>
+          ${safeText(label)}
+        </span>
+      `;
+    })
+    .join("");
+}
+
 function normalizeReportBureau(value) {
   const raw = String(value || "").toLowerCase();
   if (raw.includes("experian")) return "Experian";
@@ -612,17 +649,30 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
     } else {
       for (const row of negativeItems) {
         const li = document.createElement("li");
-        li.className = "file-record";
-        const bureau = row.bureau ? `${safeText(row.bureau)} · ` : "";
-        const balance = row.balance != null ? ` · ${safeText(formatCurrency(row.balance))}` : "";
-        const review = ` · ${safeText(formatVerificationMethod(row.verification_method))}`;
+        li.className = "file-record negative-admin-card";
+        const stage = getNegativeItemStage(row);
+        const bureau = row.bureau || "All Bureaus";
+        const balance = row.balance != null ? formatCurrency(row.balance) : "N/A";
+        const review = formatVerificationMethod(row.verification_method);
+        const accountRef = row.account_reference ? ` • Acct ${safeText(row.account_reference)}` : "";
+        const note = row.notes || "";
         li.innerHTML = `
-          <p class="file-record-title">${bureau}${safeText(row.creditor)} — ${safeText(
-          row.item_type
-        )}</p>
+          <div class="negative-admin-head">
+            <div>
+              <p class="file-record-title">${safeText(row.creditor)} — ${safeText(
+                row.item_type
+              )}</p>
+              <p class="file-record-meta">${safeText(bureau)}${accountRef}</p>
+            </div>
+            <span class="negative-admin-pill ${safeText(stage.className)}">${safeText(
+              stage.label
+            )}</span>
+          </div>
+          <div class="mini-stage">${renderNegativeAdminStage(stage.step)}</div>
           <p class="file-record-meta">${safeText(
-          row.status || "Under review"
-        )}${balance}${review}</p>
+            row.status || "Under review"
+          )} · ${safeText(balance)} · ${safeText(review)}</p>
+          ${note ? `<p class="negative-admin-note">${safeText(note)}</p>` : ""}
           ${renderRecordActionButtons(row.id, "edit-negative-item", "delete-negative-item")}
         `;
         previewNegativeItems.appendChild(li);

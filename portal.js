@@ -18,7 +18,8 @@ const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
 const scoreGridEl = document.getElementById("score-grid");
 const reportGridEl = document.getElementById("report-grid");
-const negativeItemsBodyEl = document.getElementById("negative-items-body");
+const negativeTrackerStatsEl = document.getElementById("negative-tracker-stats");
+const negativeTrackerGridEl = document.getElementById("negative-tracker-grid");
 const lettersBodyEl = document.getElementById("letters-body");
 const updatesListEl = document.getElementById("updates-list");
 const filesListEl = document.getElementById("files-list");
@@ -269,6 +270,43 @@ function verificationBadgeClass(value) {
   }
 }
 
+function getNegativeItemStage(row = {}) {
+  const status = String(row.status || "").toLowerCase();
+  const notes = String(row.notes || "").toLowerCase();
+  const combined = `${status} ${notes}`;
+
+  if (
+    row.is_active === false ||
+    /\b(resolved|removed|deleted|completed|closed|cleared)\b/.test(combined)
+  ) {
+    return { key: "resolved", label: "Resolved", step: 3, badgeClass: "stage-resolved" };
+  }
+
+  if (
+    /\b(disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif)\w*\b/.test(
+      combined
+    )
+  ) {
+    return { key: "working", label: "In progress", step: 2, badgeClass: "stage-working" };
+  }
+
+  return { key: "logged", label: "Logged", step: 1, badgeClass: "stage-logged" };
+}
+
+function renderNegativeStage(step) {
+  return ["Logged", "Working", "Resolved"]
+    .map((label, index) => {
+      const stateClass = index + 1 <= step ? "complete" : "";
+      return `
+        <div class="negative-stage-step ${stateClass}">
+          <span class="negative-stage-dot"></span>
+          <span>${escapeHtml(label)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 function formatCurrency(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return "N/A";
@@ -442,30 +480,80 @@ function renderReports(reports) {
 }
 
 function renderNegativeItems(items) {
-  if (!negativeItemsBodyEl) return;
+  if (!negativeTrackerGridEl || !negativeTrackerStatsEl) return;
+
+  const totals = items.reduce(
+    (summary, row) => {
+      const stage = getNegativeItemStage(row);
+      const balance = Number(row.balance);
+
+      summary.total += 1;
+      if (stage.key === "resolved") {
+        summary.resolved += 1;
+      } else {
+        summary.inProgress += 1;
+      }
+      if (Number.isFinite(balance) && stage.key !== "resolved") {
+        summary.activeBalance += balance;
+      }
+      return summary;
+    },
+    { total: 0, inProgress: 0, resolved: 0, activeBalance: 0 }
+  );
+
+  negativeTrackerStatsEl.innerHTML = `
+    <article class="negative-stat-card">
+      <span>Total Items</span>
+      <strong>${escapeHtml(totals.total)}</strong>
+    </article>
+    <article class="negative-stat-card">
+      <span>In Progress</span>
+      <strong>${escapeHtml(totals.inProgress)}</strong>
+    </article>
+    <article class="negative-stat-card">
+      <span>Resolved</span>
+      <strong>${escapeHtml(totals.resolved)}</strong>
+    </article>
+    <article class="negative-stat-card">
+      <span>Active Balance</span>
+      <strong>${escapeHtml(formatCurrency(totals.activeBalance))}</strong>
+    </article>
+  `;
+
   if (!items.length) {
-    negativeItemsBodyEl.innerHTML = '<tr><td colspan="7" class="empty">No negative items logged yet.</td></tr>';
+    negativeTrackerGridEl.innerHTML =
+      '<article class="negative-track-card empty-card"><p class="empty">No negative items logged yet.</p></article>';
     return;
   }
 
-  negativeItemsBodyEl.innerHTML = items
+  negativeTrackerGridEl.innerHTML = items
     .map((row) => {
+      const stage = getNegativeItemStage(row);
       const status = row.status || (row.is_active === false ? "Resolved / removed" : "Under review");
       const balance = row.balance == null ? "N/A" : formatCurrency(row.balance);
       const reviewLabel = formatVerificationMethod(row.verification_method);
-      const reviewDetail = row.evidence_excerpt
-        ? `${reviewLabel}: ${row.evidence_excerpt}`
-        : reviewLabel;
+      const accountRef = row.account_reference ? ` • Acct ${row.account_reference}` : "";
+      const note = row.notes || row.evidence_excerpt || "";
       return `
-        <tr>
-          <td>${escapeHtml(row.bureau || "All Bureaus")}</td>
-          <td>${escapeHtml(row.creditor || "Unknown")}</td>
-          <td>${escapeHtml(row.item_type || "Negative Item")}</td>
-          <td>${escapeHtml(reviewDetail)}</td>
-          <td>${escapeHtml(status)}</td>
-          <td>${escapeHtml(balance)}</td>
-          <td>${escapeHtml(row.notes || "")}</td>
-        </tr>
+        <article class="negative-track-card">
+          <div class="negative-track-top">
+            <p class="bureau">${escapeHtml(row.bureau || "All Bureaus")}</p>
+            <span class="negative-stage-badge ${escapeHtml(stage.badgeClass)}">${escapeHtml(
+              stage.label
+            )}</span>
+          </div>
+          <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
+          <p class="negative-track-meta">${escapeHtml(row.item_type || "Negative Item")}${escapeHtml(
+            accountRef
+          )}</p>
+          <div class="negative-stage">${renderNegativeStage(stage.step)}</div>
+          <div class="negative-track-details">
+            <span><strong>Status:</strong> ${escapeHtml(status)}</span>
+            <span><strong>Balance:</strong> ${escapeHtml(balance)}</span>
+            <span><strong>Source:</strong> ${escapeHtml(reviewLabel)}</span>
+          </div>
+          ${note ? `<p class="negative-track-note">${escapeHtml(note)}</p>` : ""}
+        </article>
       `;
     })
     .join("");
@@ -580,7 +668,7 @@ function initializePortal() {
       safeTableQuery(
         supabase
           .from("negative_items")
-          .select("bureau,creditor,item_type,balance,status,notes,is_active,verification_method,evidence_excerpt,created_at")
+          .select("bureau,creditor,item_type,account_reference,balance,status,notes,is_active,verification_method,evidence_excerpt,created_at")
           .eq("user_id", user.id)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })

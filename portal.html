@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260307c" />
+    <link rel="stylesheet" href="portal.css?v=20260307d" />
   </head>
   <body>
     <header class="portal-nav">
@@ -113,26 +113,34 @@
           </section>
 
           <section>
-            <h3>Negative Items On File</h3>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Bureau</th>
-                    <th>Creditor</th>
-                    <th>Item Type</th>
-                    <th>Verified</th>
-                    <th>Status</th>
-                    <th>Balance</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody id="negative-items-body">
-                  <tr>
-                    <td colspan="7" class="empty">No negative items logged yet.</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="negative-tracker-head">
+              <div>
+                <h3>Negative Item Tracker</h3>
+                <p class="subtle">Track each negative account from intake through resolution.</p>
+              </div>
+              <div class="negative-tracker-stats" id="negative-tracker-stats">
+                <article class="negative-stat-card">
+                  <span>Total Items</span>
+                  <strong>0</strong>
+                </article>
+                <article class="negative-stat-card">
+                  <span>In Progress</span>
+                  <strong>0</strong>
+                </article>
+                <article class="negative-stat-card">
+                  <span>Resolved</span>
+                  <strong>0</strong>
+                </article>
+                <article class="negative-stat-card">
+                  <span>Active Balance</span>
+                  <strong>$0</strong>
+                </article>
+              </div>
+            </div>
+            <div class="negative-tracker-grid" id="negative-tracker-grid">
+              <article class="negative-track-card empty-card">
+                <p class="empty">No negative items logged yet.</p>
+              </article>
             </div>
           </section>
 
@@ -264,6 +272,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260307c"></script>
+    <script type="module" src="portal.js?v=20260307d"></script>
   </body>
 </html>
