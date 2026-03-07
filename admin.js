@@ -23,7 +23,6 @@ const snapshotForm = document.getElementById("snapshot-form");
 const snapshotEditIdInput = document.getElementById("snapshot-edit-id");
 const snapshotSubmitBtn = document.getElementById("snapshot-submit-btn");
 const snapshotCancelBtn = document.getElementById("snapshot-cancel-btn");
-const creditReportForm = document.getElementById("credit-report-form");
 const negativeItemForm = document.getElementById("negative-item-form");
 const negativeEditIdInput = document.getElementById("negative-edit-id");
 const negativeSubmitBtn = document.getElementById("negative-submit-btn");
@@ -58,6 +57,8 @@ const adminMessageThread = document.getElementById("admin-message-thread");
 const adminMessageForm = document.getElementById("admin-message-form");
 const adminMessageInput = document.getElementById("admin-message-input");
 const previewClientUploads = document.getElementById("preview-client-uploads");
+const fileCategorySelect = document.getElementById("file-category");
+const creditReportFields = document.getElementById("credit-report-fields");
 
 const MAX_UPLOAD_SIZE_MB = 500;
 const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
@@ -96,6 +97,27 @@ function setReportAutofillStatus(message, isError = false) {
   if (!reportAutofillStatus) return;
   reportAutofillStatus.textContent = message;
   reportAutofillStatus.classList.toggle("error", isError);
+}
+
+function isCreditReportCategory(value = fileCategorySelect?.value) {
+  return String(value || "").trim() === "Credit Report";
+}
+
+function syncUploadCategoryUi() {
+  const showReportFields = isCreditReportCategory();
+  creditReportFields?.classList.toggle("hidden", !showReportFields);
+  const reportBureauInput = document.getElementById("report-bureau");
+  const reportFileInput = document.getElementById("file-input");
+  if (reportBureauInput) reportBureauInput.required = showReportFields;
+  if (!showReportFields) {
+    setReportAutofillStatus("");
+    if (reportFileInput && reportFileInput.files?.length) {
+      const notesInput = document.getElementById("file-notes");
+      if (notesInput && !String(notesInput.value || "").trim()) {
+        notesInput.placeholder = "Optional description";
+      }
+    }
+  }
 }
 
 function showAuth() {
@@ -376,6 +398,11 @@ function buildAutoReportSummary({ result, bureau, reportDate }) {
 }
 
 async function autofillCreditReportForm(file) {
+  if (!isCreditReportCategory()) {
+    setReportAutofillStatus("");
+    return;
+  }
+
   if (!file) {
     setReportAutofillStatus("");
     return;
@@ -397,7 +424,7 @@ async function autofillCreditReportForm(file) {
   }
 
   try {
-    const titleInput = document.getElementById("report-title");
+    const titleInput = document.getElementById("file-title");
     const bureauInput = document.getElementById("report-bureau");
     const scoreInput = document.getElementById("report-score");
     const dateInput = document.getElementById("report-date");
@@ -1282,11 +1309,17 @@ function initialize() {
   previewLetters?.addEventListener("click", handlePreviewRecordClick);
   previewUpdates?.addEventListener("click", handlePreviewRecordClick);
 
-  const reportFileInput = document.getElementById("report-file-input");
-  reportFileInput?.addEventListener("change", async () => {
-    const file = reportFileInput.files?.[0];
+  const uploadFileInput = document.getElementById("file-input");
+  uploadFileInput?.addEventListener("change", async () => {
+    const file = uploadFileInput.files?.[0];
     await autofillCreditReportForm(file || null);
   });
+  fileCategorySelect?.addEventListener("change", async () => {
+    syncUploadCategoryUi();
+    const file = uploadFileInput?.files?.[0];
+    await autofillCreditReportForm(file || null);
+  });
+  syncUploadCategoryUi();
 
   snapshotCancelBtn?.addEventListener("click", resetSnapshotForm);
   negativeCancelBtn?.addEventListener("click", resetNegativeItemForm);
@@ -1406,102 +1439,6 @@ function initialize() {
     activeClientId = userId;
     setAdminStatus("Profile saved.");
     await loadClients();
-  });
-
-  creditReportForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!(await requireActiveClient())) return;
-
-    const fileInput = document.getElementById("report-file-input");
-    const file = fileInput?.files?.[0];
-    const bureau = String(document.getElementById("report-bureau")?.value || "").trim();
-    const reportDate = String(document.getElementById("report-date")?.value || "").trim();
-    const scoreRaw = String(document.getElementById("report-score")?.value || "").trim();
-    const summary = String(document.getElementById("report-summary")?.value || "").trim();
-    const titleInput = String(document.getElementById("report-title")?.value || "").trim();
-
-    if (!file) {
-      setAdminStatus("Choose a credit report file to upload.", true);
-      return;
-    }
-
-    const isPdfUpload =
-      String(file.type || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(file.name);
-    if (!isPdfUpload) {
-      setAdminStatus("Only PDF credit reports are allowed in this upload form.", true);
-      return;
-    }
-    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-      setAdminStatus(`File must be ${formatMbLimit(MAX_UPLOAD_SIZE_MB)} or smaller.`, true);
-      return;
-    }
-
-    const bucket = "client-docs";
-    const safeName = sanitizeFileName(file.name);
-    const objectPath = `${activeClientId}/reports/${Date.now()}-${safeName}`;
-    const reportLabel = titleInput || `${bureau || "Credit"} report`;
-
-    setAdminStatus("Uploading credit report...");
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, file, {
-      upsert: false,
-      contentType: file.type,
-    });
-
-    if (uploadError) {
-      setAdminStatus("Could not upload credit report: " + uploadError.message, true);
-      return;
-    }
-
-    const { data: fileRow, error: rowError } = await supabase
-      .from("client_files")
-      .insert({
-        user_id: activeClientId,
-        bucket,
-        file_path: objectPath,
-        file_name: file.name,
-        content_type: file.type,
-        file_size: file.size,
-        category: "Credit Report",
-        title: reportLabel,
-        notes: summary || null,
-        uploaded_by: "admin",
-      })
-      .select("id,title,notes,category,file_name,file_path,bucket,created_at,uploaded_by,content_type,file_size")
-      .single();
-
-    if (rowError) {
-      setAdminStatus("Report uploaded but metadata save failed: " + rowError.message, true);
-      return;
-    }
-
-    try {
-      await upsertCreditReportRow(
-        buildManualCreditReport({
-          bureau,
-          report_date: reportDate,
-          score: scoreRaw,
-          report_label: reportLabel,
-          summary,
-          source: "admin_upload",
-          verification_status: "pending",
-          verification_method: "manual",
-          file_id: fileRow.id,
-        })
-      );
-    } catch (error) {
-      if (isMissingFeatureError(error)) {
-        setAdminStatus("Run the updated supabase-portal-schema.sql before using credit reports.", true);
-        return;
-      }
-      setAdminStatus("Credit report saved but report record failed: " + (error?.message || error), true);
-      return;
-    }
-
-    creditReportForm.reset();
-    setReportAutofillStatus("");
-    setScanStatus("");
-    setAdminStatus("Credit report uploaded. Use document scan if you want help pulling report details from the PDF.");
-    await loadClientPreview(activeClientId);
   });
 
   negativeItemForm?.addEventListener("submit", async (event) => {
@@ -1736,9 +1673,19 @@ function initialize() {
     const category = String(document.getElementById("file-category")?.value || "").trim();
     const notes = String(document.getElementById("file-notes")?.value || "").trim();
     const titleInput = String(document.getElementById("file-title")?.value || "").trim();
+    const isCreditReportUpload = isCreditReportCategory(category);
+    const bureau = String(document.getElementById("report-bureau")?.value || "").trim();
+    const reportDate = String(document.getElementById("report-date")?.value || "").trim();
+    const scoreRaw = String(document.getElementById("report-score")?.value || "").trim();
+    const reportSummary = String(document.getElementById("report-summary")?.value || "").trim();
 
     if (!file) {
       setAdminStatus("Choose a file to upload.", true);
+      return;
+    }
+
+    if (!category) {
+      setAdminStatus("Choose a file category.", true);
       return;
     }
 
@@ -1753,6 +1700,15 @@ function initialize() {
       return;
     }
 
+    if (isCreditReportUpload) {
+      const isPdfUpload =
+        String(file.type || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(file.name);
+      if (!isPdfUpload) {
+        setAdminStatus("Credit report uploads must be PDFs.", true);
+        return;
+      }
+    }
+
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       setAdminStatus(`File must be ${formatMbLimit(MAX_UPLOAD_SIZE_MB)} or smaller.`, true);
       return;
@@ -1760,7 +1716,11 @@ function initialize() {
 
     const bucket = "client-docs";
     const safeName = sanitizeFileName(file.name);
-    const objectPath = `${activeClientId}/${Date.now()}-${safeName}`;
+    const objectPath = isCreditReportUpload
+      ? `${activeClientId}/reports/${Date.now()}-${safeName}`
+      : `${activeClientId}/${Date.now()}-${safeName}`;
+    const fileLabel = titleInput || (isCreditReportUpload ? `${bureau || "Credit"} report` : file.name);
+    const fileNotes = isCreditReportUpload ? reportSummary || notes || null : notes || null;
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, file, {
       upsert: false,
@@ -1772,25 +1732,61 @@ function initialize() {
       return;
     }
 
-    const { error: rowError } = await supabase.from("client_files").insert({
-      user_id: activeClientId,
-      bucket,
-      file_path: objectPath,
-      file_name: file.name,
-      content_type: file.type,
-      file_size: file.size,
-      category: category || "Other",
-      title: titleInput || file.name,
-      notes: notes || null,
-    });
+    const { data: fileRow, error: rowError } = await supabase
+      .from("client_files")
+      .insert({
+        user_id: activeClientId,
+        bucket,
+        file_path: objectPath,
+        file_name: file.name,
+        content_type: file.type,
+        file_size: file.size,
+        category: category || "Other",
+        title: fileLabel,
+        notes: fileNotes,
+        uploaded_by: "admin",
+      })
+      .select("id,title,notes,category,file_name,file_path,bucket,created_at,uploaded_by,content_type,file_size")
+      .single();
 
     if (rowError) {
       setAdminStatus("File uploaded but metadata save failed: " + rowError.message, true);
       return;
     }
 
+    if (isCreditReportUpload) {
+      try {
+        await upsertCreditReportRow(
+          buildManualCreditReport({
+            bureau,
+            report_date: reportDate,
+            score: scoreRaw,
+            report_label: fileLabel,
+            summary: reportSummary || notes,
+            source: "admin_upload",
+            verification_status: "pending",
+            verification_method: "manual",
+            file_id: fileRow.id,
+          })
+        );
+      } catch (error) {
+        if (isMissingFeatureError(error)) {
+          setAdminStatus("Run the updated supabase-portal-schema.sql before using credit reports.", true);
+          return;
+        }
+        setAdminStatus("File uploaded but report record failed: " + (error?.message || error), true);
+        return;
+      }
+    }
+
     fileUploadForm.reset();
-    setAdminStatus("File uploaded and attached to client record.");
+    syncUploadCategoryUi();
+    setReportAutofillStatus("");
+    setAdminStatus(
+      isCreditReportUpload
+        ? "Credit report uploaded. Use document scan if you want help pulling report details from the PDF."
+        : "File uploaded and attached to client record."
+    );
     await loadClientPreview(activeClientId);
   });
 
