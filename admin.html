@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260307d" />
+    <link rel="stylesheet" href="admin.css?v=20260307e" />
   </head>
   <body>
 
@@ -157,6 +157,7 @@
               <div class="card">
                 <h3 class="card-title">Add Score Snapshot</h3>
                 <form id="snapshot-form">
+                  <input id="snapshot-edit-id" type="hidden" />
                   <label for="snapshot-bureau">Bureau <span class="req">*</span></label>
                   <select id="snapshot-bureau" required>
                     <option value="Experian">Experian</option>
@@ -167,7 +168,10 @@
                   <input id="snapshot-score" type="number" min="300" max="850" placeholder="e.g. 612" required />
                   <label for="snapshot-date">Reported Date <span class="req">*</span></label>
                   <input id="snapshot-date" type="date" required />
-                  <button class="btn primary full mt" type="submit">Add Snapshot</button>
+                  <div class="form-actions mt">
+                    <button class="btn primary full" id="snapshot-submit-btn" type="submit">Add Snapshot</button>
+                    <button class="btn secondary full hidden" id="snapshot-cancel-btn" type="button">Cancel Edit</button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -180,9 +184,13 @@
               <div class="card">
                 <h3 class="card-title">Add Update</h3>
                 <form id="timeline-form">
+                  <input id="timeline-edit-id" type="hidden" />
                   <label for="timeline-details">Update Details <span class="req">*</span></label>
                   <textarea id="timeline-details" rows="4" placeholder="e.g. Dispute letter mailed to Equifax via certified mail on 3/6/2026." required></textarea>
-                  <button class="btn primary full mt" type="submit">Post Update</button>
+                  <div class="form-actions mt">
+                    <button class="btn primary full" id="timeline-submit-btn" type="submit">Post Update</button>
+                    <button class="btn secondary full hidden" id="timeline-cancel-btn" type="button">Cancel Edit</button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -195,6 +203,7 @@
               <div class="card">
                 <h3 class="card-title">Add / Update Negative Item</h3>
                 <form id="negative-item-form">
+                  <input id="negative-edit-id" type="hidden" />
                   <div class="form-row">
                     <div>
                       <label for="negative-bureau">Bureau</label>
@@ -242,7 +251,10 @@
                     <input id="negative-active" type="checkbox" checked />
                     <span>Item is still active on the current report</span>
                   </label>
-                  <button class="btn primary full mt" type="submit">Save Negative Item</button>
+                  <div class="form-actions mt">
+                    <button class="btn primary full" id="negative-submit-btn" type="submit">Save Negative Item</button>
+                    <button class="btn secondary full hidden" id="negative-cancel-btn" type="button">Cancel Edit</button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -261,6 +273,7 @@
               <div class="card">
                 <h3 class="card-title">Add New Letter</h3>
                 <form id="letter-form">
+                  <input id="letter-edit-id" type="hidden" />
                   <div class="form-row">
                     <div>
                       <label for="letter-date">Sent Date <span class="req">*</span></label>
@@ -281,7 +294,10 @@
                   <input id="letter-tracking" type="text" placeholder="USPS or UPS tracking number" required />
                   <label for="letter-notes">Notes</label>
                   <textarea id="letter-notes" rows="2" placeholder="Optional — dispute reason, account number, etc."></textarea>
-                  <button class="btn primary full mt" type="submit">Add Letter Record</button>
+                  <div class="form-actions mt">
+                    <button class="btn primary full" id="letter-submit-btn" type="submit">Add Letter Record</button>
+                    <button class="btn secondary full hidden" id="letter-cancel-btn" type="button">Cancel Edit</button>
+                  </div>
                 </form>
               </div>
 
@@ -467,6 +483,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260307d"></script>
+    <script type="module" src="admin.js?v=20260307e"></script>
   </body>
 </html>

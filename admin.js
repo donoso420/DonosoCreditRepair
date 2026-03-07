@@ -20,11 +20,23 @@ const clientSelect = document.getElementById("client-select");
 const activeClientIdEl = document.getElementById("active-client-id");
 
 const snapshotForm = document.getElementById("snapshot-form");
+const snapshotEditIdInput = document.getElementById("snapshot-edit-id");
+const snapshotSubmitBtn = document.getElementById("snapshot-submit-btn");
+const snapshotCancelBtn = document.getElementById("snapshot-cancel-btn");
 const creditReportForm = document.getElementById("credit-report-form");
 const negativeItemForm = document.getElementById("negative-item-form");
+const negativeEditIdInput = document.getElementById("negative-edit-id");
+const negativeSubmitBtn = document.getElementById("negative-submit-btn");
+const negativeCancelBtn = document.getElementById("negative-cancel-btn");
 const letterForm = document.getElementById("letter-form");
+const letterEditIdInput = document.getElementById("letter-edit-id");
+const letterSubmitBtn = document.getElementById("letter-submit-btn");
+const letterCancelBtn = document.getElementById("letter-cancel-btn");
 const letterUpdateForm = document.getElementById("letter-update-form");
 const timelineForm = document.getElementById("timeline-form");
+const timelineEditIdInput = document.getElementById("timeline-edit-id");
+const timelineSubmitBtn = document.getElementById("timeline-submit-btn");
+const timelineCancelBtn = document.getElementById("timeline-cancel-btn");
 const fileUploadForm = document.getElementById("file-upload-form");
 const scanDocumentsBtn = document.getElementById("scan-documents-btn");
 const scanDocumentsStatus = document.getElementById("scan-documents-status");
@@ -61,6 +73,10 @@ let supabase = null;
 let currentAdmin = null;
 let activeClientId = null;
 let activeClientFiles = [];
+let activeScoreRows = [];
+let activeNegativeItemRows = [];
+let activeLetterRows = [];
+let activeUpdateRows = [];
 
 function setAuthStatus(message, isError = false) {
   if (!authStatus) return;
@@ -151,6 +167,124 @@ function renderFileActionButtons(fileRow) {
   `;
 }
 
+function renderRecordActionButtons(id, editAction, deleteAction) {
+  return `
+    <div class="file-actions-row">
+      <button class="btn secondary sm" type="button" data-action="${safeText(
+        editAction
+      )}" data-row-id="${safeText(id)}">Edit</button>
+      <button class="btn danger sm" type="button" data-action="${safeText(
+        deleteAction
+      )}" data-row-id="${safeText(id)}">Delete</button>
+    </div>
+  `;
+}
+
+function toggleFormEditMode(submitBtn, cancelBtn, isEditing, createLabel, editLabel) {
+  if (submitBtn) submitBtn.textContent = isEditing ? editLabel : createLabel;
+  cancelBtn?.classList.toggle("hidden", !isEditing);
+}
+
+function resetSnapshotForm() {
+  snapshotForm?.reset();
+  if (snapshotEditIdInput) snapshotEditIdInput.value = "";
+  toggleFormEditMode(snapshotSubmitBtn, snapshotCancelBtn, false, "Add Snapshot", "Save Snapshot");
+}
+
+function populateSnapshotForm(row) {
+  if (!row) return;
+  if (snapshotEditIdInput) snapshotEditIdInput.value = String(row.id || "");
+  const bureauInput = document.getElementById("snapshot-bureau");
+  const scoreInput = document.getElementById("snapshot-score");
+  const dateInput = document.getElementById("snapshot-date");
+  if (bureauInput) bureauInput.value = row.bureau || "Experian";
+  if (scoreInput) scoreInput.value = row.score ?? "";
+  if (dateInput) dateInput.value = row.reported_at || "";
+  toggleFormEditMode(snapshotSubmitBtn, snapshotCancelBtn, true, "Add Snapshot", "Save Snapshot");
+  snapshotForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function resetTimelineForm() {
+  timelineForm?.reset();
+  if (timelineEditIdInput) timelineEditIdInput.value = "";
+  toggleFormEditMode(timelineSubmitBtn, timelineCancelBtn, false, "Post Update", "Save Update");
+}
+
+function populateTimelineForm(row) {
+  if (!row) return;
+  if (timelineEditIdInput) timelineEditIdInput.value = String(row.id || "");
+  const detailsInput = document.getElementById("timeline-details");
+  if (detailsInput) detailsInput.value = row.details || "";
+  toggleFormEditMode(timelineSubmitBtn, timelineCancelBtn, true, "Post Update", "Save Update");
+  timelineForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function resetNegativeItemForm() {
+  negativeItemForm?.reset();
+  if (negativeEditIdInput) negativeEditIdInput.value = "";
+  const activeCheckbox = document.getElementById("negative-active");
+  if (activeCheckbox) activeCheckbox.checked = true;
+  toggleFormEditMode(
+    negativeSubmitBtn,
+    negativeCancelBtn,
+    false,
+    "Save Negative Item",
+    "Save Changes"
+  );
+}
+
+function populateNegativeItemForm(row) {
+  if (!row) return;
+  if (negativeEditIdInput) negativeEditIdInput.value = String(row.id || "");
+  const bureauInput = document.getElementById("negative-bureau");
+  const typeInput = document.getElementById("negative-type");
+  const creditorInput = document.getElementById("negative-creditor");
+  const accountRefInput = document.getElementById("negative-account-ref");
+  const balanceInput = document.getElementById("negative-balance");
+  const statusInput = document.getElementById("negative-status");
+  const notesInput = document.getElementById("negative-notes");
+  const activeCheckbox = document.getElementById("negative-active");
+  if (bureauInput) bureauInput.value = row.bureau || "";
+  if (typeInput) typeInput.value = row.item_type || "Collection";
+  if (creditorInput) creditorInput.value = row.creditor || "";
+  if (accountRefInput) accountRefInput.value = row.account_reference || "";
+  if (balanceInput) balanceInput.value = row.balance ?? "";
+  if (statusInput) statusInput.value = row.status || "";
+  if (notesInput) notesInput.value = row.notes || "";
+  if (activeCheckbox) activeCheckbox.checked = row.is_active !== false;
+  toggleFormEditMode(
+    negativeSubmitBtn,
+    negativeCancelBtn,
+    true,
+    "Save Negative Item",
+    "Save Changes"
+  );
+  negativeItemForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function resetLetterForm() {
+  letterForm?.reset();
+  if (letterEditIdInput) letterEditIdInput.value = "";
+  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, false, "Add Letter Record", "Save Letter");
+}
+
+function populateLetterForm(row) {
+  if (!row) return;
+  if (letterEditIdInput) letterEditIdInput.value = String(row.id || "");
+  const sentDateInput = document.getElementById("letter-date");
+  const statusInput = document.getElementById("letter-status");
+  const recipientInput = document.getElementById("letter-recipient");
+  const trackingInput = document.getElementById("letter-tracking");
+  const notesInput = document.getElementById("letter-notes");
+  if (sentDateInput) sentDateInput.value = row.sent_date || "";
+  if (statusInput) statusInput.value = row.status || "In Transit";
+  if (recipientInput) recipientInput.value = row.recipient || row.bureau || "";
+  if (trackingInput) trackingInput.value = row.tracking_number || "";
+  if (notesInput) notesInput.value = row.notes || "";
+  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, true, "Add Letter Record", "Save Letter");
+  letterForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function formatVerificationStatus(value) {
   switch (String(value || "").toLowerCase()) {
     case "verified":
@@ -210,9 +344,17 @@ async function loadClients() {
     clientSelect.innerHTML = '<option value="">No clients yet</option>';
     activeClientId = null;
     activeClientFiles = [];
+    activeScoreRows = [];
+    activeNegativeItemRows = [];
+    activeLetterRows = [];
+    activeUpdateRows = [];
     activeClientIdEl.textContent = "";
     setScanStatus("");
     setAiVerifyStatus("");
+    resetSnapshotForm();
+    resetNegativeItemForm();
+    resetLetterForm();
+    resetTimelineForm();
     renderPreview([], [], [], [], [], []);
     return;
   }
@@ -311,12 +453,19 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
     } else {
       for (const row of negativeItems) {
         const li = document.createElement("li");
+        li.className = "file-record";
         const bureau = row.bureau ? `${safeText(row.bureau)} · ` : "";
         const balance = row.balance != null ? ` · ${safeText(formatCurrency(row.balance))}` : "";
         const review = ` · ${safeText(formatVerificationMethod(row.verification_method))}`;
-        li.innerHTML = `${bureau}<strong>${safeText(row.creditor)}</strong> — ${safeText(
+        li.innerHTML = `
+          <p class="file-record-title">${bureau}${safeText(row.creditor)} — ${safeText(
           row.item_type
-        )}${balance}${review}`;
+        )}</p>
+          <p class="file-record-meta">${safeText(
+          row.status || "Under review"
+        )}${balance}${review}</p>
+          ${renderRecordActionButtons(row.id, "edit-negative-item", "delete-negative-item")}
+        `;
         previewNegativeItems.appendChild(li);
       }
     }
@@ -327,9 +476,12 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
   } else {
     for (const row of scores) {
       const li = document.createElement("li");
-      li.innerHTML = `${safeText(row.bureau)}: <strong>${safeText(row.score)}</strong> (${safeText(
-        formatDate(row.reported_at)
-      )})`;
+      li.className = "file-record";
+      li.innerHTML = `
+        <p class="file-record-title">${safeText(row.bureau)}: ${safeText(row.score)}</p>
+        <p class="file-record-meta">${safeText(formatDate(row.reported_at))}</p>
+        ${renderRecordActionButtons(row.id, "edit-score", "delete-score")}
+      `;
       previewScores.appendChild(li);
     }
   }
@@ -339,9 +491,16 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
   } else {
     for (const row of letters) {
       const li = document.createElement("li");
-      li.innerHTML = `#${safeText(row.id)} - ${safeText(row.recipient || row.bureau || "N/A")} / ${safeText(
-        row.tracking_number
-      )} / ${safeText(row.status)}`;
+      li.className = "file-record";
+      li.innerHTML = `
+        <p class="file-record-title">#${safeText(row.id)} · ${safeText(
+          row.recipient || row.bureau || "N/A"
+        )}</p>
+        <p class="file-record-meta">${safeText(row.tracking_number || "N/A")} · ${safeText(
+          row.status || "In Transit"
+        )}</p>
+        ${renderRecordActionButtons(row.id, "edit-letter", "delete-letter")}
+      `;
       previewLetters.appendChild(li);
     }
   }
@@ -351,7 +510,12 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
   } else {
     for (const row of updates) {
       const li = document.createElement("li");
-      li.innerHTML = `${safeText(formatDate(row.created_at))}: ${safeText(row.details)}`;
+      li.className = "file-record";
+      li.innerHTML = `
+        <p class="file-record-title">${safeText(formatDate(row.created_at))}</p>
+        <p class="file-record-meta">${safeText(row.details)}</p>
+        ${renderRecordActionButtons(row.id, "edit-update", "delete-update")}
+      `;
       previewUpdates.appendChild(li);
     }
   }
@@ -717,9 +881,9 @@ async function loadClientPreview(userId) {
     negativeItems,
   ] =
     await Promise.all([
-      supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", userId).order("reported_at", { ascending: false }).limit(6),
-      supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date").eq("user_id", userId).order("sent_date", { ascending: false }).limit(8),
-      supabase.from("client_updates").select("details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(8),
+      supabase.from("credit_snapshots").select("id,bureau,score,reported_at,created_at").eq("user_id", userId).order("reported_at", { ascending: false }).limit(12),
+      supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date,notes,created_at").eq("user_id", userId).order("sent_date", { ascending: false }).limit(20),
+      supabase.from("client_updates").select("id,details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
       loadClientFiles(userId),
       supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
       safeTableQuery(
@@ -734,7 +898,7 @@ async function loadClientPreview(userId) {
       safeTableQuery(
         supabase
           .from("negative_items")
-          .select("id,bureau,creditor,item_type,balance,status,notes,is_active,verification_method,confidence,created_at")
+          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,is_active,source,source_file_id,report_id,verification_method,confidence,created_at")
           .eq("user_id", userId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
@@ -744,6 +908,10 @@ async function loadClientPreview(userId) {
 
   const filesWithUrls = files || [];
   activeClientFiles = filesWithUrls;
+  activeScoreRows = scores || [];
+  activeLetterRows = letters || [];
+  activeUpdateRows = updates || [];
+  activeNegativeItemRows = negativeItems || [];
   const reportFileMap = new Map(filesWithUrls.map((row) => [row.id, row.signed_url || ""]));
   const reportsWithUrls = (reports || []).map((row) => ({
     ...row,
@@ -834,6 +1002,134 @@ async function deleteClientFile(fileId) {
   }
 }
 
+function findActiveRow(rows, rowId) {
+  const numericId = Number(rowId || 0);
+  return (rows || []).find((row) => Number(row.id) === numericId) || null;
+}
+
+async function deleteClientRecord({ table, rowId, label, successMessage }) {
+  const numericId = Number(rowId || 0);
+  if (!numericId || !activeClientId) return;
+
+  const confirmed = window.confirm(`Delete ${label}?`);
+  if (!confirmed) return;
+
+  setAdminStatus(`Deleting ${label}...`);
+
+  const { error } = await supabase
+    .from(table)
+    .delete()
+    .eq("user_id", activeClientId)
+    .eq("id", numericId);
+
+  if (error) {
+    setAdminStatus(`Could not delete ${label}: ${error.message}`, true);
+    return;
+  }
+
+  setAdminStatus(successMessage);
+  await loadClientPreview(activeClientId);
+}
+
+async function handlePreviewRecordAction(action, rowId) {
+  switch (action) {
+    case "edit-score": {
+      const row = findActiveRow(activeScoreRows, rowId);
+      if (!row) {
+        setAdminStatus("Score snapshot not found. Refresh and try again.", true);
+        return;
+      }
+      populateSnapshotForm(row);
+      return;
+    }
+    case "delete-score": {
+      const row = findActiveRow(activeScoreRows, rowId);
+      if (!row) {
+        setAdminStatus("Score snapshot not found. Refresh and try again.", true);
+        return;
+      }
+      await deleteClientRecord({
+        table: "credit_snapshots",
+        rowId,
+        label: `${row.bureau} score snapshot from ${formatDate(row.reported_at)}`,
+        successMessage: "Score snapshot deleted.",
+      });
+      return;
+    }
+    case "edit-negative-item": {
+      const row = findActiveRow(activeNegativeItemRows, rowId);
+      if (!row) {
+        setAdminStatus("Negative item not found. Refresh and try again.", true);
+        return;
+      }
+      populateNegativeItemForm(row);
+      return;
+    }
+    case "delete-negative-item": {
+      const row = findActiveRow(activeNegativeItemRows, rowId);
+      if (!row) {
+        setAdminStatus("Negative item not found. Refresh and try again.", true);
+        return;
+      }
+      await deleteClientRecord({
+        table: "negative_items",
+        rowId,
+        label: `${row.creditor} ${row.item_type}`,
+        successMessage: "Negative item deleted.",
+      });
+      return;
+    }
+    case "edit-letter": {
+      const row = findActiveRow(activeLetterRows, rowId);
+      if (!row) {
+        setAdminStatus("Letter record not found. Refresh and try again.", true);
+        return;
+      }
+      populateLetterForm(row);
+      return;
+    }
+    case "delete-letter": {
+      const row = findActiveRow(activeLetterRows, rowId);
+      if (!row) {
+        setAdminStatus("Letter record not found. Refresh and try again.", true);
+        return;
+      }
+      await deleteClientRecord({
+        table: "client_letters",
+        rowId,
+        label: `letter #${row.id}`,
+        successMessage: "Letter record deleted.",
+      });
+      return;
+    }
+    case "edit-update": {
+      const row = findActiveRow(activeUpdateRows, rowId);
+      if (!row) {
+        setAdminStatus("Timeline update not found. Refresh and try again.", true);
+        return;
+      }
+      populateTimelineForm(row);
+      return;
+    }
+    case "delete-update": {
+      const row = findActiveRow(activeUpdateRows, rowId);
+      if (!row) {
+        setAdminStatus("Timeline update not found. Refresh and try again.", true);
+        return;
+      }
+      await deleteClientRecord({
+        table: "client_updates",
+        rowId,
+        label: "this timeline update",
+        successMessage: "Timeline update deleted.",
+      });
+      return;
+    }
+    default:
+      return;
+  }
+}
+
 function initTabs() {
   // Tab switching is handled by adminTab() inline onclick in HTML
 }
@@ -897,9 +1193,17 @@ function initialize() {
   clientSelect?.addEventListener("change", async () => {
     activeClientId = clientSelect.value || null;
     activeClientFiles = [];
+    activeScoreRows = [];
+    activeNegativeItemRows = [];
+    activeLetterRows = [];
+    activeUpdateRows = [];
     activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
     setScanStatus("");
     setAiVerifyStatus("");
+    resetSnapshotForm();
+    resetNegativeItemForm();
+    resetLetterForm();
+    resetTimelineForm();
     await loadClientPreview(activeClientId);
   });
 
@@ -917,6 +1221,28 @@ function initialize() {
 
   previewFiles?.addEventListener("click", handleFileActionClick);
   previewClientUploads?.addEventListener("click", handleFileActionClick);
+
+  const handlePreviewRecordClick = async (event) => {
+    const actionEl = event.target.closest("[data-action]");
+    if (!actionEl) return;
+
+    const action = String(actionEl.getAttribute("data-action") || "");
+    const rowId = actionEl.getAttribute("data-row-id");
+    if (!rowId) return;
+
+    event.preventDefault();
+    await handlePreviewRecordAction(action, rowId);
+  };
+
+  previewScores?.addEventListener("click", handlePreviewRecordClick);
+  previewNegativeItems?.addEventListener("click", handlePreviewRecordClick);
+  previewLetters?.addEventListener("click", handlePreviewRecordClick);
+  previewUpdates?.addEventListener("click", handlePreviewRecordClick);
+
+  snapshotCancelBtn?.addEventListener("click", resetSnapshotForm);
+  negativeCancelBtn?.addEventListener("click", resetNegativeItemForm);
+  letterCancelBtn?.addEventListener("click", resetLetterForm);
+  timelineCancelBtn?.addEventListener("click", resetTimelineForm);
 
   refreshAllBtn?.addEventListener("click", async () => {
     refreshAllBtn.disabled = true;
@@ -1175,6 +1501,7 @@ function initialize() {
     event.preventDefault();
     if (!(await requireActiveClient())) return;
 
+    const editId = Number(negativeEditIdInput?.value || 0);
     const creditor = String(document.getElementById("negative-creditor")?.value || "").trim();
     const itemType = String(document.getElementById("negative-type")?.value || "").trim();
 
@@ -1184,19 +1511,47 @@ function initialize() {
     }
 
     try {
-      await upsertNegativeItemRow(
-        buildManualNegativeItem({
-          bureau: String(document.getElementById("negative-bureau")?.value || "").trim(),
-          creditor,
-          item_type: itemType,
-          account_reference: String(document.getElementById("negative-account-ref")?.value || "").trim(),
-          balance: String(document.getElementById("negative-balance")?.value || "").trim(),
-          status: String(document.getElementById("negative-status")?.value || "").trim(),
-          notes: String(document.getElementById("negative-notes")?.value || "").trim(),
-          is_active: Boolean(document.getElementById("negative-active")?.checked),
-          source: "manual",
-        })
-      );
+      const baseItem = buildManualNegativeItem({
+        bureau: String(document.getElementById("negative-bureau")?.value || "").trim(),
+        creditor,
+        item_type: itemType,
+        account_reference: String(document.getElementById("negative-account-ref")?.value || "").trim(),
+        balance: String(document.getElementById("negative-balance")?.value || "").trim(),
+        status: String(document.getElementById("negative-status")?.value || "").trim(),
+        notes: String(document.getElementById("negative-notes")?.value || "").trim(),
+        is_active: Boolean(document.getElementById("negative-active")?.checked),
+        source: "manual",
+        verification_method: "manual",
+      });
+
+      if (editId) {
+        const existingRow = findActiveRow(activeNegativeItemRows, editId);
+        const { error } = await supabase
+          .from("negative_items")
+          .update({
+            ...baseItem,
+            bureau: baseItem.bureau || null,
+            account_reference: baseItem.account_reference || null,
+            balance: baseItem.balance ?? null,
+            status: baseItem.status || null,
+            notes: baseItem.notes || null,
+            source: "manual",
+            verification_method: "manual",
+            verification_notes: "Updated by admin.",
+            evidence_excerpt: existingRow?.evidence_excerpt || null,
+            source_file_id: existingRow?.source_file_id || null,
+            report_id: existingRow?.report_id || null,
+            verified_at: null,
+            ai_model: null,
+            confidence: null,
+          })
+          .eq("user_id", activeClientId)
+          .eq("id", editId);
+
+        if (error) throw error;
+      } else {
+        await upsertNegativeItemRow(baseItem);
+      }
     } catch (error) {
       if (isMissingFeatureError(error)) {
         setAdminStatus("Run the updated supabase-portal-schema.sql before using negative items.", true);
@@ -1206,10 +1561,8 @@ function initialize() {
       return;
     }
 
-    negativeItemForm.reset();
-    const activeCheckbox = document.getElementById("negative-active");
-    if (activeCheckbox) activeCheckbox.checked = true;
-    setAdminStatus("Negative item saved.");
+    resetNegativeItemForm();
+    setAdminStatus(editId ? "Negative item updated." : "Negative item saved.");
     await loadClientPreview(activeClientId);
   });
 
@@ -1217,6 +1570,7 @@ function initialize() {
     event.preventDefault();
     if (!(await requireActiveClient())) return;
 
+    const editId = Number(snapshotEditIdInput?.value || 0);
     const bureau = String(document.getElementById("snapshot-bureau")?.value || "");
     const score = Number(document.getElementById("snapshot-score")?.value || 0);
     const reportedAt = String(document.getElementById("snapshot-date")?.value || "");
@@ -1226,20 +1580,32 @@ function initialize() {
       return;
     }
 
-    const { error } = await supabase.from("credit_snapshots").insert({
-      user_id: activeClientId,
-      bureau,
-      score,
-      reported_at: reportedAt,
-    });
+    const query = editId
+      ? supabase
+          .from("credit_snapshots")
+          .update({
+            bureau,
+            score,
+            reported_at: reportedAt,
+          })
+          .eq("user_id", activeClientId)
+          .eq("id", editId)
+      : supabase.from("credit_snapshots").insert({
+          user_id: activeClientId,
+          bureau,
+          score,
+          reported_at: reportedAt,
+        });
+
+    const { error } = await query;
 
     if (error) {
       setAdminStatus("Could not add snapshot: " + error.message, true);
       return;
     }
 
-    snapshotForm.reset();
-    setAdminStatus("Snapshot added.");
+    resetSnapshotForm();
+    setAdminStatus(editId ? "Snapshot updated." : "Snapshot added.");
     await loadClientPreview(activeClientId);
   });
 
@@ -1247,6 +1613,7 @@ function initialize() {
     event.preventDefault();
     if (!(await requireActiveClient())) return;
 
+    const editId = Number(letterEditIdInput?.value || 0);
     const sentDate = String(document.getElementById("letter-date")?.value || "");
     const recipient = String(document.getElementById("letter-recipient")?.value || "").trim();
     const tracking = String(document.getElementById("letter-tracking")?.value || "").trim();
@@ -1258,23 +1625,38 @@ function initialize() {
       return;
     }
 
-    const { error } = await supabase.from("client_letters").insert({
-      user_id: activeClientId,
-      sent_date: sentDate,
-      recipient,
-      bureau: recipient,
-      tracking_number: tracking,
-      status,
-      notes: notes || null,
-    });
+    const query = editId
+      ? supabase
+          .from("client_letters")
+          .update({
+            sent_date: sentDate,
+            recipient,
+            bureau: recipient,
+            tracking_number: tracking,
+            status,
+            notes: notes || null,
+          })
+          .eq("user_id", activeClientId)
+          .eq("id", editId)
+      : supabase.from("client_letters").insert({
+          user_id: activeClientId,
+          sent_date: sentDate,
+          recipient,
+          bureau: recipient,
+          tracking_number: tracking,
+          status,
+          notes: notes || null,
+        });
+
+    const { error } = await query;
 
     if (error) {
       setAdminStatus("Could not add letter record: " + error.message, true);
       return;
     }
 
-    letterForm.reset();
-    setAdminStatus("Letter record added.");
+    resetLetterForm();
+    setAdminStatus(editId ? "Letter record updated." : "Letter record added.");
     await loadClientPreview(activeClientId);
   });
 
@@ -1308,24 +1690,33 @@ function initialize() {
     event.preventDefault();
     if (!(await requireActiveClient())) return;
 
+    const editId = Number(timelineEditIdInput?.value || 0);
     const details = String(document.getElementById("timeline-details")?.value || "").trim();
     if (!details) {
       setAdminStatus("Update details are required.", true);
       return;
     }
 
-    const { error } = await supabase.from("client_updates").insert({
-      user_id: activeClientId,
-      details,
-    });
+    const query = editId
+      ? supabase
+          .from("client_updates")
+          .update({ details })
+          .eq("user_id", activeClientId)
+          .eq("id", editId)
+      : supabase.from("client_updates").insert({
+          user_id: activeClientId,
+          details,
+        });
+
+    const { error } = await query;
 
     if (error) {
       setAdminStatus("Could not add timeline update: " + error.message, true);
       return;
     }
 
-    timelineForm.reset();
-    setAdminStatus("Timeline update added.");
+    resetTimelineForm();
+    setAdminStatus(editId ? "Timeline update saved." : "Timeline update added.");
     await loadClientPreview(activeClientId);
   });
 
