@@ -595,40 +595,76 @@ function renderNegativeItems(items) {
     </article>
   `;
 
-  if (!items.length) {
-    negativeTrackerGridEl.innerHTML =
-      '<article class="negative-track-card empty-card"><p class="empty">No negative items logged yet.</p></article>';
-    return;
-  }
+  const bureauColumns = [
+    { key: "experian", label: "Experian" },
+    { key: "equifax", label: "Equifax" },
+    { key: "transunion", label: "TransUnion" },
+    { key: "shared", label: "Shared / Unknown" },
+  ];
 
-  negativeTrackerGridEl.innerHTML = items
-    .map((row) => {
-      const stage = getNegativeItemStage(row);
-      const status = row.status || (row.is_active === false ? "Resolved / removed" : "Under review");
-      const balance = row.balance == null ? "N/A" : formatCurrency(row.balance);
-      const reviewLabel = formatVerificationMethod(row.verification_method);
-      const accountRef = row.account_reference ? ` • Acct ${row.account_reference}` : "";
-      const note = row.notes || row.evidence_excerpt || "";
+  const groupedItems = new Map(bureauColumns.map((column) => [column.key, []]));
+  items.forEach((row) => {
+    const bureauValue = String(row.bureau || "").toLowerCase();
+    if (bureauValue.includes("experian")) {
+      groupedItems.get("experian").push(row);
+    } else if (bureauValue.includes("equifax")) {
+      groupedItems.get("equifax").push(row);
+    } else if (bureauValue.includes("transunion")) {
+      groupedItems.get("transunion").push(row);
+    } else {
+      groupedItems.get("shared").push(row);
+    }
+  });
+
+  negativeTrackerGridEl.innerHTML = bureauColumns
+    .map((column) => {
+      const bureauItems = groupedItems.get(column.key) || [];
+      const itemCountLabel = `${bureauItems.length} item${bureauItems.length === 1 ? "" : "s"}`;
+      const cards = bureauItems.length
+        ? bureauItems
+            .map((row) => {
+              const stage = getNegativeItemStage(row);
+              const status = row.status || (row.is_active === false ? "Resolved / removed" : "Under review");
+              const balance = row.balance == null ? "N/A" : formatCurrency(row.balance);
+              const reviewLabel = formatVerificationMethod(row.verification_method);
+              const accountRef = row.account_reference ? `Acct ${row.account_reference}` : "";
+              const note = row.notes || row.evidence_excerpt || "";
+              return `
+                <article class="negative-track-card">
+                  <div class="negative-track-top">
+                    <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
+                    <span class="negative-stage-badge ${escapeHtml(stage.badgeClass)}">${escapeHtml(
+                      stage.label
+                    )}</span>
+                  </div>
+                  <p class="negative-track-meta">${escapeHtml(row.item_type || "Negative Item")}${
+                    accountRef ? ` • ${escapeHtml(accountRef)}` : ""
+                  }</p>
+                  <div class="negative-stage">${renderNegativeStage(stage.step)}</div>
+                  <div class="negative-track-details">
+                    <span><strong>Status:</strong> ${escapeHtml(status)}</span>
+                    <span><strong>Balance:</strong> ${escapeHtml(balance)}</span>
+                    <span><strong>Source:</strong> ${escapeHtml(reviewLabel)}</span>
+                  </div>
+                  ${note ? `<p class="negative-track-note">${escapeHtml(note)}</p>` : ""}
+                </article>
+              `;
+            })
+            .join("")
+        : '<article class="negative-track-card empty-card"><p class="empty">No items logged in this bureau.</p></article>';
+
       return `
-        <article class="negative-track-card">
-          <div class="negative-track-top">
-            <p class="bureau">${escapeHtml(row.bureau || "All Bureaus")}</p>
-            <span class="negative-stage-badge ${escapeHtml(stage.badgeClass)}">${escapeHtml(
-              stage.label
-            )}</span>
+        <section class="negative-bureau-board">
+          <div class="negative-bureau-head">
+            <div>
+              <p class="bureau">${escapeHtml(column.label)}</p>
+              <p class="negative-bureau-count">${escapeHtml(itemCountLabel)}</p>
+            </div>
           </div>
-          <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
-          <p class="negative-track-meta">${escapeHtml(row.item_type || "Negative Item")}${escapeHtml(
-            accountRef
-          )}</p>
-          <div class="negative-stage">${renderNegativeStage(stage.step)}</div>
-          <div class="negative-track-details">
-            <span><strong>Status:</strong> ${escapeHtml(status)}</span>
-            <span><strong>Balance:</strong> ${escapeHtml(balance)}</span>
-            <span><strong>Source:</strong> ${escapeHtml(reviewLabel)}</span>
+          <div class="negative-bureau-scroll">
+            ${cards}
           </div>
-          ${note ? `<p class="negative-track-note">${escapeHtml(note)}</p>` : ""}
-        </article>
+        </section>
       `;
     })
     .join("");
