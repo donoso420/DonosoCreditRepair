@@ -872,7 +872,7 @@ async function loadClientPreview(userId) {
       safeTableQuery(
         supabase
           .from("negative_items")
-          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,is_active,source,source_file_id,report_id,verification_method,confidence,created_at")
+          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,is_active,source,source_file_id,report_id,verification_method,verification_notes,evidence_excerpt,verified_at,ai_model,confidence,last_seen_at,created_at")
           .eq("user_id", userId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
@@ -1431,13 +1431,14 @@ function initialize() {
             notes: baseItem.notes || null,
             source: "manual",
             verification_method: "manual",
-            verification_notes: "Updated by admin.",
+            verification_notes: existingRow?.verification_notes || "Updated by admin.",
             evidence_excerpt: existingRow?.evidence_excerpt || null,
             source_file_id: existingRow?.source_file_id || null,
             report_id: existingRow?.report_id || null,
-            verified_at: null,
-            ai_model: null,
-            confidence: null,
+            verified_at: existingRow?.verified_at || null,
+            ai_model: existingRow?.ai_model || null,
+            confidence: existingRow?.confidence ?? null,
+            last_seen_at: baseItem.last_seen_at || existingRow?.last_seen_at || null,
           })
           .eq("user_id", activeClientId)
           .eq("id", editId);
