@@ -18,6 +18,8 @@ const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
 const previewBannerEl = document.getElementById("portal-preview-banner");
 const previewMetaEl = document.getElementById("portal-preview-meta");
+const portalTabButtons = Array.from(document.querySelectorAll("[data-portal-tab-button]"));
+const portalTabPanels = Array.from(document.querySelectorAll("[data-portal-panel]"));
 const scoreSnapshotSectionEl = document.getElementById("score-snapshot-section");
 const scoreGridEl = document.getElementById("score-grid");
 const reportGridEl = document.getElementById("report-grid");
@@ -50,6 +52,7 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
 ]);
 const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
 const ACTIVITY_PREFIX = "[Activity] ";
+const PORTAL_TAB_STORAGE_KEY = "portal_active_tab";
 
 const requiredConfig = ["supabaseUrl", "supabaseAnonKey"];
 const missingConfig = requiredConfig.filter((k) => !config[k]);
@@ -119,6 +122,25 @@ function setUploadStatus(message, isError = false) {
   if (!uploadStatus) return;
   uploadStatus.textContent = message;
   uploadStatus.classList.toggle("error", isError);
+}
+
+function setActivePortalTab(tabName = "overview") {
+  const availableTabs = new Set(portalTabButtons.map((button) => button.dataset.portalTabButton));
+  const nextTab = availableTabs.has(tabName) ? tabName : "overview";
+
+  portalTabButtons.forEach((button) => {
+    const isActive = button.dataset.portalTabButton === nextTab;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
+
+  portalTabPanels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.portalPanel !== nextTab);
+  });
+
+  try {
+    localStorage.setItem(PORTAL_TAB_STORAGE_KEY, nextTab);
+  } catch (_) {}
 }
 
 function setMessageStatus(message, isError = false) {
@@ -1095,6 +1117,21 @@ function initializePortal() {
   if (pendingPasswordSetupFlow) {
     configureSetPasswordFlow(pendingPasswordSetupFlow);
   }
+
+  const savedTab = (() => {
+    try {
+      return localStorage.getItem(PORTAL_TAB_STORAGE_KEY) || "overview";
+    } catch (_) {
+      return "overview";
+    }
+  })();
+  setActivePortalTab(savedTab);
+
+  portalTabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setActivePortalTab(button.dataset.portalTabButton || "overview");
+    });
+  });
 
   async function loadDashboard(user, options = {}) {
     currentSessionUser = user;

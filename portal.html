@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260308b" />
+    <link rel="stylesheet" href="portal.css?v=20260308c" />
   </head>
   <body>
     <header class="portal-nav">
@@ -87,7 +87,16 @@
             <span id="portal-preview-meta">Read-only preview of the selected client portal.</span>
           </div>
 
-          <section id="score-snapshot-section" class="dashboard-section">
+          <nav class="portal-dashboard-tabs" aria-label="Client portal sections">
+            <button type="button" class="portal-tab-btn active" data-portal-tab-button="overview">Overview</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="billing">Billing</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="letters">Letters</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="documents">Documents</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="upload">Upload</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="messages">Messages</button>
+          </nav>
+
+          <section id="score-snapshot-section" class="dashboard-section" data-portal-panel="overview">
             <h3>Credit Snapshot</h3>
             <div class="score-grid" id="score-grid">
               <article class="score-card">
@@ -108,7 +117,7 @@
             </div>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
               <h3>Current Credit Reports</h3>
               <p class="section-sub">Latest bureau reports and scores currently on file.</p>
@@ -120,7 +129,7 @@
             </div>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section hidden" data-portal-panel="billing">
             <div class="section-head">
               <h3>Billing</h3>
               <p class="section-sub">Your current plan and any Zelle invoices sent through the portal.</p>
@@ -138,7 +147,7 @@
             </div>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
               <h3>Negative Item Tracker</h3>
               <p class="subtle">Track each negative account from intake through resolution.</p>
@@ -168,7 +177,7 @@
             </div>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section hidden" data-portal-panel="letters">
             <div class="section-head">
               <h3>Letters Sent + Tracking Numbers</h3>
             </div>
@@ -192,7 +201,7 @@
             </div>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
               <h3>Dispute Progress</h3>
             </div>
@@ -235,7 +244,7 @@
             </div>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
               <h3>Account Updates</h3>
             </div>
@@ -244,7 +253,7 @@
             </ul>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
               <h3>Record Activity</h3>
               <p class="section-sub">Recent uploads, edits, and deletions on your file.</p>
@@ -254,7 +263,7 @@
             </ul>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section hidden" data-portal-panel="documents">
             <div class="section-head">
               <h3>Documents &amp; Letters</h3>
             </div>
@@ -263,7 +272,7 @@
             </ul>
           </section>
 
-          <section class="reports-callout">
+          <section class="reports-callout hidden" data-portal-panel="upload">
             <div class="reports-header">
               <span class="reports-icon">📋</span>
               <div>
@@ -285,7 +294,7 @@
             <p class="reports-note">Opens in a new tab · This is the official, federally mandated free credit report site (no credit card required).</p>
           </section>
 
-          <section class="dashboard-section">
+          <section class="dashboard-section hidden" data-portal-panel="upload">
             <div class="section-head">
               <h3>Upload Incoming Mail</h3>
               <p class="section-sub">Received something from a bureau or creditor, or downloaded your reports? Upload here so we can review and track everything manually.</p>
@@ -300,7 +309,7 @@
             <p id="upload-status" class="status" role="status" aria-live="polite"></p>
           </section>
 
-          <section class="dashboard-section messages-section">
+          <section class="dashboard-section messages-section hidden" data-portal-panel="messages">
             <div class="section-head">
               <h3>Messages</h3>
             </div>
@@ -318,6 +327,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260308f"></script>
+    <script type="module" src="portal.js?v=20260308g"></script>
   </body>
 </html>

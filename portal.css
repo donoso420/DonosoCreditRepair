@@ -236,6 +236,42 @@ textarea {
   color: #321f58;
 }
 
+.portal-dashboard-tabs {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+  padding: 0.4rem;
+  border: 1px solid #e2d5f0;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fcf8ff 0%, #f6efff 100%);
+}
+
+.portal-tab-btn {
+  appearance: none;
+  border: 1px solid #d8c7ee;
+  background: #ffffff;
+  color: #5f4b86;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.portal-tab-btn:hover {
+  border-color: #7c5cbf;
+  color: #50357e;
+}
+
+.portal-tab-btn.active {
+  background: #7c5cbf;
+  border-color: #7c5cbf;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(124, 92, 191, 0.2);
+}
+
 #dashboard-card {
   padding: 1.2rem;
 }
@@ -878,6 +914,15 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 960px) {
+  .portal-dashboard-tabs {
+    gap: 0.55rem;
+  }
+
+  .portal-tab-btn {
+    flex: 1 1 calc(50% - 0.55rem);
+    text-align: center;
+  }
+
   .score-grid {
     grid-template-columns: 1fr;
   }
@@ -900,6 +945,10 @@ tbody tr:last-child td {
 }
 
 @media (max-width: 640px) {
+  .portal-tab-btn {
+    flex-basis: 100%;
+  }
+
   .negative-tracker-stats {
     grid-template-columns: 1fr;
   }
