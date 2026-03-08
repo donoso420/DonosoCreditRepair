@@ -1296,7 +1296,6 @@ async function loadClientPreview(userId) {
           .eq("user_id", userId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
-          .limit(40)
       ),
       safeTableQuery(
         supabase

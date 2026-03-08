@@ -1155,7 +1155,6 @@ function initializePortal() {
           .eq("user_id", currentPortalUserId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
-          .limit(40)
       ),
       supabase.from("client_letters").select("sent_date,bureau,recipient,tracking_number,status,notes").eq("user_id", currentPortalUserId).order("sent_date", { ascending: false }),
       supabase.from("client_updates").select("details,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
