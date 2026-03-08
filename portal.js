@@ -270,6 +270,8 @@ function formatDateTime(value) {
 
 function formatVerificationStatus(value) {
   switch (String(value || "").toLowerCase()) {
+    case "reviewed":
+      return "Reviewed";
     case "verified":
       return "Verified";
     case "rejected":
@@ -294,6 +296,8 @@ function formatVerificationMethod(value) {
 
 function verificationBadgeClass(value) {
   switch (String(value || "").toLowerCase()) {
+    case "reviewed":
+      return "reviewed";
     case "verified":
       return "verified";
     case "rejected":

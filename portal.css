@@ -549,6 +549,11 @@ tbody tr:last-child td {
   color: var(--ok);
 }
 
+.badge.reviewed {
+  background: #efe8f9;
+  color: #73599a;
+}
+
 .badge.rejected {
   background: #fdeaea;
   color: #b53e3e;

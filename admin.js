@@ -77,6 +77,7 @@ let supabase = null;
 let currentAdmin = null;
 let activeClientId = null;
 let activeClientFiles = [];
+let activeReportRows = [];
 let activeScoreRows = [];
 let activeNegativeItemRows = [];
 let activeLetterRows = [];
@@ -199,7 +200,11 @@ function formatMbLimit(limitMb) {
 
 function renderFileActionButtons(fileRow) {
   const viewButton = fileRow.signed_url
-    ? `<a class="btn secondary sm" href="${safeText(fileRow.signed_url)}" target="_blank" rel="noopener noreferrer">View</a>`
+    ? `<a class="btn secondary sm" href="${safeText(
+        fileRow.signed_url
+      )}" target="_blank" rel="noopener noreferrer" data-action="view-file" data-file-id="${safeText(
+        fileRow.id
+      )}">View</a>`
     : `<span class="muted sm">No link</span>`;
   return `
     <div class="file-actions-row">
@@ -331,6 +336,8 @@ function populateLetterForm(row) {
 
 function formatVerificationStatus(value) {
   switch (String(value || "").toLowerCase()) {
+    case "reviewed":
+      return "Reviewed";
     case "verified":
       return "Verified";
     case "rejected":
@@ -650,7 +657,11 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
           formatVerificationMethod(row.verification_method)
         )})`;
         const fileLink = row.signed_url
-          ? ` <a href="${safeText(row.signed_url)}" target="_blank" rel="noopener noreferrer">Open</a>`
+          ? ` <a href="${safeText(
+              row.signed_url
+            )}" target="_blank" rel="noopener noreferrer" data-action="open-report" data-row-id="${safeText(
+              row.id
+            )}">Open</a>`
           : "";
         li.innerHTML = `${safeText(row.bureau || "Other")} · ${safeText(formatDate(row.report_date || row.created_at))}${score}${review}${fileLink}`;
         previewReports.appendChild(li);
@@ -916,6 +927,7 @@ async function loadClientPreview(userId) {
 
   const filesWithUrls = files || [];
   activeClientFiles = filesWithUrls;
+  activeReportRows = reports || [];
   activeScoreRows = scores || [];
   activeLetterRows = letters || [];
   activeUpdateRows = updates || [];
@@ -1010,6 +1022,46 @@ async function deleteClientFile(fileId) {
   }
 }
 
+async function markReportReviewed(row) {
+  if (!row || !activeClientId) return false;
+
+  const currentStatus = String(row.verification_status || "").toLowerCase();
+  if (!["pending", "needs_review"].includes(currentStatus)) return false;
+
+  const { error } = await supabase
+    .from("credit_reports")
+    .update({
+      verification_status: "reviewed",
+      verification_method: row.verification_method || "manual",
+      verification_notes: row.verification_notes || null,
+      verified_at: row.verified_at || new Date().toISOString(),
+    })
+    .eq("user_id", activeClientId)
+    .eq("id", row.id);
+
+  if (error) {
+    setAdminStatus("Could not update report review status: " + error.message, true);
+    return false;
+  }
+
+  return true;
+}
+
+async function markReportsReviewedByFileId(fileId) {
+  const numericFileId = Number(fileId || 0);
+  if (!numericFileId) return false;
+
+  const matchingRows = activeReportRows.filter((row) => Number(row.file_id) === numericFileId);
+  if (!matchingRows.length) return false;
+
+  let changed = false;
+  for (const row of matchingRows) {
+    const rowChanged = await markReportReviewed(row);
+    changed = rowChanged || changed;
+  }
+  return changed;
+}
+
 function findActiveRow(rows, rowId) {
   const numericId = Number(rowId || 0);
   return (rows || []).find((row) => Number(row.id) === numericId) || null;
@@ -1041,6 +1093,19 @@ async function deleteClientRecord({ table, rowId, label, successMessage }) {
 
 async function handlePreviewRecordAction(action, rowId) {
   switch (action) {
+    case "open-report": {
+      const row = findActiveRow(activeReportRows, rowId);
+      if (!row) {
+        setAdminStatus("Credit report not found. Refresh and try again.", true);
+        return;
+      }
+      const changed = await markReportReviewed(row);
+      if (changed) {
+        setAdminStatus("Report marked reviewed.");
+        await loadClientPreview(activeClientId);
+      }
+      return;
+    }
     case "edit-score": {
       const row = findActiveRow(activeScoreRows, rowId);
       if (!row) {
@@ -1201,6 +1266,7 @@ function initialize() {
   clientSelect?.addEventListener("change", async () => {
     activeClientId = clientSelect.value || null;
     activeClientFiles = [];
+    activeReportRows = [];
     activeScoreRows = [];
     activeNegativeItemRows = [];
     activeLetterRows = [];
@@ -1219,10 +1285,25 @@ function initialize() {
 
     const action = String(actionEl.getAttribute("data-action") || "");
     const fileId = actionEl.getAttribute("data-file-id");
-    if (action !== "delete-file" || !fileId) return;
-
     event.preventDefault();
-    await deleteClientFile(fileId);
+    if (!fileId) return;
+
+    if (action === "view-file") {
+      const href = actionEl.getAttribute("href") || "";
+      if (href) {
+        window.open(href, "_blank", "noopener,noreferrer");
+      }
+      const changed = await markReportsReviewedByFileId(fileId);
+      if (changed) {
+        setAdminStatus("Report marked reviewed.");
+        await loadClientPreview(activeClientId);
+      }
+      return;
+    }
+
+    if (action === "delete-file") {
+      await deleteClientFile(fileId);
+    }
   };
 
   previewFiles?.addEventListener("click", handleFileActionClick);
@@ -1237,10 +1318,17 @@ function initialize() {
     if (!rowId) return;
 
     event.preventDefault();
+    if (action === "open-report") {
+      const href = actionEl.getAttribute("href") || "";
+      if (href) {
+        window.open(href, "_blank", "noopener,noreferrer");
+      }
+    }
     await handlePreviewRecordAction(action, rowId);
   };
 
   previewScores?.addEventListener("click", handlePreviewRecordClick);
+  previewReports?.addEventListener("click", handlePreviewRecordClick);
   previewNegativeItems?.addEventListener("click", handlePreviewRecordClick);
   previewLetters?.addEventListener("click", handlePreviewRecordClick);
   previewUpdates?.addEventListener("click", handlePreviewRecordClick);
