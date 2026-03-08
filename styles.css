@@ -457,6 +457,14 @@ h1 {
   margin: 0.08rem 0 0.64rem;
 }
 
+.plan-quote {
+  font-family: "Syne", sans-serif;
+  font-size: 1.38rem;
+  line-height: 1.15;
+  margin: 0.08rem 0 0.72rem;
+  color: #5a3d87;
+}
+
 .plan-period {
   font-size: 1rem;
   font-weight: 400;
