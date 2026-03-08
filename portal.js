@@ -804,7 +804,7 @@ function renderNegativeItems(items) {
   const groupedItems = new Map(bureauColumns.map((column) => [column.key, []]));
   const totals = {
     total: 0,
-    inProgress: 0,
+    active: 0,
     resolved: 0,
     balances: {
       experian: 0,
@@ -823,7 +823,7 @@ function renderNegativeItems(items) {
     if (stage.key === "resolved") {
       totals.resolved += 1;
     } else {
-      totals.inProgress += 1;
+      totals.active += 1;
     }
 
     if (bureauValue.includes("experian")) {
@@ -841,33 +841,19 @@ function renderNegativeItems(items) {
     }
   });
 
-  const balanceCards = bureauColumns
-    .filter((column) => column.key !== "shared" || (groupedItems.get("shared") || []).length > 0)
-    .map(
-      (column) => `
-        <article class="negative-stat-card negative-balance-card">
-          <span>${escapeHtml(column.label)} Balance</span>
-          <strong>${escapeHtml(formatCurrency(totals.balances[column.key]))}</strong>
-        </article>
-      `
-    )
-    .join("");
-
   negativeTrackerStatsEl.innerHTML = `
     <article class="negative-stat-card">
       <span>Total Items</span>
       <strong>${escapeHtml(totals.total)}</strong>
     </article>
     <article class="negative-stat-card">
-      <span>In Progress</span>
-      <strong>${escapeHtml(totals.inProgress)}</strong>
+      <span>Active Items</span>
+      <strong>${escapeHtml(totals.active)}</strong>
     </article>
     <article class="negative-stat-card">
       <span>Resolved</span>
       <strong>${escapeHtml(totals.resolved)}</strong>
     </article>
-    ${balanceCards}
-    <p class="negative-stats-note">Balances are separated by bureau so repeated accounts do not look overstated across all reports.</p>
   `;
 
   const visibleColumns = bureauColumns.filter((column) => (groupedItems.get(column.key) || []).length > 0);
@@ -954,6 +940,7 @@ function renderNegativeItems(items) {
                 <p class="negative-bureau-count">${escapeHtml(itemCountLabel)} • Active balance ${escapeHtml(
                   bureauBalance
                 )}</p>
+                <p class="negative-bureau-note">Bureau balance is separated here so repeated accounts do not look overstated.</p>
               </div>
             </div>
             <div class="negative-bureau-scroll">

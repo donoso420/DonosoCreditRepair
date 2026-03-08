@@ -389,7 +389,7 @@ textarea {
 
 .negative-tracker-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 180px));
   gap: 0.7rem;
   margin-bottom: 0.9rem;
 }
@@ -397,7 +397,7 @@ textarea {
 .negative-stat-card {
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 0.8rem 0.9rem;
+  padding: 0.72rem 0.85rem;
   background: linear-gradient(180deg, #fff 0%, #fcf9ff 100%);
 }
 
@@ -413,19 +413,8 @@ textarea {
 
 .negative-stat-card strong {
   display: block;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   color: #281d3b;
-}
-
-.negative-balance-card strong {
-  font-size: 1.05rem;
-}
-
-.negative-stats-note {
-  margin: 0.1rem 0 0;
-  grid-column: 1 / -1;
-  color: #716288;
-  font-size: 0.82rem;
 }
 
 .negative-tracker-grid {
@@ -498,6 +487,12 @@ textarea {
   color: #6d5e86;
   font-size: 0.83rem;
   font-weight: 600;
+}
+
+.negative-bureau-note {
+  margin: 0.28rem 0 0;
+  color: #85759d;
+  font-size: 0.76rem;
 }
 
 .negative-bureau-scroll {
@@ -936,7 +931,7 @@ tbody tr:last-child td {
   }
 
   .negative-tracker-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .dash-head {
