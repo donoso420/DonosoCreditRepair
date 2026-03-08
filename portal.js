@@ -646,6 +646,11 @@ function renderBilling(profile, invoices) {
         profile.plan_amount != null && profile.plan_amount !== ""
           ? formatCurrency(profile.plan_amount)
           : "Custom";
+      const zelleLine = profile.zelle_handle
+        ? `<p class="billing-plan-note"><strong>Zelle:</strong> ${escapeHtml(
+            profile.zelle_display_name || "Billing"
+          )} · ${escapeHtml(profile.zelle_handle)}</p>`
+        : "";
       billingPlanCardEl.innerHTML = `
         <div class="billing-plan-head">
           <div>
@@ -675,6 +680,8 @@ function renderBilling(profile, invoices) {
           </div>
         </div>
         <p class="billing-plan-terms"><strong>Terms:</strong> ${escapeHtml(profile.payment_terms || "Not set")}</p>
+        ${zelleLine}
+        ${profile.zelle_note ? `<p class="billing-plan-note"><strong>Zelle memo:</strong> ${escapeHtml(profile.zelle_note)}</p>` : ""}
         ${profile.notes ? `<p class="billing-plan-note">${escapeHtml(profile.notes)}</p>` : ""}
       `;
     }
@@ -690,12 +697,18 @@ function renderBilling(profile, invoices) {
 
   billingInvoicesListEl.innerHTML = visibleInvoices
     .map((row) => {
-      const payLink =
-        row.payment_link && !["paid", "void"].includes(String(row.status || "").toLowerCase())
-          ? `<a class="btn primary sm" href="${escapeHtml(
-              row.payment_link
-            )}" target="_blank" rel="noopener noreferrer">Pay Invoice</a>`
-          : "";
+      const zelleHandle = row.zelle_handle || profile?.zelle_handle || "";
+      const zelleName = row.zelle_display_name || profile?.zelle_display_name || "Billing";
+      const zelleMemo = row.zelle_memo || profile?.zelle_note || row.invoice_number || "";
+      const zelleInstructions = zelleHandle
+        ? `
+          <div class="billing-invoice-zelle">
+            <p><strong>Pay by Zelle to:</strong> ${escapeHtml(zelleName)}</p>
+            <p><strong>Zelle email/phone:</strong> ${escapeHtml(zelleHandle)}</p>
+            ${zelleMemo ? `<p><strong>Memo:</strong> ${escapeHtml(zelleMemo)}</p>` : ""}
+          </div>
+        `
+        : '<p class="billing-invoice-note">Zelle instructions will be posted here once added by the admin team.</p>';
       return `
         <article class="billing-invoice-item">
           <div class="billing-invoice-item-top">
@@ -715,8 +728,8 @@ function renderBilling(profile, invoices) {
           )} · Issued ${escapeHtml(formatDate(row.invoice_date || row.created_at))} · Due ${escapeHtml(
             row.due_date ? formatDate(row.due_date) : "Not set"
           )}</p>
+          ${zelleInstructions}
           ${row.notes ? `<p class="billing-invoice-note">${escapeHtml(row.notes)}</p>` : ""}
-          ${payLink ? `<div class="billing-invoice-actions">${payLink}</div>` : ""}
         </article>
       `;
     })
@@ -1034,7 +1047,7 @@ function initializePortal() {
       safeTableQuery(
         supabase
           .from("client_billing_profiles")
-          .select("plan_name,plan_amount,billing_interval,billing_status,started_at,renewal_date,payment_terms,notes,updated_at")
+          .select("plan_name,plan_amount,billing_interval,billing_status,started_at,renewal_date,payment_terms,zelle_display_name,zelle_handle,zelle_note,notes,updated_at")
           .eq("user_id", user.id)
           .maybeSingle(),
         null
@@ -1042,7 +1055,7 @@ function initializePortal() {
       safeTableQuery(
         supabase
           .from("client_invoices")
-          .select("invoice_number,title,plan_name,amount,currency,invoice_date,due_date,status,payment_link,notes,created_at")
+          .select("invoice_number,title,plan_name,amount,currency,invoice_date,due_date,status,zelle_display_name,zelle_handle,zelle_memo,notes,created_at")
           .eq("user_id", user.id)
           .order("invoice_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })

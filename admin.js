@@ -742,6 +742,9 @@ function populateBillingPlanForm(profile) {
   setFieldValue("billing-plan-status", profile?.billing_status || "active");
   setFieldValue("billing-started-at", profile?.started_at || "");
   setFieldValue("billing-renewal-date", profile?.renewal_date || "");
+  setFieldValue("billing-zelle-name", profile?.zelle_display_name || "");
+  setFieldValue("billing-zelle-handle", profile?.zelle_handle || "");
+  setFieldValue("billing-zelle-note", profile?.zelle_note || "");
   setFieldValue("billing-payment-terms", profile?.payment_terms || "");
   setFieldValue("billing-plan-notes", profile?.notes || "");
 }
@@ -752,6 +755,12 @@ function resetInvoiceForm() {
   setFieldValue("invoice-status", "draft");
   setFieldValue("invoice-date", todayIsoDate());
   setFieldValue("invoice-plan-name", activeBillingProfile?.plan_name || "");
+  setFieldValue("invoice-zelle-name", activeBillingProfile?.zelle_display_name || "");
+  setFieldValue("invoice-zelle-handle", activeBillingProfile?.zelle_handle || "");
+  setFieldValue(
+    "invoice-zelle-memo",
+    activeBillingProfile?.zelle_note || ""
+  );
   const sendNowCheckbox = document.getElementById("invoice-send-now");
   if (sendNowCheckbox) sendNowCheckbox.checked = false;
   toggleFormEditMode(invoiceSubmitBtn, invoiceCancelBtn, false, "Save Invoice", "Save Changes");
@@ -767,7 +776,9 @@ function populateInvoiceForm(row) {
   setFieldValue("invoice-date", row.invoice_date || todayIsoDate());
   setFieldValue("invoice-due-date", row.due_date || "");
   setFieldValue("invoice-status", row.status || "draft");
-  setFieldValue("invoice-payment-link", row.payment_link || "");
+  setFieldValue("invoice-zelle-name", row.zelle_display_name || activeBillingProfile?.zelle_display_name || "");
+  setFieldValue("invoice-zelle-handle", row.zelle_handle || activeBillingProfile?.zelle_handle || "");
+  setFieldValue("invoice-zelle-memo", row.zelle_memo || activeBillingProfile?.zelle_note || "");
   setFieldValue("invoice-notes", row.notes || "");
   const sendNowCheckbox = document.getElementById("invoice-send-now");
   if (sendNowCheckbox) sendNowCheckbox.checked = false;
@@ -790,6 +801,11 @@ function renderBillingManager(profile, invoices) {
           : "Custom";
       const renewal = profile.renewal_date ? formatDate(profile.renewal_date) : "Not set";
       const started = profile.started_at ? formatDate(profile.started_at) : "Not set";
+      const zelleLine = profile.zelle_handle
+        ? `<p class="billing-summary-meta">Zelle to ${safeText(
+            profile.zelle_display_name || "Billing"
+          )} · ${safeText(profile.zelle_handle)}</p>`
+        : "";
       const notes = profile.notes ? `<p class="billing-summary-note">${safeText(profile.notes)}</p>` : "";
       billingPlanSummary.innerHTML = `
         <div class="billing-summary-top">
@@ -798,6 +814,7 @@ function renderBillingManager(profile, invoices) {
             <p class="billing-summary-meta">${safeText(amountLabel)} · ${safeText(
               formatBillingInterval(profile.billing_interval)
             )}</p>
+            ${zelleLine}
           </div>
           <span class="${safeText(billingStatusClass(profile.billing_status))}">${safeText(
             formatBillingStatus(profile.billing_status)
@@ -817,6 +834,7 @@ function renderBillingManager(profile, invoices) {
             <strong>${safeText(profile.payment_terms || "Not set")}</strong>
           </div>
         </div>
+        ${profile.zelle_note ? `<p class="billing-summary-note"><strong>Zelle note:</strong> ${safeText(profile.zelle_note)}</p>` : ""}
         ${notes}
       `;
     }
@@ -828,10 +846,12 @@ function renderBillingManager(profile, invoices) {
     } else {
       billingInvoiceList.innerHTML = activeInvoiceRows
         .map((row) => {
-          const paymentLink = row.payment_link
-            ? `<a class="btn secondary sm" href="${safeText(
-                row.payment_link
-              )}" target="_blank" rel="noopener noreferrer">Payment Link</a>`
+          const zelleMeta = row.zelle_handle
+            ? `<p class="billing-invoice-note"><strong>Zelle:</strong> ${safeText(
+                row.zelle_display_name || "Billing"
+              )} · ${safeText(row.zelle_handle)}${
+                row.zelle_memo ? ` · Memo ${safeText(row.zelle_memo)}` : ""
+              }</p>`
             : "";
           return `
             <article class="billing-invoice-row">
@@ -854,6 +874,7 @@ function renderBillingManager(profile, invoices) {
               <p class="billing-invoice-submeta">${safeText(
                 row.plan_name || activeBillingProfile?.plan_name || "No plan name"
               )}</p>
+              ${zelleMeta}
               ${row.notes ? `<p class="billing-invoice-note">${safeText(row.notes)}</p>` : ""}
               <div class="file-actions-row">
                 <button class="btn secondary sm" type="button" data-action="edit-invoice" data-row-id="${safeText(
@@ -865,7 +886,6 @@ function renderBillingManager(profile, invoices) {
                 <button class="btn secondary sm" type="button" data-action="mark-invoice-paid" data-row-id="${safeText(
                   row.id
                 )}">Paid</button>
-                ${paymentLink}
                 <button class="btn danger sm" type="button" data-action="delete-invoice" data-row-id="${safeText(
                   row.id
                 )}">Delete</button>
@@ -1279,7 +1299,7 @@ async function loadClientPreview(userId) {
       safeTableQuery(
         supabase
           .from("client_billing_profiles")
-          .select("user_id,plan_name,plan_amount,billing_interval,billing_status,started_at,renewal_date,payment_terms,notes,created_at,updated_at")
+          .select("user_id,plan_name,plan_amount,billing_interval,billing_status,started_at,renewal_date,payment_terms,zelle_display_name,zelle_handle,zelle_note,notes,created_at,updated_at")
           .eq("user_id", userId)
           .maybeSingle(),
         null
@@ -1287,7 +1307,7 @@ async function loadClientPreview(userId) {
       safeTableQuery(
         supabase
           .from("client_invoices")
-          .select("id,invoice_number,title,plan_name,amount,currency,invoice_date,due_date,status,payment_link,notes,sent_at,paid_at,created_at,updated_at")
+          .select("id,invoice_number,title,plan_name,amount,currency,invoice_date,due_date,status,zelle_display_name,zelle_handle,zelle_memo,notes,sent_at,paid_at,created_at,updated_at")
           .eq("user_id", userId)
           .order("invoice_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
@@ -1489,10 +1509,19 @@ async function updateInvoiceStatus(rowId, nextStatus) {
     return;
   }
 
+  if (["sent", "paid", "overdue"].includes(nextStatus) && !row.zelle_handle && !activeBillingProfile?.zelle_handle) {
+    setAdminStatus("Add a Zelle email or phone to this invoice before sending it.", true);
+    return;
+  }
+
   const now = new Date().toISOString();
   const payload = {
     status: nextStatus,
     updated_at: now,
+    payment_method: "zelle",
+    zelle_display_name: row.zelle_display_name || activeBillingProfile?.zelle_display_name || null,
+    zelle_handle: row.zelle_handle || activeBillingProfile?.zelle_handle || null,
+    zelle_memo: row.zelle_memo || activeBillingProfile?.zelle_note || null,
   };
 
   if (nextStatus === "sent") {
@@ -1922,6 +1951,9 @@ function initialize() {
     const billingStatusValue = String(document.getElementById("billing-plan-status")?.value || "active").trim();
     const startedAt = String(document.getElementById("billing-started-at")?.value || "").trim();
     const renewalDate = String(document.getElementById("billing-renewal-date")?.value || "").trim();
+    const zelleDisplayName = String(document.getElementById("billing-zelle-name")?.value || "").trim();
+    const zelleHandle = String(document.getElementById("billing-zelle-handle")?.value || "").trim();
+    const zelleNote = String(document.getElementById("billing-zelle-note")?.value || "").trim();
     const paymentTerms = String(document.getElementById("billing-payment-terms")?.value || "").trim();
     const notes = String(document.getElementById("billing-plan-notes")?.value || "").trim();
 
@@ -1944,6 +1976,10 @@ function initialize() {
       billing_status: billingStatusValue || "active",
       started_at: startedAt || null,
       renewal_date: renewalDate || null,
+      payment_method: "zelle",
+      zelle_display_name: zelleDisplayName || null,
+      zelle_handle: zelleHandle || null,
+      zelle_note: zelleNote || null,
       payment_terms: paymentTerms || null,
       notes: notes || null,
       updated_at: new Date().toISOString(),
@@ -1979,7 +2015,9 @@ function initialize() {
     const amountRaw = String(document.getElementById("invoice-amount")?.value || "").trim();
     const invoiceDate = String(document.getElementById("invoice-date")?.value || todayIsoDate()).trim();
     const dueDate = String(document.getElementById("invoice-due-date")?.value || "").trim();
-    const paymentLink = String(document.getElementById("invoice-payment-link")?.value || "").trim();
+    const zelleDisplayName = String(document.getElementById("invoice-zelle-name")?.value || "").trim();
+    const zelleHandle = String(document.getElementById("invoice-zelle-handle")?.value || "").trim();
+    const zelleMemo = String(document.getElementById("invoice-zelle-memo")?.value || "").trim();
     const notes = String(document.getElementById("invoice-notes")?.value || "").trim();
     const sendNow = Boolean(document.getElementById("invoice-send-now")?.checked);
     let status = String(document.getElementById("invoice-status")?.value || "draft").trim().toLowerCase();
@@ -1997,6 +2035,11 @@ function initialize() {
 
     if (sendNow && status === "draft") status = "sent";
 
+    if (["sent", "paid", "overdue"].includes(status) && !(zelleHandle || activeBillingProfile?.zelle_handle)) {
+      setAdminStatus("Add a Zelle email or phone before sending this invoice.", true);
+      return;
+    }
+
     const now = new Date().toISOString();
     const payload = {
       user_id: activeClientId,
@@ -2008,7 +2051,10 @@ function initialize() {
       invoice_date: invoiceDate || todayIsoDate(),
       due_date: dueDate || null,
       status,
-      payment_link: paymentLink || null,
+      payment_method: "zelle",
+      zelle_display_name: zelleDisplayName || activeBillingProfile?.zelle_display_name || null,
+      zelle_handle: zelleHandle || activeBillingProfile?.zelle_handle || null,
+      zelle_memo: zelleMemo || activeBillingProfile?.zelle_note || null,
       notes: notes || null,
       sent_at:
         status === "sent" || status === "paid"

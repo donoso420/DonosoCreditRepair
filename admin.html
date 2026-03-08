@@ -422,7 +422,7 @@
           <div class="container billing-tab-wrap">
             <div class="section-label">
               <h2>💳 Billing</h2>
-              <p class="muted sm">Assign a plan, create invoices, and publish them to the client portal.</p>
+              <p class="muted sm">Assign a plan, create invoices, and publish Zelle payment instructions to the client portal.</p>
             </div>
             <div class="billing-layout">
               <div class="billing-stack">
@@ -472,6 +472,18 @@
                         <input id="billing-renewal-date" type="date" />
                       </div>
                     </div>
+                    <div class="form-row">
+                      <div>
+                        <label for="billing-zelle-name">Zelle Recipient Name</label>
+                        <input id="billing-zelle-name" type="text" placeholder="e.g. Donoso Credit Repair" />
+                      </div>
+                      <div>
+                        <label for="billing-zelle-handle">Zelle Email or Phone</label>
+                        <input id="billing-zelle-handle" type="text" placeholder="e.g. billing@donosocreditrepair.com" />
+                      </div>
+                    </div>
+                    <label for="billing-zelle-note">Default Zelle Instructions</label>
+                    <input id="billing-zelle-note" type="text" placeholder="e.g. Use the invoice number in the Zelle memo" />
                     <label for="billing-payment-terms">Payment Terms</label>
                     <input id="billing-payment-terms" type="text" placeholder="e.g. Due on receipt" />
                     <label for="billing-plan-notes">Internal Notes</label>
@@ -522,8 +534,18 @@
                         <input id="invoice-due-date" type="date" />
                       </div>
                     </div>
-                    <label for="invoice-payment-link">Payment Link</label>
-                    <input id="invoice-payment-link" type="url" placeholder="https://..." />
+                    <div class="form-row">
+                      <div>
+                        <label for="invoice-zelle-name">Zelle Recipient Name</label>
+                        <input id="invoice-zelle-name" type="text" placeholder="Defaults to billing setup above" />
+                      </div>
+                      <div>
+                        <label for="invoice-zelle-handle">Zelle Email or Phone</label>
+                        <input id="invoice-zelle-handle" type="text" placeholder="Defaults to billing setup above" />
+                      </div>
+                    </div>
+                    <label for="invoice-zelle-memo">Zelle Memo / Payment Reference</label>
+                    <input id="invoice-zelle-memo" type="text" placeholder="e.g. Pay with invoice number as the memo" />
                     <label for="invoice-notes">Notes</label>
                     <textarea id="invoice-notes" rows="3" placeholder="Optional invoice note shown in the client portal"></textarea>
                     <label class="checkbox-row" for="invoice-send-now">
@@ -550,7 +572,7 @@
                   <div class="billing-list-head">
                     <div>
                       <h3 class="card-title" style="margin-bottom:0.1rem">Invoices</h3>
-                      <p class="muted sm">Drafts stay internal. Sent invoices appear in the client portal.</p>
+                      <p class="muted sm">Drafts stay internal. Sent invoices appear in the client portal with Zelle instructions.</p>
                     </div>
                   </div>
                   <div id="billing-invoice-list" class="billing-invoice-list">

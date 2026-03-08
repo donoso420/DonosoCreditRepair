@@ -810,6 +810,23 @@ tbody tr:last-child td {
   color: #5d5178;
 }
 
+.billing-invoice-zelle {
+  margin-top: 0.85rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #e6ddf2;
+  border-radius: 12px;
+  background: #f7f1ff;
+}
+
+.billing-invoice-zelle p {
+  margin: 0;
+  color: #4a3b6b;
+}
+
+.billing-invoice-zelle p + p {
+  margin-top: 0.3rem;
+}
+
 .billing-invoices-list {
   display: flex;
   flex-direction: column;

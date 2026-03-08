@@ -57,6 +57,10 @@ create table if not exists public.client_billing_profiles (
     check (billing_status in ('active', 'trial', 'past_due', 'paused', 'canceled', 'completed')),
   started_at date,
   renewal_date date,
+  payment_method text not null default 'zelle',
+  zelle_display_name text,
+  zelle_handle text,
+  zelle_note text,
   payment_terms text,
   notes text,
   created_at timestamptz not null default now(),
@@ -76,13 +80,28 @@ create table if not exists public.client_invoices (
   due_date date,
   status text not null default 'draft'
     check (status in ('draft', 'sent', 'paid', 'overdue', 'void')),
-  payment_link text,
+  payment_method text not null default 'zelle',
+  zelle_display_name text,
+  zelle_handle text,
+  zelle_memo text,
   notes text,
   sent_at timestamptz,
   paid_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.client_billing_profiles
+  add column if not exists payment_method text not null default 'zelle',
+  add column if not exists zelle_display_name text,
+  add column if not exists zelle_handle text,
+  add column if not exists zelle_note text;
+
+alter table public.client_invoices
+  add column if not exists payment_method text not null default 'zelle',
+  add column if not exists zelle_display_name text,
+  add column if not exists zelle_handle text,
+  add column if not exists zelle_memo text;
 
 -- Uploaded files (PDF letters, screenshots, attachments)
 create table if not exists public.client_files (
