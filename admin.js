@@ -401,6 +401,12 @@ function renderNegativeAdminStage(step) {
     .join("");
 }
 
+function setPreviewCount(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = String(value || 0);
+}
+
 function normalizeReportBureau(value) {
   const raw = String(value || "").toLowerCase();
   if (raw.includes("experian")) return "Experian";
@@ -655,24 +661,41 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
   previewUpdates.innerHTML = "";
   previewFiles.innerHTML = "";
 
+  setPreviewCount("preview-count-reports", reports?.length || 0);
+  setPreviewCount("preview-count-negative", negativeItems?.length || 0);
+  setPreviewCount("preview-count-letters", letters?.length || 0);
+  setPreviewCount("preview-count-updates", updates?.length || 0);
+  setPreviewCount("preview-count-files", files?.length || 0);
+
   if (previewReports) {
     if (!reports.length) {
-      previewReports.innerHTML = "<li>No current credit reports yet.</li>";
+      previewReports.innerHTML = '<li class="preview-empty">No current credit reports yet.</li>';
     } else {
       for (const row of reports) {
         const li = document.createElement("li");
-        const score = row.score ? ` • Score ${safeText(row.score)}` : "";
-        const review = ` • ${safeText(formatVerificationStatus(row.verification_status))} (${safeText(
+        li.className = "file-record";
+        const bureau = row.bureau || "Other";
+        const date = formatDate(row.report_date || row.created_at);
+        const score = row.score ? `Score ${safeText(row.score)}` : "No score";
+        const review = `${safeText(formatVerificationStatus(row.verification_status))} · ${safeText(
           formatVerificationMethod(row.verification_method)
-        )})`;
+        )}`;
         const fileLink = row.signed_url
-          ? ` <a href="${safeText(
+          ? `<a class="btn secondary sm preview-item-link" href="${safeText(
               row.signed_url
             )}" target="_blank" rel="noopener noreferrer" data-action="open-report" data-row-id="${safeText(
               row.id
             )}">Open</a>`
           : "";
-        li.innerHTML = `${safeText(row.bureau || "Other")} · ${safeText(formatDate(row.report_date || row.created_at))}${score}${review}${fileLink}`;
+        li.innerHTML = `
+          <div class="preview-item-head">
+            <div class="preview-item-main">
+              <p class="file-record-title">${safeText(bureau)}</p>
+              <p class="file-record-meta">${safeText(date)} · ${safeText(score)} · ${review}</p>
+            </div>
+            ${fileLink}
+          </div>
+        `;
         previewReports.appendChild(li);
       }
     }
@@ -680,11 +703,11 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
 
   if (previewNegativeItems) {
     if (!negativeItems.length) {
-      previewNegativeItems.innerHTML = "<li>No negative items yet.</li>";
+      previewNegativeItems.innerHTML = '<li class="preview-empty">No negative items yet.</li>';
     } else {
       for (const row of negativeItems) {
         const li = document.createElement("li");
-        li.className = "file-record negative-admin-card";
+        li.className = "file-record negative-admin-row";
         const stage = getNegativeItemStage(row);
         const bureau = row.bureau || "All Bureaus";
         const balance = row.balance != null ? formatCurrency(row.balance) : "N/A";
@@ -693,7 +716,7 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
         const note = row.notes || "";
         li.innerHTML = `
           <div class="negative-admin-head">
-            <div>
+            <div class="preview-item-main">
               <p class="file-record-title">${safeText(row.creditor)} — ${safeText(
                 row.item_type
               )}</p>
@@ -703,7 +726,6 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
               stage.label
             )}</span>
           </div>
-          <div class="mini-stage">${renderNegativeAdminStage(stage.step)}</div>
           <p class="file-record-meta">${safeText(
             row.status || "Under review"
           )} · ${safeText(balance)} · ${safeText(review)}</p>
@@ -716,7 +738,7 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
   }
 
   if (!letters.length) {
-    previewLetters.innerHTML = "<li>No letter records yet.</li>";
+    previewLetters.innerHTML = '<li class="preview-empty">No letter records yet.</li>';
   } else {
     for (const row of letters) {
       const li = document.createElement("li");
@@ -735,7 +757,7 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
   }
 
   if (!updates.length) {
-    previewUpdates.innerHTML = "<li>No updates yet.</li>";
+    previewUpdates.innerHTML = '<li class="preview-empty">No updates yet.</li>';
   } else {
     for (const row of updates) {
       const li = document.createElement("li");
@@ -750,7 +772,7 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
   }
 
   if (!files.length) {
-    previewFiles.innerHTML = "<li>No files yet.</li>";
+    previewFiles.innerHTML = '<li class="preview-empty">No files yet.</li>';
   } else {
     for (const row of files) {
       const li = document.createElement("li");

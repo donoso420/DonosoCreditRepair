@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260307j" />
+    <link rel="stylesheet" href="admin.css?v=20260308a" />
   </head>
   <body>
 
@@ -340,26 +340,65 @@
             <h2>🔍 Client Record Preview</h2>
             <p class="muted sm">Live view of the active client's data</p>
           </div>
-          <div class="preview-grid">
-            <div class="card">
-              <h4 class="preview-title">🧾 Credit Reports</h4>
-              <ul id="preview-reports" class="list"></ul>
-            </div>
-            <div class="card">
-              <h4 class="preview-title">⚠️ Negative Items</h4>
-              <ul id="preview-negative-items" class="list"></ul>
-            </div>
-            <div class="card">
-              <h4 class="preview-title">✉️ Letters</h4>
-              <ul id="preview-letters" class="list"></ul>
-            </div>
-            <div class="card">
-              <h4 class="preview-title">📋 Updates</h4>
-              <ul id="preview-updates" class="list"></ul>
-            </div>
-            <div class="card">
-              <h4 class="preview-title">📁 Files (Admin)</h4>
-              <ul id="preview-files" class="list"></ul>
+          <div class="preview-shell">
+            <nav class="preview-nav" aria-label="Preview sections">
+              <button class="preview-nav-btn active" type="button" onclick="adminPreviewTab('reports',this)">
+                <span>🧾 Reports</span>
+                <span class="preview-count" id="preview-count-reports">0</span>
+              </button>
+              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('negative-items',this)">
+                <span>⚠️ Negative Items</span>
+                <span class="preview-count" id="preview-count-negative">0</span>
+              </button>
+              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('letters',this)">
+                <span>✉️ Letters</span>
+                <span class="preview-count" id="preview-count-letters">0</span>
+              </button>
+              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('updates',this)">
+                <span>📋 Updates</span>
+                <span class="preview-count" id="preview-count-updates">0</span>
+              </button>
+              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('files',this)">
+                <span>📁 Files</span>
+                <span class="preview-count" id="preview-count-files">0</span>
+              </button>
+            </nav>
+            <div class="preview-panels">
+              <section class="card preview-panel active" id="preview-panel-reports">
+                <h4 class="preview-title">🧾 Credit Reports</h4>
+                <p class="muted sm preview-subtitle">Current bureau reports and scores on file.</p>
+                <div class="preview-panel-body">
+                  <ul id="preview-reports" class="list preview-list"></ul>
+                </div>
+              </section>
+              <section class="card preview-panel" id="preview-panel-negative-items" style="display:none">
+                <h4 class="preview-title">⚠️ Negative Items</h4>
+                <p class="muted sm preview-subtitle">Compact tracker view with quick edit and delete actions.</p>
+                <div class="preview-panel-body">
+                  <ul id="preview-negative-items" class="list preview-list"></ul>
+                </div>
+              </section>
+              <section class="card preview-panel" id="preview-panel-letters" style="display:none">
+                <h4 class="preview-title">✉️ Letters</h4>
+                <p class="muted sm preview-subtitle">Sent letters and their current delivery or response status.</p>
+                <div class="preview-panel-body">
+                  <ul id="preview-letters" class="list preview-list"></ul>
+                </div>
+              </section>
+              <section class="card preview-panel" id="preview-panel-updates" style="display:none">
+                <h4 class="preview-title">📋 Updates</h4>
+                <p class="muted sm preview-subtitle">Recent client-facing timeline notes.</p>
+                <div class="preview-panel-body">
+                  <ul id="preview-updates" class="list preview-list"></ul>
+                </div>
+              </section>
+              <section class="card preview-panel" id="preview-panel-files" style="display:none">
+                <h4 class="preview-title">📁 Files (Admin)</h4>
+                <p class="muted sm preview-subtitle">Files uploaded by the admin team for this client.</p>
+                <div class="preview-panel-body">
+                  <ul id="preview-files" class="list preview-list"></ul>
+                </div>
+              </section>
             </div>
           </div>
         </div>
@@ -431,7 +470,17 @@
         if (panel) panel.style.display = 'block';
         if (btn) btn.classList.add('active');
       }
+
+      function adminPreviewTab(target, btn) {
+        var panels = document.querySelectorAll('.preview-panel');
+        var btns = document.querySelectorAll('.preview-nav-btn');
+        for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
+        for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+        var panel = document.getElementById('preview-panel-' + target);
+        if (panel) panel.style.display = 'block';
+        if (btn) btn.classList.add('active');
+      }
     </script>
-    <script type="module" src="admin.js?v=20260308c"></script>
+    <script type="module" src="admin.js?v=20260308d"></script>
   </body>
 </html>
