@@ -364,13 +364,55 @@ textarea {
 }
 
 .negative-tracker-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 0.9rem;
-  align-items: start;
 }
 
-.negative-bureau-board {
+.negative-bureau-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.negative-bureau-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid #d9caee;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #654f86;
+  padding: 0.62rem 0.88rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.negative-bureau-tab strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #f3edf9;
+  color: #5a427d;
+  font-size: 0.86rem;
+}
+
+.negative-bureau-tab.active {
+  background: #7c5cbf;
+  border-color: #7c5cbf;
+  color: #ffffff;
+}
+
+.negative-bureau-tab.active strong {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.negative-bureau-panel {
   border: 1px solid var(--line);
   border-radius: 16px;
   background:
@@ -394,7 +436,7 @@ textarea {
 }
 
 .negative-bureau-scroll {
-  max-height: 430px;
+  max-height: 410px;
   overflow-y: auto;
   padding: 0.9rem;
   display: flex;
@@ -420,7 +462,7 @@ textarea {
 .negative-track-card {
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 0.95rem;
+  padding: 0.9rem;
   background:
     radial-gradient(circle at top right, rgba(247, 178, 221, 0.18), transparent 28%),
     linear-gradient(180deg, #ffffff 0%, #faf7ff 100%);
@@ -432,7 +474,7 @@ textarea {
   justify-content: space-between;
   gap: 0.75rem;
   align-items: flex-start;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.6rem;
 }
 
 .negative-track-card h4 {
@@ -442,7 +484,7 @@ textarea {
 }
 
 .negative-track-meta {
-  margin: 0 0 0.85rem;
+  margin: 0.2rem 0 0;
   color: #695c83;
   font-size: 0.9rem;
 }
@@ -472,49 +514,10 @@ textarea {
   color: #24745e;
 }
 
-.negative-stage {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
-  margin-bottom: 0.85rem;
-}
-
-.negative-stage-step {
-  border: 1px solid #eadff3;
-  border-radius: 10px;
-  padding: 0.48rem 0.45rem;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  gap: 0.42rem;
-  color: #8a7ca5;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.negative-stage-step.complete {
-  border-color: #d8c7ec;
-  background: #f7f2ff;
-  color: #58427d;
-}
-
-.negative-stage-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #d8cdea;
-  flex-shrink: 0;
-}
-
-.negative-stage-step.complete .negative-stage-dot {
-  background: #8e6bc5;
-}
-
 .negative-track-details {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-bottom: 0.75rem;
+  gap: 0.5rem;
 }
 
 .negative-track-details span {
@@ -527,8 +530,8 @@ textarea {
 }
 
 .negative-track-note {
-  margin: 0;
-  padding-top: 0.7rem;
+  margin: 0.78rem 0 0;
+  padding-top: 0.72rem;
   border-top: 1px solid #eee5f8;
   color: #55486d;
   font-size: 0.9rem;
@@ -697,10 +700,6 @@ tbody tr:last-child td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .negative-tracker-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .dash-head {
     flex-direction: column;
   }
@@ -711,16 +710,8 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 
-  .negative-tracker-grid {
-    grid-template-columns: 1fr;
-  }
-
   .negative-bureau-scroll {
     max-height: 360px;
-  }
-
-  .negative-stage {
-    grid-template-columns: 1fr;
   }
 }
 

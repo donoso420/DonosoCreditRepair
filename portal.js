@@ -616,58 +616,97 @@ function renderNegativeItems(items) {
     }
   });
 
-  negativeTrackerGridEl.innerHTML = bureauColumns
-    .map((column) => {
-      const bureauItems = groupedItems.get(column.key) || [];
-      const itemCountLabel = `${bureauItems.length} item${bureauItems.length === 1 ? "" : "s"}`;
-      const cards = bureauItems.length
-        ? bureauItems
-            .map((row) => {
-              const stage = getNegativeItemStage(row);
-              const status = row.status || (row.is_active === false ? "Resolved / removed" : "Under review");
-              const balance = row.balance == null ? "N/A" : formatCurrency(row.balance);
-              const reviewLabel = formatVerificationMethod(row.verification_method);
-              const accountRef = row.account_reference ? `Acct ${row.account_reference}` : "";
-              const note = row.notes || row.evidence_excerpt || "";
-              return `
-                <article class="negative-track-card">
-                  <div class="negative-track-top">
-                    <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
-                    <span class="negative-stage-badge ${escapeHtml(stage.badgeClass)}">${escapeHtml(
-                      stage.label
-                    )}</span>
-                  </div>
-                  <p class="negative-track-meta">${escapeHtml(row.item_type || "Negative Item")}${
-                    accountRef ? ` • ${escapeHtml(accountRef)}` : ""
-                  }</p>
-                  <div class="negative-stage">${renderNegativeStage(stage.step)}</div>
-                  <div class="negative-track-details">
-                    <span><strong>Status:</strong> ${escapeHtml(status)}</span>
-                    <span><strong>Balance:</strong> ${escapeHtml(balance)}</span>
-                    <span><strong>Source:</strong> ${escapeHtml(reviewLabel)}</span>
-                  </div>
-                  ${note ? `<p class="negative-track-note">${escapeHtml(note)}</p>` : ""}
-                </article>
-              `;
-            })
-            .join("")
-        : '<article class="negative-track-card empty-card"><p class="empty">No items logged in this bureau.</p></article>';
+  const visibleColumns = bureauColumns.filter((column) => (groupedItems.get(column.key) || []).length > 0);
 
-      return `
-        <section class="negative-bureau-board">
-          <div class="negative-bureau-head">
-            <div>
-              <p class="bureau">${escapeHtml(column.label)}</p>
-              <p class="negative-bureau-count">${escapeHtml(itemCountLabel)}</p>
+  if (!visibleColumns.length) {
+    negativeTrackerGridEl.dataset.activeBureau = "";
+    negativeTrackerGridEl.innerHTML =
+      '<article class="negative-track-card empty-card"><p class="empty">No negative items logged yet.</p></article>';
+    return;
+  }
+
+  const currentActiveKey = negativeTrackerGridEl.dataset.activeBureau || "";
+  const activeKey = visibleColumns.some((column) => column.key === currentActiveKey)
+    ? currentActiveKey
+    : visibleColumns[0].key;
+
+  negativeTrackerGridEl.dataset.activeBureau = activeKey;
+  negativeTrackerGridEl.innerHTML = `
+    <div class="negative-bureau-tabs" role="tablist" aria-label="Negative item bureaus">
+      ${visibleColumns
+        .map((column) => {
+          const count = (groupedItems.get(column.key) || []).length;
+          return `
+            <button
+              type="button"
+              class="negative-bureau-tab"
+              data-bureau-tab="${escapeHtml(column.key)}"
+              role="tab"
+              aria-selected="${column.key === activeKey ? "true" : "false"}"
+            >
+              <span>${escapeHtml(column.label)}</span>
+              <strong>${escapeHtml(count)}</strong>
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
+    ${visibleColumns
+      .map((column) => {
+        const bureauItems = groupedItems.get(column.key) || [];
+        const itemCountLabel = `${bureauItems.length} item${bureauItems.length === 1 ? "" : "s"}`;
+        const cards = bureauItems
+          .map((row) => {
+            const stage = getNegativeItemStage(row);
+            const status = row.status || (row.is_active === false ? "Resolved / removed" : "Under review");
+            const balance = row.balance == null ? "N/A" : formatCurrency(row.balance);
+            const reviewLabel = formatVerificationMethod(row.verification_method);
+            const accountRef = row.account_reference ? `Acct ${row.account_reference}` : "";
+            const note = row.notes || row.evidence_excerpt || "";
+            return `
+              <article class="negative-track-card">
+                <div class="negative-track-top">
+                  <div>
+                    <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
+                    <p class="negative-track-meta">${escapeHtml(row.item_type || "Negative Item")}${
+                      accountRef ? ` • ${escapeHtml(accountRef)}` : ""
+                    }</p>
+                  </div>
+                  <span class="negative-stage-badge ${escapeHtml(stage.badgeClass)}">${escapeHtml(
+                    stage.label
+                  )}</span>
+                </div>
+                <div class="negative-track-details">
+                  <span><strong>Status:</strong> ${escapeHtml(status)}</span>
+                  <span><strong>Balance:</strong> ${escapeHtml(balance)}</span>
+                  <span><strong>Source:</strong> ${escapeHtml(reviewLabel)}</span>
+                </div>
+                ${note ? `<p class="negative-track-note">${escapeHtml(note)}</p>` : ""}
+              </article>
+            `;
+          })
+          .join("");
+
+        return `
+          <section
+            class="negative-bureau-panel ${column.key === activeKey ? "" : "hidden"}"
+            data-bureau-panel="${escapeHtml(column.key)}"
+            role="tabpanel"
+          >
+            <div class="negative-bureau-head">
+              <div>
+                <p class="bureau">${escapeHtml(column.label)}</p>
+                <p class="negative-bureau-count">${escapeHtml(itemCountLabel)}</p>
+              </div>
             </div>
-          </div>
-          <div class="negative-bureau-scroll">
-            ${cards}
-          </div>
-        </section>
-      `;
-    })
-    .join("");
+            <div class="negative-bureau-scroll">
+              ${cards}
+            </div>
+          </section>
+        `;
+      })
+      .join("")}
+  `;
 }
 
 function renderUpdates(updates) {
@@ -838,6 +877,28 @@ function initializePortal() {
     } catch (_) {
       // Report access should still work even if the status update fails.
     }
+  });
+
+  negativeTrackerGridEl?.addEventListener("click", (event) => {
+    const tabBtn = event.target.closest("[data-bureau-tab]");
+    if (!tabBtn || !negativeTrackerGridEl) return;
+
+    const nextKey = String(tabBtn.getAttribute("data-bureau-tab") || "");
+    if (!nextKey) return;
+
+    negativeTrackerGridEl.dataset.activeBureau = nextKey;
+    negativeTrackerGridEl
+      .querySelectorAll("[data-bureau-tab]")
+      .forEach((button) => {
+        const isActive = button.getAttribute("data-bureau-tab") === nextKey;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-selected", String(isActive));
+      });
+    negativeTrackerGridEl
+      .querySelectorAll("[data-bureau-panel]")
+      .forEach((panel) => {
+        panel.classList.toggle("hidden", panel.getAttribute("data-bureau-panel") !== nextKey);
+      });
   });
 
   // Message send
