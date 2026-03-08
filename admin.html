@@ -320,8 +320,8 @@
                   </div>
                   <label for="file-notes">Notes</label>
                   <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
-                  <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP, max 500MB upload)</span></label>
-                  <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
+                  <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</span></label>
+                  <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
                   <button class="btn primary full mt" type="submit">Upload File</button>
                 </form>
               </div>
@@ -457,6 +457,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260307k"></script>
+    <script type="module" src="admin.js?v=20260307l"></script>
   </body>
 </html>

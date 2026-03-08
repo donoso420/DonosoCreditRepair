@@ -62,6 +62,15 @@ const MAX_UPLOAD_SIZE_MB = 500;
 const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 const MAX_BROWSER_SCAN_SIZE_MB = 40;
 const MAX_BROWSER_SCAN_SIZE_BYTES = MAX_BROWSER_SCAN_SIZE_MB * 1024 * 1024;
+const ALLOWED_UPLOAD_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -147,6 +156,31 @@ function sanitizeFileName(name) {
     .toLowerCase()
     .replace(/[^a-z0-9._-]/g, "-")
     .replace(/-+/g, "-");
+}
+
+function fileHasAllowedUploadType(file) {
+  const fileType = String(file?.type || "").toLowerCase();
+  const fileName = String(file?.name || "").toLowerCase();
+  return (
+    ALLOWED_UPLOAD_MIME_TYPES.has(fileType) ||
+    ALLOWED_UPLOAD_EXTENSIONS.some((extension) => fileName.endsWith(extension))
+  );
+}
+
+function getUploadContentType(file) {
+  const fileType = String(file?.type || "").toLowerCase();
+  if (fileType) return fileType;
+
+  const fileName = String(file?.name || "").toLowerCase();
+  if (fileName.endsWith(".pdf")) return "application/pdf";
+  if (fileName.endsWith(".png")) return "image/png";
+  if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) return "image/jpeg";
+  if (fileName.endsWith(".webp")) return "image/webp";
+  if (fileName.endsWith(".doc")) return "application/msword";
+  if (fileName.endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+  return "application/octet-stream";
 }
 
 function isMissingFeatureError(error) {
@@ -1591,14 +1625,8 @@ function initialize() {
       return;
     }
 
-    const allowedTypes = new Set([
-      "application/pdf",
-      "image/png",
-      "image/jpeg",
-      "image/webp",
-    ]);
-    if (!allowedTypes.has(file.type)) {
-      setAdminStatus("Only PDF, PNG, JPG, or WebP files are allowed.", true);
+    if (!fileHasAllowedUploadType(file)) {
+      setAdminStatus("Only PDF, PNG, JPG, WebP, DOC, or DOCX files are allowed.", true);
       return;
     }
 
@@ -1626,7 +1654,7 @@ function initialize() {
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, file, {
       upsert: false,
-      contentType: file.type,
+      contentType: getUploadContentType(file),
     });
 
     if (uploadError) {
@@ -1641,7 +1669,7 @@ function initialize() {
         bucket,
         file_path: objectPath,
         file_name: file.name,
-        content_type: file.type,
+        content_type: getUploadContentType(file),
         file_size: file.size,
         category: category || "Other",
         title: fileLabel,

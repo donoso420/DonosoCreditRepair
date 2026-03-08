@@ -260,8 +260,8 @@
             <form id="client-upload-form" class="upload-form">
               <label for="client-file-title">Description</label>
               <input id="client-file-title" type="text" placeholder="e.g. Experian response letter — March 2026" required />
-              <label for="client-file-input">Attachment (PDF, JPG, PNG — max 500MB upload)</label>
-              <input id="client-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" required />
+              <label for="client-file-input">Attachment (PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</label>
+              <input id="client-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
               <button type="submit" class="btn primary">Upload Document</button>
             </form>
             <p id="upload-status" class="status" role="status" aria-live="polite"></p>
@@ -285,6 +285,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260307f"></script>
+    <script type="module" src="portal.js?v=20260307g"></script>
   </body>
 </html>
