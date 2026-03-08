@@ -332,6 +332,30 @@ function populateNegativeItemForm(row) {
   negativeItemForm?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
+function applyNegativeOutcomePreset(outcome) {
+  const normalizedOutcome = String(outcome || "").trim().toLowerCase();
+  const statusInput = document.getElementById("negative-status");
+  const activeCheckbox = document.getElementById("negative-active");
+  if (!statusInput || !activeCheckbox) return;
+
+  if (normalizedOutcome === "deleted") {
+    statusInput.value = "Deleted";
+    activeCheckbox.checked = false;
+    return;
+  }
+
+  if (normalizedOutcome === "removed") {
+    statusInput.value = "Removed";
+    activeCheckbox.checked = false;
+    return;
+  }
+
+  if (normalizedOutcome === "updated") {
+    statusInput.value = "Updated";
+    activeCheckbox.checked = true;
+  }
+}
+
 function resetLetterForm() {
   letterForm?.reset();
   if (letterEditIdInput) letterEditIdInput.value = "";
@@ -2015,6 +2039,12 @@ function initialize() {
   syncUploadCategoryUi();
 
   negativeCancelBtn?.addEventListener("click", resetNegativeItemForm);
+  negativeItemForm?.addEventListener("click", (event) => {
+    const actionEl = event.target.closest("[data-negative-outcome]");
+    if (!actionEl) return;
+    event.preventDefault();
+    applyNegativeOutcomePreset(actionEl.getAttribute("data-negative-outcome"));
+  });
   letterCancelBtn?.addEventListener("click", resetLetterForm);
   letterUpdateIdSelect?.addEventListener("change", () => {
     const row = findActiveRow(activeLetterRows, letterUpdateIdSelect.value);

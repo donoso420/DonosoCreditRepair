@@ -436,6 +436,29 @@ textarea { resize: vertical; }
   font-weight: 500;
 }
 
+.negative-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  margin-bottom: 0.45rem;
+}
+
+.negative-status-chip {
+  min-width: 0;
+}
+
+.negative-status-hint {
+  margin: 0 0 0.9rem;
+  color: #6a5a84;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.negative-status-hint strong {
+  color: #43345f;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

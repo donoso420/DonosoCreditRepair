@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260308d" />
+    <link rel="stylesheet" href="admin.css?v=20260308e" />
   </head>
   <body>
 
@@ -175,6 +175,20 @@
                   </div>
                   <label for="negative-status">Status</label>
                   <input id="negative-status" type="text" placeholder="e.g. Open collection, 90 days late" />
+                  <div class="negative-status-actions" aria-label="Negative item outcome helpers">
+                    <button class="btn secondary sm negative-status-chip" data-negative-outcome="deleted" type="button">
+                      Mark Deleted
+                    </button>
+                    <button class="btn secondary sm negative-status-chip" data-negative-outcome="removed" type="button">
+                      Mark Removed
+                    </button>
+                    <button class="btn secondary sm negative-status-chip" data-negative-outcome="updated" type="button">
+                      Mark Updated
+                    </button>
+                  </div>
+                  <p class="negative-status-hint">
+                    Use <strong>Deleted</strong> or <strong>Removed</strong> when the bureau has taken the item off the report.
+                  </p>
                   <label for="negative-notes">Notes</label>
                   <textarea id="negative-notes" rows="3" placeholder="Optional details, dates, or dispute notes"></textarea>
                   <label class="checkbox-row" for="negative-active">
@@ -675,6 +689,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308k"></script>
+    <script type="module" src="admin.js?v=20260308l"></script>
   </body>
 </html>
