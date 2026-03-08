@@ -157,12 +157,14 @@ textarea {
 }
 
 .btn.primary {
-  background: var(--accent);
-  color: #311a2f;
+  background: #7c5cbf;
+  border-color: #7c5cbf;
+  color: #ffffff;
 }
 
 .btn.primary:hover {
-  background: var(--accent-strong);
+  background: #5c3d9a;
+  border-color: #5c3d9a;
 }
 
 .btn.secondary {
@@ -848,6 +850,23 @@ tbody tr:last-child td {
   padding: 0.5rem 0.75rem;
   font-family: inherit;
   font-size: 0.9rem;
+}
+
+.upload-form input[type="file"]::file-selector-button {
+  margin-right: 0.7rem;
+  border: 1px solid #7c5cbf;
+  border-radius: 999px;
+  background: #7c5cbf;
+  color: #ffffff;
+  padding: 0.48rem 0.9rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.upload-form input[type="file"]::file-selector-button:hover {
+  background: #5c3d9a;
+  border-color: #5c3d9a;
 }
 
 .section-sub {
