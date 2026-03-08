@@ -181,6 +181,16 @@ function isDocxFile(file) {
   );
 }
 
+function isImageFile(file) {
+  const fileType = String(file?.type || "").toLowerCase();
+  const fileName = String(file?.name || "").toLowerCase();
+  return /image\/(png|jpeg|jpg|webp)/.test(fileType) || /\.(png|jpe?g|webp)$/i.test(fileName);
+}
+
+function canBrowserImportDisputeSummary(file) {
+  return isPdfFile(file) || isDocxFile(file) || isImageFile(file);
+}
+
 function getUploadContentType(file) {
   const fileType = String(file?.type || "").toLowerCase();
   if (fileType) return fileType;
@@ -790,14 +800,14 @@ async function loadClientFiles(userId) {
   );
 }
 
-function isPdfFile(fileRow) {
+function isPdfFileRow(fileRow) {
   const contentType = String(fileRow?.content_type || "").toLowerCase();
   const fileName = String(fileRow?.file_name || "").toLowerCase();
   return contentType === "application/pdf" || /\.pdf$/.test(fileName);
 }
 
 function isLikelyCreditReportCandidate(fileRow) {
-  if (!isPdfFile(fileRow)) return false;
+  if (!isPdfFileRow(fileRow)) return false;
   const path = String(fileRow.file_path || "").toLowerCase();
   const haystack = [
     fileRow.category,
@@ -1677,27 +1687,6 @@ function initialize() {
       return;
     }
 
-    if (isCreditReportUpload) {
-      if (!isPdfFile(file)) {
-        setAdminStatus("Credit report uploads must be PDFs.", true);
-        return;
-      }
-    }
-
-    if (isDisputeSummaryUpload) {
-      if (!isPdfFile(file) && !isDocxFile(file)) {
-        setAdminStatus("Dispute summary imports currently support DOCX or PDF files.", true);
-        return;
-      }
-      if (file.size > MAX_BROWSER_SCAN_SIZE_BYTES) {
-        setAdminStatus(
-          `Dispute summary imports must be ${formatMbLimit(MAX_BROWSER_SCAN_SIZE_MB)} or smaller.`,
-          true
-        );
-        return;
-      }
-    }
-
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       setAdminStatus(`File must be ${formatMbLimit(MAX_UPLOAD_SIZE_MB)} or smaller.`, true);
       return;
@@ -1771,10 +1760,19 @@ function initialize() {
     }
 
     let importedNegativeItemCount = 0;
+    let importSkippedReason = "";
     if (isDisputeSummaryUpload) {
       try {
-        const result = await importNegativeItemsFromUploadedFile(file, fileRow, category);
-        importedNegativeItemCount = result.importedCount || 0;
+        if (canBrowserImportDisputeSummary(file) && file.size <= MAX_BROWSER_SCAN_SIZE_BYTES) {
+          const result = await importNegativeItemsFromUploadedFile(file, fileRow, category);
+          importedNegativeItemCount = result.importedCount || 0;
+        } else if (!canBrowserImportDisputeSummary(file)) {
+          importSkippedReason = "Uploaded successfully. Auto-import currently works on PDF, DOCX, and image files.";
+        } else {
+          importSkippedReason = `Uploaded successfully. Auto-import is limited to ${formatMbLimit(
+            MAX_BROWSER_SCAN_SIZE_MB
+          )} or smaller files.`;
+        }
       } catch (error) {
         if (isMissingFeatureError(error)) {
           setAdminStatus("Run the updated supabase-portal-schema.sql before importing negative items.", true);
@@ -1797,7 +1795,7 @@ function initialize() {
         : isDisputeSummaryUpload
           ? importedNegativeItemCount
             ? `Dispute summary uploaded. Imported ${importedNegativeItemCount} negative item(s).`
-            : "Dispute summary uploaded, but no negative items were detected."
+            : importSkippedReason || "Dispute summary uploaded, but no negative items were detected."
         : "File uploaded and attached to client record."
     );
     await loadClientPreview(activeClientId);

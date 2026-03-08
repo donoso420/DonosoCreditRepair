@@ -294,13 +294,13 @@
                     <label for="report-summary">Report Summary</label>
                     <textarea id="report-summary" rows="3" placeholder="Key notes about this report, bureau pull, or file set"></textarea>
                     <p class="statusbar" id="report-autofill-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
-                    <p class="muted sm">For credit reports, upload the original PDF when possible. Browser autofill works on smaller PDFs, and you can still fill these details manually when needed.</p>
+                    <p class="muted sm">Credit report uploads accept images, PDFs, and Word documents. Browser autofill only runs on smaller PDFs, and you can still fill these details manually when needed.</p>
                   </div>
                   <label for="file-notes">Notes</label>
                   <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
                   <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</span></label>
                   <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
-                  <p class="muted sm">Use <strong>Dispute Summary</strong> for a Credit Dispute Master Summary `.docx` or PDF. The uploader will import the detected negative items into the section on the left.</p>
+                  <p class="muted sm">Use <strong>Dispute Summary</strong> for a Credit Dispute Master Summary image, PDF, or Word document. When the file is small enough and parseable in the browser, the uploader will import the detected negative items into the section on the left.</p>
                   <button class="btn primary full mt" type="submit">Upload File</button>
                 </form>
               </div>
@@ -432,6 +432,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308a"></script>
+    <script type="module" src="admin.js?v=20260308b"></script>
   </body>
 </html>
