@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260308a" />
+    <link rel="stylesheet" href="portal.css?v=20260308b" />
   </head>
   <body>
     <header class="portal-nav">
@@ -111,6 +111,24 @@
             <div class="report-grid" id="report-grid">
               <article class="report-card empty-card">
                 <p class="empty">No current credit reports uploaded yet.</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Billing</h3>
+              <p class="section-sub">Your current plan and any invoices sent through the portal.</p>
+            </div>
+            <div class="billing-grid">
+              <article class="billing-plan-card" id="billing-plan-card">
+                <p class="empty">No billing plan has been posted yet.</p>
+              </article>
+              <article class="billing-invoices-card">
+                <h4>Invoices</h4>
+                <div class="billing-invoices-list" id="billing-invoices-list">
+                  <p class="empty">No invoices have been sent yet.</p>
+                </div>
               </article>
             </div>
           </section>
@@ -295,6 +313,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260308a"></script>
+    <script type="module" src="portal.js?v=20260308b"></script>
   </body>
 </html>

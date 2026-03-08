@@ -33,6 +33,11 @@ const timelineEditIdInput = document.getElementById("timeline-edit-id");
 const timelineSubmitBtn = document.getElementById("timeline-submit-btn");
 const timelineCancelBtn = document.getElementById("timeline-cancel-btn");
 const fileUploadForm = document.getElementById("file-upload-form");
+const billingPlanForm = document.getElementById("billing-plan-form");
+const invoiceForm = document.getElementById("invoice-form");
+const invoiceEditIdInput = document.getElementById("invoice-edit-id");
+const invoiceSubmitBtn = document.getElementById("invoice-submit-btn");
+const invoiceCancelBtn = document.getElementById("invoice-cancel-btn");
 const reportAutofillStatus = document.getElementById("report-autofill-status");
 
 const inviteForm = document.getElementById("invite-form");
@@ -51,6 +56,8 @@ const adminMessageThread = document.getElementById("admin-message-thread");
 const adminMessageForm = document.getElementById("admin-message-form");
 const adminMessageInput = document.getElementById("admin-message-input");
 const previewClientUploads = document.getElementById("preview-client-uploads");
+const billingPlanSummary = document.getElementById("billing-plan-summary");
+const billingInvoiceList = document.getElementById("billing-invoice-list");
 const fileCategorySelect = document.getElementById("file-category");
 const creditReportFields = document.getElementById("credit-report-fields");
 
@@ -78,6 +85,8 @@ let activeReportRows = [];
 let activeNegativeItemRows = [];
 let activeLetterRows = [];
 let activeUpdateRows = [];
+let activeBillingProfile = null;
+let activeInvoiceRows = [];
 
 function setAuthStatus(message, isError = false) {
   if (!authStatus) return;
@@ -596,11 +605,15 @@ async function loadClients() {
     activeNegativeItemRows = [];
     activeLetterRows = [];
     activeUpdateRows = [];
+    activeBillingProfile = null;
+    activeInvoiceRows = [];
     activeClientIdEl.textContent = "";
     resetNegativeItemForm();
     resetLetterForm();
     resetTimelineForm();
+    resetInvoiceForm();
     renderPreview([], [], [], [], [], []);
+    renderBillingManager(null, []);
     return;
   }
 
@@ -624,6 +637,249 @@ function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "N/A";
   return date.toLocaleString();
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatBillingInterval(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "biweekly":
+      return "Biweekly";
+    case "weekly":
+      return "Weekly";
+    case "one_time":
+      return "One time";
+    case "custom":
+      return "Custom";
+    default:
+      return "Monthly";
+  }
+}
+
+function formatBillingStatus(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "trial":
+      return "Trial";
+    case "past_due":
+      return "Past due";
+    case "paused":
+      return "Paused";
+    case "canceled":
+      return "Canceled";
+    case "completed":
+      return "Completed";
+    default:
+      return "Active";
+  }
+}
+
+function formatInvoiceStatus(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "sent":
+      return "Sent";
+    case "paid":
+      return "Paid";
+    case "overdue":
+      return "Overdue";
+    case "void":
+      return "Void";
+    default:
+      return "Draft";
+  }
+}
+
+function billingStatusClass(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "trial":
+      return "status-chip trial";
+    case "past_due":
+      return "status-chip overdue";
+    case "paused":
+      return "status-chip paused";
+    case "canceled":
+      return "status-chip void";
+    case "completed":
+      return "status-chip paid";
+    default:
+      return "status-chip active";
+  }
+}
+
+function invoiceStatusClass(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "sent":
+      return "status-chip sent";
+    case "paid":
+      return "status-chip paid";
+    case "overdue":
+      return "status-chip overdue";
+    case "void":
+      return "status-chip void";
+    default:
+      return "status-chip draft";
+  }
+}
+
+function buildInvoiceNumber(userId = "") {
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 12);
+  const clientSuffix = String(userId || "").replace(/-/g, "").slice(0, 4).toUpperCase() || "CLNT";
+  const random = Math.floor(Math.random() * 9000 + 1000);
+  return `INV-${stamp}-${clientSuffix}-${random}`;
+}
+
+function setFieldValue(id, value) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  input.value = value == null ? "" : String(value);
+}
+
+function populateBillingPlanForm(profile) {
+  setFieldValue("billing-plan-name", profile?.plan_name || "");
+  setFieldValue("billing-plan-amount", profile?.plan_amount ?? "");
+  setFieldValue("billing-plan-interval", profile?.billing_interval || "monthly");
+  setFieldValue("billing-plan-status", profile?.billing_status || "active");
+  setFieldValue("billing-started-at", profile?.started_at || "");
+  setFieldValue("billing-renewal-date", profile?.renewal_date || "");
+  setFieldValue("billing-payment-terms", profile?.payment_terms || "");
+  setFieldValue("billing-plan-notes", profile?.notes || "");
+}
+
+function resetInvoiceForm() {
+  invoiceForm?.reset();
+  if (invoiceEditIdInput) invoiceEditIdInput.value = "";
+  setFieldValue("invoice-status", "draft");
+  setFieldValue("invoice-date", todayIsoDate());
+  setFieldValue("invoice-plan-name", activeBillingProfile?.plan_name || "");
+  const sendNowCheckbox = document.getElementById("invoice-send-now");
+  if (sendNowCheckbox) sendNowCheckbox.checked = false;
+  toggleFormEditMode(invoiceSubmitBtn, invoiceCancelBtn, false, "Save Invoice", "Save Changes");
+}
+
+function populateInvoiceForm(row) {
+  if (!row) return;
+  if (invoiceEditIdInput) invoiceEditIdInput.value = String(row.id || "");
+  setFieldValue("invoice-number", row.invoice_number || "");
+  setFieldValue("invoice-title", row.title || "");
+  setFieldValue("invoice-plan-name", row.plan_name || activeBillingProfile?.plan_name || "");
+  setFieldValue("invoice-amount", row.amount ?? "");
+  setFieldValue("invoice-date", row.invoice_date || todayIsoDate());
+  setFieldValue("invoice-due-date", row.due_date || "");
+  setFieldValue("invoice-status", row.status || "draft");
+  setFieldValue("invoice-payment-link", row.payment_link || "");
+  setFieldValue("invoice-notes", row.notes || "");
+  const sendNowCheckbox = document.getElementById("invoice-send-now");
+  if (sendNowCheckbox) sendNowCheckbox.checked = false;
+  toggleFormEditMode(invoiceSubmitBtn, invoiceCancelBtn, true, "Save Invoice", "Save Changes");
+  invoiceForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function renderBillingManager(profile, invoices) {
+  activeBillingProfile = profile || null;
+  activeInvoiceRows = invoices || [];
+  populateBillingPlanForm(activeBillingProfile);
+
+  if (billingPlanSummary) {
+    if (!profile?.plan_name) {
+      billingPlanSummary.innerHTML = '<p class="empty">No billing plan saved for this client yet.</p>';
+    } else {
+      const amountLabel =
+        profile.plan_amount != null && profile.plan_amount !== ""
+          ? formatCurrency(profile.plan_amount)
+          : "Custom";
+      const renewal = profile.renewal_date ? formatDate(profile.renewal_date) : "Not set";
+      const started = profile.started_at ? formatDate(profile.started_at) : "Not set";
+      const notes = profile.notes ? `<p class="billing-summary-note">${safeText(profile.notes)}</p>` : "";
+      billingPlanSummary.innerHTML = `
+        <div class="billing-summary-top">
+          <div>
+            <p class="billing-summary-name">${safeText(profile.plan_name)}</p>
+            <p class="billing-summary-meta">${safeText(amountLabel)} · ${safeText(
+              formatBillingInterval(profile.billing_interval)
+            )}</p>
+          </div>
+          <span class="${safeText(billingStatusClass(profile.billing_status))}">${safeText(
+            formatBillingStatus(profile.billing_status)
+          )}</span>
+        </div>
+        <div class="billing-summary-grid">
+          <div>
+            <span>Started</span>
+            <strong>${safeText(started)}</strong>
+          </div>
+          <div>
+            <span>Next billing</span>
+            <strong>${safeText(renewal)}</strong>
+          </div>
+          <div>
+            <span>Terms</span>
+            <strong>${safeText(profile.payment_terms || "Not set")}</strong>
+          </div>
+        </div>
+        ${notes}
+      `;
+    }
+  }
+
+  if (billingInvoiceList) {
+    if (!activeInvoiceRows.length) {
+      billingInvoiceList.innerHTML = '<p class="empty">No invoices saved yet.</p>';
+    } else {
+      billingInvoiceList.innerHTML = activeInvoiceRows
+        .map((row) => {
+          const paymentLink = row.payment_link
+            ? `<a class="btn secondary sm" href="${safeText(
+                row.payment_link
+              )}" target="_blank" rel="noopener noreferrer">Payment Link</a>`
+            : "";
+          return `
+            <article class="billing-invoice-row">
+              <div class="billing-invoice-top">
+                <div>
+                  <p class="billing-invoice-title">${safeText(row.title || "Invoice")}</p>
+                  <p class="billing-invoice-meta">${safeText(
+                    row.invoice_number || "No invoice number"
+                  )} · ${safeText(formatDate(row.invoice_date || row.created_at))} · Due ${safeText(
+                    row.due_date ? formatDate(row.due_date) : "Not set"
+                  )}</p>
+                </div>
+                <div class="billing-invoice-side">
+                  <span class="${safeText(invoiceStatusClass(row.status))}">${safeText(
+                    formatInvoiceStatus(row.status)
+                  )}</span>
+                  <strong>${safeText(formatCurrency(row.amount))}</strong>
+                </div>
+              </div>
+              <p class="billing-invoice-submeta">${safeText(
+                row.plan_name || activeBillingProfile?.plan_name || "No plan name"
+              )}</p>
+              ${row.notes ? `<p class="billing-invoice-note">${safeText(row.notes)}</p>` : ""}
+              <div class="file-actions-row">
+                <button class="btn secondary sm" type="button" data-action="edit-invoice" data-row-id="${safeText(
+                  row.id
+                )}">Edit</button>
+                <button class="btn secondary sm" type="button" data-action="send-invoice" data-row-id="${safeText(
+                  row.id
+                )}">Send</button>
+                <button class="btn secondary sm" type="button" data-action="mark-invoice-paid" data-row-id="${safeText(
+                  row.id
+                )}">Paid</button>
+                ${paymentLink}
+                <button class="btn danger sm" type="button" data-action="delete-invoice" data-row-id="${safeText(
+                  row.id
+                )}">Delete</button>
+              </div>
+            </article>
+          `;
+        })
+        .join("");
+    }
+  }
+
+  if (!invoiceEditIdInput?.value) {
+    resetInvoiceForm();
+  }
 }
 
 function renderAdminMessages(messages) {
@@ -994,6 +1250,8 @@ async function loadClientPreview(userId) {
     { data: messages },
     reports,
     negativeItems,
+    billingProfile,
+    invoices,
   ] =
     await Promise.all([
       supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date,notes,created_at").eq("user_id", userId).order("sent_date", { ascending: false }).limit(20),
@@ -1018,6 +1276,23 @@ async function loadClientPreview(userId) {
           .order("created_at", { ascending: false })
           .limit(40)
       ),
+      safeTableQuery(
+        supabase
+          .from("client_billing_profiles")
+          .select("user_id,plan_name,plan_amount,billing_interval,billing_status,started_at,renewal_date,payment_terms,notes,created_at,updated_at")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        null
+      ),
+      safeTableQuery(
+        supabase
+          .from("client_invoices")
+          .select("id,invoice_number,title,plan_name,amount,currency,invoice_date,due_date,status,payment_link,notes,sent_at,paid_at,created_at,updated_at")
+          .eq("user_id", userId)
+          .order("invoice_date", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(40)
+      ),
     ]);
 
   const filesWithUrls = files || [];
@@ -1026,6 +1301,8 @@ async function loadClientPreview(userId) {
   activeLetterRows = letters || [];
   activeUpdateRows = updates || [];
   activeNegativeItemRows = negativeItems || [];
+  activeBillingProfile = billingProfile || null;
+  activeInvoiceRows = invoices || [];
   const reportFileMap = new Map(filesWithUrls.map((row) => [row.id, row.signed_url || ""]));
   const reportsWithUrls = (reports || []).map((row) => ({
     ...row,
@@ -1039,6 +1316,7 @@ async function loadClientPreview(userId) {
     updates || [],
     filesWithUrls.filter((f) => f.uploaded_by !== "client")
   );
+  renderBillingManager(activeBillingProfile, activeInvoiceRows);
   renderAdminMessages(messages || []);
   renderClientUploads(filesWithUrls);
 }
@@ -1188,6 +1466,65 @@ async function deleteClientRecord({ table, rowId, label, successMessage, activit
   await loadClientPreview(activeClientId);
 }
 
+async function deleteInvoice(rowId) {
+  const row = findActiveRow(activeInvoiceRows, rowId);
+  if (!row) {
+    setAdminStatus("Invoice not found. Refresh and try again.", true);
+    return;
+  }
+
+  await deleteClientRecord({
+    table: "client_invoices",
+    rowId,
+    label: `invoice ${row.invoice_number || `#${row.id}`}`,
+    successMessage: "Invoice deleted.",
+    activityMessage: `Invoice deleted: ${row.invoice_number || row.title || `#${row.id}`}.`,
+  });
+}
+
+async function updateInvoiceStatus(rowId, nextStatus) {
+  const row = findActiveRow(activeInvoiceRows, rowId);
+  if (!row || !activeClientId) {
+    setAdminStatus("Invoice not found. Refresh and try again.", true);
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const payload = {
+    status: nextStatus,
+    updated_at: now,
+  };
+
+  if (nextStatus === "sent") {
+    payload.sent_at = row.sent_at || now;
+    payload.paid_at = null;
+  } else if (nextStatus === "paid") {
+    payload.status = "paid";
+    payload.sent_at = row.sent_at || now;
+    payload.paid_at = row.paid_at || now;
+  }
+
+  const { error } = await supabase
+    .from("client_invoices")
+    .update(payload)
+    .eq("user_id", activeClientId)
+    .eq("id", row.id);
+
+  if (error) {
+    if (isMissingFeatureError(error)) {
+      setAdminStatus("Run the updated supabase-portal-schema.sql before using billing.", true);
+      return;
+    }
+    setAdminStatus("Could not update invoice: " + error.message, true);
+    return;
+  }
+
+  const actionLabel = nextStatus === "paid" ? "marked paid" : `marked ${formatInvoiceStatus(nextStatus).toLowerCase()}`;
+  await logClientActivity(`Invoice ${actionLabel}: ${row.invoice_number || row.title || `#${row.id}`}.`);
+  setAdminStatus(`Invoice ${formatInvoiceStatus(nextStatus).toLowerCase()}.`);
+  await loadClientPreview(activeClientId);
+}
+
 async function handlePreviewRecordAction(action, rowId) {
   switch (action) {
     case "open-report": {
@@ -1275,6 +1612,27 @@ async function handlePreviewRecordAction(action, rowId) {
       });
       return;
     }
+    case "edit-invoice": {
+      const row = findActiveRow(activeInvoiceRows, rowId);
+      if (!row) {
+        setAdminStatus("Invoice not found. Refresh and try again.", true);
+        return;
+      }
+      populateInvoiceForm(row);
+      return;
+    }
+    case "send-invoice": {
+      await updateInvoiceStatus(rowId, "sent");
+      return;
+    }
+    case "mark-invoice-paid": {
+      await updateInvoiceStatus(rowId, "paid");
+      return;
+    }
+    case "delete-invoice": {
+      await deleteInvoice(rowId);
+      return;
+    }
     default:
       return;
   }
@@ -1358,10 +1716,13 @@ function initialize() {
     activeNegativeItemRows = [];
     activeLetterRows = [];
     activeUpdateRows = [];
+    activeBillingProfile = null;
+    activeInvoiceRows = [];
     activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
     resetNegativeItemForm();
     resetLetterForm();
     resetTimelineForm();
+    resetInvoiceForm();
     await loadClientPreview(activeClientId);
   });
 
@@ -1417,6 +1778,7 @@ function initialize() {
   previewNegativeItems?.addEventListener("click", handlePreviewRecordClick);
   previewLetters?.addEventListener("click", handlePreviewRecordClick);
   previewUpdates?.addEventListener("click", handlePreviewRecordClick);
+  billingInvoiceList?.addEventListener("click", handlePreviewRecordClick);
 
   const uploadFileInput = document.getElementById("file-input");
   uploadFileInput?.addEventListener("change", async () => {
@@ -1433,6 +1795,7 @@ function initialize() {
   negativeCancelBtn?.addEventListener("click", resetNegativeItemForm);
   letterCancelBtn?.addEventListener("click", resetLetterForm);
   timelineCancelBtn?.addEventListener("click", resetTimelineForm);
+  invoiceCancelBtn?.addEventListener("click", resetInvoiceForm);
 
   refreshAllBtn?.addEventListener("click", async () => {
     refreshAllBtn.disabled = true;
@@ -1547,6 +1910,142 @@ function initialize() {
     activeClientId = userId;
     setAdminStatus("Profile saved.");
     await loadClients();
+  });
+
+  billingPlanForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await requireActiveClient())) return;
+
+    const planName = String(document.getElementById("billing-plan-name")?.value || "").trim();
+    const amountRaw = String(document.getElementById("billing-plan-amount")?.value || "").trim();
+    const billingInterval = String(document.getElementById("billing-plan-interval")?.value || "monthly").trim();
+    const billingStatusValue = String(document.getElementById("billing-plan-status")?.value || "active").trim();
+    const startedAt = String(document.getElementById("billing-started-at")?.value || "").trim();
+    const renewalDate = String(document.getElementById("billing-renewal-date")?.value || "").trim();
+    const paymentTerms = String(document.getElementById("billing-payment-terms")?.value || "").trim();
+    const notes = String(document.getElementById("billing-plan-notes")?.value || "").trim();
+
+    if (!planName) {
+      setAdminStatus("Plan name is required.", true);
+      return;
+    }
+
+    const planAmount = amountRaw === "" ? null : Number(amountRaw);
+    if (amountRaw !== "" && !Number.isFinite(planAmount)) {
+      setAdminStatus("Enter a valid plan amount.", true);
+      return;
+    }
+
+    const payload = {
+      user_id: activeClientId,
+      plan_name: planName,
+      plan_amount: planAmount,
+      billing_interval: billingInterval || "monthly",
+      billing_status: billingStatusValue || "active",
+      started_at: startedAt || null,
+      renewal_date: renewalDate || null,
+      payment_terms: paymentTerms || null,
+      notes: notes || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from("client_billing_profiles")
+      .upsert(payload, { onConflict: "user_id" });
+
+    if (error) {
+      if (isMissingFeatureError(error)) {
+        setAdminStatus("Run the updated supabase-portal-schema.sql before using billing.", true);
+        return;
+      }
+      setAdminStatus("Could not save billing plan: " + error.message, true);
+      return;
+    }
+
+    await logClientActivity(`Billing plan updated: ${planName}.`);
+    setAdminStatus("Billing plan saved.");
+    await loadClientPreview(activeClientId);
+  });
+
+  invoiceForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await requireActiveClient())) return;
+
+    const editId = Number(invoiceEditIdInput?.value || 0);
+    const existingRow = editId ? findActiveRow(activeInvoiceRows, editId) : null;
+    const invoiceNumberInput = String(document.getElementById("invoice-number")?.value || "").trim();
+    const title = String(document.getElementById("invoice-title")?.value || "").trim();
+    const planNameInput = String(document.getElementById("invoice-plan-name")?.value || "").trim();
+    const amountRaw = String(document.getElementById("invoice-amount")?.value || "").trim();
+    const invoiceDate = String(document.getElementById("invoice-date")?.value || todayIsoDate()).trim();
+    const dueDate = String(document.getElementById("invoice-due-date")?.value || "").trim();
+    const paymentLink = String(document.getElementById("invoice-payment-link")?.value || "").trim();
+    const notes = String(document.getElementById("invoice-notes")?.value || "").trim();
+    const sendNow = Boolean(document.getElementById("invoice-send-now")?.checked);
+    let status = String(document.getElementById("invoice-status")?.value || "draft").trim().toLowerCase();
+
+    if (!title) {
+      setAdminStatus("Invoice title is required.", true);
+      return;
+    }
+
+    const amount = Number(amountRaw);
+    if (!Number.isFinite(amount)) {
+      setAdminStatus("Enter a valid invoice amount.", true);
+      return;
+    }
+
+    if (sendNow && status === "draft") status = "sent";
+
+    const now = new Date().toISOString();
+    const payload = {
+      user_id: activeClientId,
+      invoice_number: invoiceNumberInput || existingRow?.invoice_number || buildInvoiceNumber(activeClientId),
+      title,
+      plan_name: planNameInput || activeBillingProfile?.plan_name || null,
+      amount,
+      currency: "USD",
+      invoice_date: invoiceDate || todayIsoDate(),
+      due_date: dueDate || null,
+      status,
+      payment_link: paymentLink || null,
+      notes: notes || null,
+      sent_at:
+        status === "sent" || status === "paid"
+          ? existingRow?.sent_at || now
+          : null,
+      paid_at: status === "paid" ? existingRow?.paid_at || now : null,
+      updated_at: now,
+    };
+
+    const query = editId
+      ? supabase.from("client_invoices").update(payload).eq("user_id", activeClientId).eq("id", editId)
+      : supabase.from("client_invoices").insert(payload);
+
+    const { error } = await query;
+
+    if (error) {
+      if (isMissingFeatureError(error)) {
+        setAdminStatus("Run the updated supabase-portal-schema.sql before using billing.", true);
+        return;
+      }
+      setAdminStatus("Could not save invoice: " + error.message, true);
+      return;
+    }
+
+    const activityMessage =
+      status === "paid"
+        ? `Invoice paid: ${payload.invoice_number}.`
+        : status === "sent"
+          ? `Invoice sent: ${payload.invoice_number}.`
+          : editId
+            ? `Invoice updated: ${payload.invoice_number}.`
+            : `Invoice created: ${payload.invoice_number}.`;
+
+    await logClientActivity(activityMessage);
+    resetInvoiceForm();
+    setAdminStatus(status === "sent" ? "Invoice sent to the client portal." : "Invoice saved.");
+    await loadClientPreview(activeClientId);
   });
 
   negativeItemForm?.addEventListener("submit", async (event) => {

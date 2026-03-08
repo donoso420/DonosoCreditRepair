@@ -19,6 +19,8 @@ const clientEmailEl = document.getElementById("client-email");
 const scoreSnapshotSectionEl = document.getElementById("score-snapshot-section");
 const scoreGridEl = document.getElementById("score-grid");
 const reportGridEl = document.getElementById("report-grid");
+const billingPlanCardEl = document.getElementById("billing-plan-card");
+const billingInvoicesListEl = document.getElementById("billing-invoices-list");
 const negativeTrackerStatsEl = document.getElementById("negative-tracker-stats");
 const negativeTrackerGridEl = document.getElementById("negative-tracker-grid");
 const lettersBodyEl = document.getElementById("letters-body");
@@ -268,6 +270,85 @@ function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "N/A";
   return date.toLocaleString();
+}
+
+function formatBillingInterval(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "biweekly":
+      return "Biweekly";
+    case "weekly":
+      return "Weekly";
+    case "one_time":
+      return "One time";
+    case "custom":
+      return "Custom";
+    default:
+      return "Monthly";
+  }
+}
+
+function formatBillingStatus(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "trial":
+      return "Trial";
+    case "past_due":
+      return "Past due";
+    case "paused":
+      return "Paused";
+    case "canceled":
+      return "Canceled";
+    case "completed":
+      return "Completed";
+    default:
+      return "Active";
+  }
+}
+
+function invoiceStatusClass(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "sent":
+      return "sent";
+    case "paid":
+      return "paid";
+    case "overdue":
+      return "overdue";
+    case "void":
+      return "void";
+    default:
+      return "draft";
+  }
+}
+
+function billingStatusClass(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "trial":
+      return "trial";
+    case "past_due":
+      return "overdue";
+    case "paused":
+      return "paused";
+    case "canceled":
+      return "void";
+    case "completed":
+      return "paid";
+    default:
+      return "active";
+  }
+}
+
+function formatInvoiceStatus(value) {
+  switch (String(value || "").toLowerCase()) {
+    case "sent":
+      return "Sent";
+    case "paid":
+      return "Paid";
+    case "overdue":
+      return "Overdue";
+    case "void":
+      return "Void";
+    default:
+      return "Draft";
+  }
 }
 
 function formatVerificationStatus(value) {
@@ -550,6 +631,92 @@ function renderReports(reports) {
           <p class="report-summary">${escapeHtml(summary)}</p>
           ${reviewNotes}
           <p class="report-link">${openLink}</p>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderBilling(profile, invoices) {
+  if (billingPlanCardEl) {
+    if (!profile?.plan_name) {
+      billingPlanCardEl.innerHTML = '<p class="empty">No billing plan has been posted yet.</p>';
+    } else {
+      const amountLabel =
+        profile.plan_amount != null && profile.plan_amount !== ""
+          ? formatCurrency(profile.plan_amount)
+          : "Custom";
+      billingPlanCardEl.innerHTML = `
+        <div class="billing-plan-head">
+          <div>
+            <p class="billing-plan-eyebrow">Current Plan</p>
+            <h4>${escapeHtml(profile.plan_name)}</h4>
+          </div>
+          <span class="badge ${escapeHtml(billingStatusClass(profile.billing_status))}">${escapeHtml(
+            formatBillingStatus(profile.billing_status)
+          )}</span>
+        </div>
+        <div class="billing-plan-grid">
+          <div>
+            <span>Amount</span>
+            <strong>${escapeHtml(amountLabel)}</strong>
+          </div>
+          <div>
+            <span>Interval</span>
+            <strong>${escapeHtml(formatBillingInterval(profile.billing_interval))}</strong>
+          </div>
+          <div>
+            <span>Started</span>
+            <strong>${escapeHtml(profile.started_at ? formatDate(profile.started_at) : "Not set")}</strong>
+          </div>
+          <div>
+            <span>Next Billing</span>
+            <strong>${escapeHtml(profile.renewal_date ? formatDate(profile.renewal_date) : "Not set")}</strong>
+          </div>
+        </div>
+        <p class="billing-plan-terms"><strong>Terms:</strong> ${escapeHtml(profile.payment_terms || "Not set")}</p>
+        ${profile.notes ? `<p class="billing-plan-note">${escapeHtml(profile.notes)}</p>` : ""}
+      `;
+    }
+  }
+
+  if (!billingInvoicesListEl) return;
+
+  const visibleInvoices = (invoices || []).filter((row) => String(row.status || "").toLowerCase() !== "draft");
+  if (!visibleInvoices.length) {
+    billingInvoicesListEl.innerHTML = '<p class="empty">No invoices have been sent yet.</p>';
+    return;
+  }
+
+  billingInvoicesListEl.innerHTML = visibleInvoices
+    .map((row) => {
+      const payLink =
+        row.payment_link && !["paid", "void"].includes(String(row.status || "").toLowerCase())
+          ? `<a class="btn primary sm" href="${escapeHtml(
+              row.payment_link
+            )}" target="_blank" rel="noopener noreferrer">Pay Invoice</a>`
+          : "";
+      return `
+        <article class="billing-invoice-item">
+          <div class="billing-invoice-item-top">
+            <div>
+              <p class="billing-invoice-number">${escapeHtml(row.invoice_number || "Invoice")}</p>
+              <h4>${escapeHtml(row.title || "Service invoice")}</h4>
+            </div>
+            <div class="billing-invoice-amount">
+              <span class="badge ${escapeHtml(invoiceStatusClass(row.status))}">${escapeHtml(
+                formatInvoiceStatus(row.status)
+              )}</span>
+              <strong>${escapeHtml(formatCurrency(row.amount))}</strong>
+            </div>
+          </div>
+          <p class="billing-invoice-meta">${escapeHtml(
+            row.plan_name || profile?.plan_name || "Billing"
+          )} · Issued ${escapeHtml(formatDate(row.invoice_date || row.created_at))} · Due ${escapeHtml(
+            row.due_date ? formatDate(row.due_date) : "Not set"
+          )}</p>
+          ${row.notes ? `<p class="billing-invoice-note">${escapeHtml(row.notes)}</p>` : ""}
+          ${payLink ? `<div class="billing-invoice-actions">${payLink}</div>` : ""}
         </article>
       `;
     })
@@ -845,6 +1012,8 @@ function initializePortal() {
       { data: profile },
       { data: snapshots },
       reports,
+      billingProfile,
+      invoices,
       negativeItems,
       { data: letters },
       { data: updates },
@@ -861,6 +1030,23 @@ function initializePortal() {
           .order("report_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .limit(12)
+      ),
+      safeTableQuery(
+        supabase
+          .from("client_billing_profiles")
+          .select("plan_name,plan_amount,billing_interval,billing_status,started_at,renewal_date,payment_terms,notes,updated_at")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        null
+      ),
+      safeTableQuery(
+        supabase
+          .from("client_invoices")
+          .select("invoice_number,title,plan_name,amount,currency,invoice_date,due_date,status,payment_link,notes,created_at")
+          .eq("user_id", user.id)
+          .order("invoice_date", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
+          .limit(20)
       ),
       safeTableQuery(
         supabase
@@ -895,6 +1081,7 @@ function initializePortal() {
 
     renderScores(snapshots || []);
     renderReports(reportsWithUrls);
+    renderBilling(billingProfile || null, invoices || []);
     syncScoreSectionVisibility(snapshots || [], reportsWithUrls);
     renderNegativeItems(negativeItems || []);
     renderTracker(letters || [], snapshots || [], reportsWithUrls);

@@ -46,6 +46,44 @@ create table if not exists public.client_updates (
   created_at timestamptz not null default now()
 );
 
+-- Billing profile (one row per client)
+create table if not exists public.client_billing_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan_name text,
+  plan_amount numeric(12,2),
+  billing_interval text not null default 'monthly'
+    check (billing_interval in ('monthly', 'biweekly', 'weekly', 'one_time', 'custom')),
+  billing_status text not null default 'active'
+    check (billing_status in ('active', 'trial', 'past_due', 'paused', 'canceled', 'completed')),
+  started_at date,
+  renewal_date date,
+  payment_terms text,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Billing invoices shown in the client portal
+create table if not exists public.client_invoices (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  invoice_number text not null unique,
+  title text not null,
+  plan_name text,
+  amount numeric(12,2) not null,
+  currency text not null default 'USD',
+  invoice_date date not null default current_date,
+  due_date date,
+  status text not null default 'draft'
+    check (status in ('draft', 'sent', 'paid', 'overdue', 'void')),
+  payment_link text,
+  notes text,
+  sent_at timestamptz,
+  paid_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- Uploaded files (PDF letters, screenshots, attachments)
 create table if not exists public.client_files (
   id bigint generated always as identity primary key,
@@ -67,6 +105,8 @@ alter table public.admin_users enable row level security;
 alter table public.credit_snapshots enable row level security;
 alter table public.client_letters enable row level security;
 alter table public.client_updates enable row level security;
+alter table public.client_billing_profiles enable row level security;
+alter table public.client_invoices enable row level security;
 alter table public.client_files enable row level security;
 
 -- Client can read only own records
@@ -157,6 +197,44 @@ drop policy if exists "client_files_select_own" on public.client_files;
 create policy "client_files_select_own"
 on public.client_files for select
 using (auth.uid() = user_id);
+
+drop policy if exists "client_billing_profiles_select_own" on public.client_billing_profiles;
+create policy "client_billing_profiles_select_own"
+on public.client_billing_profiles for select
+using (auth.uid() = user_id);
+
+drop policy if exists "admin_manage_client_billing_profiles" on public.client_billing_profiles;
+create policy "admin_manage_client_billing_profiles"
+on public.client_billing_profiles for all
+using (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+);
+
+drop policy if exists "client_invoices_select_own" on public.client_invoices;
+create policy "client_invoices_select_own"
+on public.client_invoices for select
+using (auth.uid() = user_id);
+
+drop policy if exists "admin_manage_client_invoices" on public.client_invoices;
+create policy "admin_manage_client_invoices"
+on public.client_invoices for all
+using (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.admin_users a where a.user_id = auth.uid()
+  )
+);
 
 drop policy if exists "admin_manage_client_files" on public.client_files;
 create policy "admin_manage_client_files"

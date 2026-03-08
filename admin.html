@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260308b" />
+    <link rel="stylesheet" href="admin.css?v=20260308c" />
   </head>
   <body>
 
@@ -72,27 +72,28 @@
         <div class="container tab-nav-wrap">
           <nav class="tab-nav">
             <button class="tab-btn active" data-tab="dashboard" onclick="adminTab('dashboard',this)">📋 Client Dashboard</button>
+            <button class="tab-btn" data-tab="billing" onclick="adminTab('billing',this)">💳 Billing</button>
             <button class="tab-btn" data-tab="invite" onclick="adminTab('invite',this)">✉ Invite Client</button>
             <button class="tab-btn" data-tab="profiles" onclick="adminTab('profiles',this)">⚙ Manage Profiles</button>
           </nav>
         </div>
 
-        <!-- ── TAB: Client Dashboard ─────────────────────── -->
-        <div class="tab-panel active" id="tab-dashboard">
-
-          <!-- Active client selector bar -->
-          <div class="container client-bar">
-            <div class="client-bar-inner card client-select-card">
-              <div class="client-bar-left">
-                <h3 class="card-title" style="margin:0">Active Client</h3>
-                <p class="muted sm" style="margin:0">All actions below apply to the selected client.</p>
-              </div>
-              <div class="client-bar-right">
-                <select id="client-select"></select>
-                <p class="active-client-id" id="active-client-id"></p>
-              </div>
+        <!-- Active client selector bar -->
+        <div class="container client-bar" id="shared-client-bar">
+          <div class="client-bar-inner card client-select-card">
+            <div class="client-bar-left">
+              <h3 class="card-title" style="margin:0">Active Client</h3>
+              <p class="muted sm" style="margin:0">All actions below apply to the selected client.</p>
+            </div>
+            <div class="client-bar-right">
+              <select id="client-select"></select>
+              <p class="active-client-id" id="active-client-id"></p>
             </div>
           </div>
+        </div>
+
+        <!-- ── TAB: Client Dashboard ─────────────────────── -->
+        <div class="tab-panel active" id="tab-dashboard">
 
           <div class="container admin-body">
 
@@ -416,6 +417,151 @@
 
         </div>
 
+        <!-- ── TAB: Billing ──────────────────────────────── -->
+        <div class="tab-panel" id="tab-billing" style="display:none">
+          <div class="container billing-tab-wrap">
+            <div class="section-label">
+              <h2>💳 Billing</h2>
+              <p class="muted sm">Assign a plan, create invoices, and publish them to the client portal.</p>
+            </div>
+            <div class="billing-layout">
+              <div class="billing-stack">
+                <div class="card">
+                  <h3 class="card-title">Client Plan</h3>
+                  <form id="billing-plan-form">
+                    <div class="form-row">
+                      <div>
+                        <label for="billing-plan-name">Plan Name <span class="req">*</span></label>
+                        <input id="billing-plan-name" type="text" placeholder="e.g. Premium Credit Repair" required />
+                      </div>
+                      <div>
+                        <label for="billing-plan-amount">Plan Amount</label>
+                        <input id="billing-plan-amount" type="number" min="0" step="0.01" placeholder="e.g. 149.00" />
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div>
+                        <label for="billing-plan-interval">Billing Interval</label>
+                        <select id="billing-plan-interval">
+                          <option value="monthly">Monthly</option>
+                          <option value="biweekly">Biweekly</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="one_time">One Time</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label for="billing-plan-status">Billing Status</label>
+                        <select id="billing-plan-status">
+                          <option value="active">Active</option>
+                          <option value="trial">Trial</option>
+                          <option value="past_due">Past Due</option>
+                          <option value="paused">Paused</option>
+                          <option value="canceled">Canceled</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div>
+                        <label for="billing-started-at">Started On</label>
+                        <input id="billing-started-at" type="date" />
+                      </div>
+                      <div>
+                        <label for="billing-renewal-date">Next Billing Date</label>
+                        <input id="billing-renewal-date" type="date" />
+                      </div>
+                    </div>
+                    <label for="billing-payment-terms">Payment Terms</label>
+                    <input id="billing-payment-terms" type="text" placeholder="e.g. Due on receipt" />
+                    <label for="billing-plan-notes">Internal Notes</label>
+                    <textarea id="billing-plan-notes" rows="3" placeholder="Plan notes, special billing terms, or reminders"></textarea>
+                    <button class="btn primary full mt" type="submit">Save Billing Plan</button>
+                  </form>
+                </div>
+
+                <div class="card">
+                  <h3 class="card-title">Create / Update Invoice</h3>
+                  <form id="invoice-form">
+                    <input id="invoice-edit-id" type="hidden" />
+                    <div class="form-row">
+                      <div>
+                        <label for="invoice-number">Invoice Number</label>
+                        <input id="invoice-number" type="text" placeholder="Auto-generated if blank" />
+                      </div>
+                      <div>
+                        <label for="invoice-status">Status</label>
+                        <select id="invoice-status">
+                          <option value="draft">Draft</option>
+                          <option value="sent">Sent</option>
+                          <option value="paid">Paid</option>
+                          <option value="overdue">Overdue</option>
+                          <option value="void">Void</option>
+                        </select>
+                      </div>
+                    </div>
+                    <label for="invoice-title">Invoice Title <span class="req">*</span></label>
+                    <input id="invoice-title" type="text" placeholder="e.g. March 2026 service fee" required />
+                    <div class="form-row">
+                      <div>
+                        <label for="invoice-plan-name">Plan Name</label>
+                        <input id="invoice-plan-name" type="text" placeholder="Defaults to the saved client plan" />
+                      </div>
+                      <div>
+                        <label for="invoice-amount">Amount <span class="req">*</span></label>
+                        <input id="invoice-amount" type="number" min="0" step="0.01" placeholder="e.g. 149.00" required />
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div>
+                        <label for="invoice-date">Invoice Date</label>
+                        <input id="invoice-date" type="date" />
+                      </div>
+                      <div>
+                        <label for="invoice-due-date">Due Date</label>
+                        <input id="invoice-due-date" type="date" />
+                      </div>
+                    </div>
+                    <label for="invoice-payment-link">Payment Link</label>
+                    <input id="invoice-payment-link" type="url" placeholder="https://..." />
+                    <label for="invoice-notes">Notes</label>
+                    <textarea id="invoice-notes" rows="3" placeholder="Optional invoice note shown in the client portal"></textarea>
+                    <label class="checkbox-row" for="invoice-send-now">
+                      <input id="invoice-send-now" type="checkbox" />
+                      <span>Send now by publishing this invoice to the client portal</span>
+                    </label>
+                    <div class="form-actions mt">
+                      <button class="btn primary full" id="invoice-submit-btn" type="submit">Save Invoice</button>
+                      <button class="btn secondary full hidden" id="invoice-cancel-btn" type="button">Cancel Edit</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div class="billing-stack">
+                <div class="card">
+                  <h3 class="card-title">Current Billing Setup</h3>
+                  <div id="billing-plan-summary" class="billing-summary-card">
+                    <p class="empty">Select a client to load billing.</p>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <div class="billing-list-head">
+                    <div>
+                      <h3 class="card-title" style="margin-bottom:0.1rem">Invoices</h3>
+                      <p class="muted sm">Drafts stay internal. Sent invoices appear in the client portal.</p>
+                    </div>
+                  </div>
+                  <div id="billing-invoice-list" class="billing-invoice-list">
+                    <p class="empty">No invoices saved yet.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── TAB: Invite Client ─────────────────────────── -->
         <div class="tab-panel" id="tab-invite" style="display:none">
           <div class="container" style="max-width:640px; padding-top:1.5rem;">
@@ -475,11 +621,13 @@
       function adminTab(target, btn) {
         var panels = document.querySelectorAll('.tab-panel');
         var btns = document.querySelectorAll('.tab-btn');
+        var clientBar = document.getElementById('shared-client-bar');
         for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
         for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
         var panel = document.getElementById('tab-' + target);
         if (panel) panel.style.display = 'block';
         if (btn) btn.classList.add('active');
+        if (clientBar) clientBar.style.display = (target === 'dashboard' || target === 'billing') ? 'block' : 'none';
       }
 
       function adminPreviewTab(target, btn) {
@@ -492,6 +640,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308e"></script>
+    <script type="module" src="admin.js?v=20260308f"></script>
   </body>
 </html>
