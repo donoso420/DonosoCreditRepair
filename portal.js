@@ -559,24 +559,64 @@ function renderReports(reports) {
 function renderNegativeItems(items) {
   if (!negativeTrackerGridEl || !negativeTrackerStatsEl) return;
 
-  const totals = items.reduce(
-    (summary, row) => {
-      const stage = getNegativeItemStage(row);
-      const balance = Number(row.balance);
+  const bureauColumns = [
+    { key: "experian", label: "Experian" },
+    { key: "equifax", label: "Equifax" },
+    { key: "transunion", label: "TransUnion" },
+    { key: "shared", label: "Shared / Unknown" },
+  ];
 
-      summary.total += 1;
-      if (stage.key === "resolved") {
-        summary.resolved += 1;
-      } else {
-        summary.inProgress += 1;
-      }
-      if (Number.isFinite(balance) && stage.key !== "resolved") {
-        summary.activeBalance += balance;
-      }
-      return summary;
+  const groupedItems = new Map(bureauColumns.map((column) => [column.key, []]));
+  const totals = {
+    total: 0,
+    inProgress: 0,
+    resolved: 0,
+    balances: {
+      experian: 0,
+      equifax: 0,
+      transunion: 0,
+      shared: 0,
     },
-    { total: 0, inProgress: 0, resolved: 0, activeBalance: 0 }
-  );
+  };
+
+  items.forEach((row) => {
+    const stage = getNegativeItemStage(row);
+    const balance = Number(row.balance);
+    const bureauValue = String(row.bureau || "").toLowerCase();
+
+    totals.total += 1;
+    if (stage.key === "resolved") {
+      totals.resolved += 1;
+    } else {
+      totals.inProgress += 1;
+    }
+
+    if (bureauValue.includes("experian")) {
+      groupedItems.get("experian").push(row);
+      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.experian += balance;
+    } else if (bureauValue.includes("equifax")) {
+      groupedItems.get("equifax").push(row);
+      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.equifax += balance;
+    } else if (bureauValue.includes("transunion")) {
+      groupedItems.get("transunion").push(row);
+      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.transunion += balance;
+    } else {
+      groupedItems.get("shared").push(row);
+      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.shared += balance;
+    }
+  });
+
+  const balanceCards = bureauColumns
+    .filter((column) => column.key !== "shared" || (groupedItems.get("shared") || []).length > 0)
+    .map(
+      (column) => `
+        <article class="negative-stat-card negative-balance-card">
+          <span>${escapeHtml(column.label)} Balance</span>
+          <strong>${escapeHtml(formatCurrency(totals.balances[column.key]))}</strong>
+        </article>
+      `
+    )
+    .join("");
 
   negativeTrackerStatsEl.innerHTML = `
     <article class="negative-stat-card">
@@ -591,32 +631,9 @@ function renderNegativeItems(items) {
       <span>Resolved</span>
       <strong>${escapeHtml(totals.resolved)}</strong>
     </article>
-    <article class="negative-stat-card">
-      <span>Active Balance</span>
-      <strong>${escapeHtml(formatCurrency(totals.activeBalance))}</strong>
-    </article>
+    ${balanceCards}
+    <p class="negative-stats-note">Balances are separated by bureau so repeated accounts do not look overstated across all reports.</p>
   `;
-
-  const bureauColumns = [
-    { key: "experian", label: "Experian" },
-    { key: "equifax", label: "Equifax" },
-    { key: "transunion", label: "TransUnion" },
-    { key: "shared", label: "Shared / Unknown" },
-  ];
-
-  const groupedItems = new Map(bureauColumns.map((column) => [column.key, []]));
-  items.forEach((row) => {
-    const bureauValue = String(row.bureau || "").toLowerCase();
-    if (bureauValue.includes("experian")) {
-      groupedItems.get("experian").push(row);
-    } else if (bureauValue.includes("equifax")) {
-      groupedItems.get("equifax").push(row);
-    } else if (bureauValue.includes("transunion")) {
-      groupedItems.get("transunion").push(row);
-    } else {
-      groupedItems.get("shared").push(row);
-    }
-  });
 
   const visibleColumns = bureauColumns.filter((column) => (groupedItems.get(column.key) || []).length > 0);
 
@@ -657,6 +674,7 @@ function renderNegativeItems(items) {
       .map((column) => {
         const bureauItems = groupedItems.get(column.key) || [];
         const itemCountLabel = `${bureauItems.length} item${bureauItems.length === 1 ? "" : "s"}`;
+        const bureauBalance = formatCurrency(totals.balances[column.key]);
         const cards = bureauItems
           .map((row) => {
             const stage = getNegativeItemStage(row);
@@ -698,7 +716,9 @@ function renderNegativeItems(items) {
             <div class="negative-bureau-head">
               <div>
                 <p class="bureau">${escapeHtml(column.label)}</p>
-                <p class="negative-bureau-count">${escapeHtml(itemCountLabel)}</p>
+                <p class="negative-bureau-count">${escapeHtml(itemCountLabel)} • Active balance ${escapeHtml(
+                  bureauBalance
+                )}</p>
               </div>
             </div>
             <div class="negative-bureau-scroll">

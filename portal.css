@@ -335,7 +335,7 @@ textarea {
 
 .negative-tracker-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.7rem;
   margin-bottom: 0.9rem;
 }
@@ -361,6 +361,17 @@ textarea {
   display: block;
   font-size: 1.25rem;
   color: #281d3b;
+}
+
+.negative-balance-card strong {
+  font-size: 1.05rem;
+}
+
+.negative-stats-note {
+  margin: 0.1rem 0 0;
+  grid-column: 1 / -1;
+  color: #716288;
+  font-size: 0.82rem;
 }
 
 .negative-tracker-grid {
