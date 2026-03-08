@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260308c" />
+    <link rel="stylesheet" href="admin.css?v=20260308d" />
   </head>
   <body>
 
@@ -383,7 +383,15 @@
               </section>
               <section class="card preview-panel" id="preview-panel-negative-items" style="display:none">
                 <h4 class="preview-title">⚠️ Negative Items</h4>
-                <p class="muted sm preview-subtitle">Compact tracker view with quick edit and delete actions.</p>
+                <p class="muted sm preview-subtitle">Progress summary, deleted-item wins, and the full negative item tracker.</p>
+                <div class="preview-negative-progress" id="preview-negative-progress"></div>
+                <div class="preview-subgroup">
+                  <p class="preview-subgroup-title">Deleted / Removed Items</p>
+                  <ul id="preview-negative-deleted" class="list preview-list preview-sublist"></ul>
+                </div>
+                <div class="preview-subgroup">
+                  <p class="preview-subgroup-title">All Negative Items</p>
+                </div>
                 <div class="preview-panel-body">
                   <ul id="preview-negative-items" class="list preview-list"></ul>
                 </div>
@@ -667,6 +675,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308j"></script>
+    <script type="module" src="admin.js?v=20260308k"></script>
   </body>
 </html>

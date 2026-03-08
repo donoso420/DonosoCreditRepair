@@ -27,6 +27,8 @@ const billingPlanCardEl = document.getElementById("billing-plan-card");
 const billingInvoicesListEl = document.getElementById("billing-invoices-list");
 const negativeTrackerStatsEl = document.getElementById("negative-tracker-stats");
 const negativeTrackerGridEl = document.getElementById("negative-tracker-grid");
+const deletedProgressSummaryEl = document.getElementById("deleted-progress-summary");
+const deletedProgressListEl = document.getElementById("deleted-progress-list");
 const lettersBodyEl = document.getElementById("letters-body");
 const updatesListEl = document.getElementById("updates-list");
 const activityListEl = document.getElementById("activity-list");
@@ -496,6 +498,30 @@ function getNegativeItemStage(row = {}) {
   return { key: "logged", label: "Logged", step: 1, badgeClass: "stage-logged" };
 }
 
+function isDeletedNegativeItem(row = {}) {
+  const combined = [
+    row.status,
+    row.notes,
+    row.evidence_excerpt,
+    row.verification_notes,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  if (/\b(deleted?|removed?|off report|removed from report|deleted from report)\b/.test(combined)) {
+    return true;
+  }
+
+  if (
+    row.is_active === false &&
+    !/\b(updated?|verified|paid|settled|closed)\b/.test(combined)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function renderNegativeStage(step) {
   return ["Logged", "Working", "Resolved"]
     .map((label, index) => {
@@ -813,6 +839,7 @@ function renderNegativeItems(items) {
       shared: 0,
     },
   };
+  const deletedItems = (items || []).filter((row) => isDeletedNegativeItem(row));
 
   items.forEach((row) => {
     const stage = getNegativeItemStage(row);
@@ -855,6 +882,60 @@ function renderNegativeItems(items) {
       <strong>${escapeHtml(totals.resolved)}</strong>
     </article>
   `;
+
+  if (deletedProgressSummaryEl && deletedProgressListEl) {
+    const stillReporting = Math.max(0, totals.total - deletedItems.length);
+    const progressRate = totals.total
+      ? `${Math.round((deletedItems.length / totals.total) * 100)}%`
+      : "0%";
+
+    deletedProgressSummaryEl.innerHTML = `
+      <article class="negative-stat-card deleted-stat-card">
+        <span>Deleted Items</span>
+        <strong>${escapeHtml(deletedItems.length)}</strong>
+      </article>
+      <article class="negative-stat-card deleted-stat-card">
+        <span>Still Reporting</span>
+        <strong>${escapeHtml(stillReporting)}</strong>
+      </article>
+      <article class="negative-stat-card deleted-stat-card">
+        <span>Progress Rate</span>
+        <strong>${escapeHtml(progressRate)}</strong>
+      </article>
+    `;
+
+    if (!deletedItems.length) {
+      deletedProgressListEl.innerHTML = `
+        <article class="deleted-progress-empty">
+          <p class="empty">No deleted items recorded yet.</p>
+        </article>
+      `;
+    } else {
+      deletedProgressListEl.innerHTML = deletedItems
+        .map((row) => {
+          const bureau = row.bureau || "Shared / Unknown";
+          const accountRef = row.account_reference ? ` • Acct ${escapeHtml(row.account_reference)}` : "";
+          const status = row.status || "Deleted / removed";
+          const note = row.notes || row.evidence_excerpt || "";
+          return `
+            <article class="deleted-progress-item">
+              <div class="deleted-progress-top">
+                <div>
+                  <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
+                  <p class="deleted-progress-meta">${escapeHtml(bureau)} • ${escapeHtml(
+                    row.item_type || "Negative Item"
+                  )}${accountRef ? accountRef : ""}</p>
+                </div>
+                <span class="deleted-progress-pill">Deleted</span>
+              </div>
+              <p class="deleted-progress-status">${escapeHtml(status)}</p>
+              ${note ? `<p class="deleted-progress-note">${escapeHtml(note)}</p>` : ""}
+            </article>
+          `;
+        })
+        .join("");
+    }
+  }
 
   const visibleColumns = bureauColumns.filter((column) => (groupedItems.get(column.key) || []).length > 0);
 

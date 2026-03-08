@@ -320,12 +320,61 @@ a { color: var(--accent-strong); text-decoration: none; }
   margin-bottom: 0.85rem;
 }
 
+.preview-subgroup {
+  margin-bottom: 0.85rem;
+}
+
+.preview-subgroup-title {
+  margin: 0 0 0.45rem;
+  color: #5f5078;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.preview-sublist {
+  margin-bottom: 0.2rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
 .preview-title {
   font-size: 0.9rem;
   margin-bottom: 0.3rem;
   color: #3a2860;
   padding-bottom: 0.4rem;
   border-bottom: 1px solid #ede7f8;
+}
+
+.preview-negative-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.preview-progress-card {
+  border: 1px solid #ddeee7;
+  border-radius: 12px;
+  padding: 0.72rem 0.8rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f5fcf9 100%);
+}
+
+.preview-progress-card span {
+  display: block;
+  margin-bottom: 0.18rem;
+  color: #6e6388;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.preview-progress-card strong {
+  color: #216a56;
+  font-size: 1.08rem;
 }
 
 /* ── Forms ───────────────────────────────────────── */
@@ -538,6 +587,13 @@ textarea { resize: vertical; }
   background:
     radial-gradient(circle at top right, rgba(232, 164, 213, 0.12), transparent 35%),
     linear-gradient(180deg, #ffffff 0%, #fcf9ff 100%);
+}
+
+.deleted-admin-row {
+  background:
+    radial-gradient(circle at top right, rgba(175, 229, 207, 0.18), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f5fcf9 100%);
+  border-color: #ddeee7;
 }
 
 .preview-item-head {
@@ -961,6 +1017,10 @@ textarea { resize: vertical; }
   .billing-summary-top,
   .billing-invoice-top {
     flex-direction: column;
+  }
+
+  .preview-negative-progress {
+    grid-template-columns: 1fr;
   }
 
   .billing-summary-grid {

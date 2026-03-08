@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260308d" />
+    <link rel="stylesheet" href="portal.css?v=20260308e" />
   </head>
   <body>
     <header class="portal-nav">
@@ -177,6 +177,32 @@
             </div>
           </section>
 
+          <section class="dashboard-section" data-portal-panel="overview">
+            <div class="section-head">
+              <h3>Deleted Item Progress</h3>
+              <p class="section-sub">Confirmed removals already reflected on your credit file.</p>
+            </div>
+            <div class="deleted-progress-summary" id="deleted-progress-summary">
+              <article class="negative-stat-card">
+                <span>Deleted Items</span>
+                <strong>0</strong>
+              </article>
+              <article class="negative-stat-card">
+                <span>Still Reporting</span>
+                <strong>0</strong>
+              </article>
+              <article class="negative-stat-card">
+                <span>Progress Rate</span>
+                <strong>0%</strong>
+              </article>
+            </div>
+            <div class="deleted-progress-list" id="deleted-progress-list">
+              <article class="deleted-progress-empty">
+                <p class="empty">No deleted items recorded yet.</p>
+              </article>
+            </div>
+          </section>
+
           <section class="dashboard-section hidden" data-portal-panel="letters">
             <div class="section-head">
               <h3>Letters Sent + Tracking Numbers</h3>
@@ -327,6 +353,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260308h"></script>
+    <script type="module" src="portal.js?v=20260308i"></script>
   </body>
 </html>

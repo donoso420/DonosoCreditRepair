@@ -51,6 +51,8 @@ const openPortalPreviewBtn = document.getElementById("open-portal-preview-btn");
 
 const previewReports = document.getElementById("preview-reports");
 const previewNegativeItems = document.getElementById("preview-negative-items");
+const previewNegativeProgress = document.getElementById("preview-negative-progress");
+const previewNegativeDeleted = document.getElementById("preview-negative-deleted");
 const previewLetters = document.getElementById("preview-letters");
 const previewUpdates = document.getElementById("preview-updates");
 const previewActivity = document.getElementById("preview-activity");
@@ -452,6 +454,30 @@ function getNegativeItemStage(row = {}) {
   }
 
   return { label: "Logged", step: 1, className: "stage-logged" };
+}
+
+function isDeletedNegativeItem(row = {}) {
+  const combined = [
+    row.status,
+    row.notes,
+    row.evidence_excerpt,
+    row.verification_notes,
+  ]
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  if (/\b(deleted?|removed?|off report|removed from report|deleted from report)\b/.test(combined)) {
+    return true;
+  }
+
+  if (
+    row.is_active === false &&
+    !/\b(updated?|verified|paid|settled|closed)\b/.test(combined)
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 function renderNegativeAdminStage(step) {
@@ -1000,6 +1026,8 @@ function renderClientUploads(files) {
 function renderPreview(reports, negativeItems, letters, updates, files) {
   if (previewReports) previewReports.innerHTML = "";
   if (previewNegativeItems) previewNegativeItems.innerHTML = "";
+  if (previewNegativeProgress) previewNegativeProgress.innerHTML = "";
+  if (previewNegativeDeleted) previewNegativeDeleted.innerHTML = "";
   previewLetters.innerHTML = "";
   previewUpdates.innerHTML = "";
   if (previewActivity) previewActivity.innerHTML = "";
@@ -1050,6 +1078,58 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
   }
 
   if (previewNegativeItems) {
+    const deletedItems = (negativeItems || []).filter((row) => isDeletedNegativeItem(row));
+    const stillReportingCount = Math.max(0, (negativeItems?.length || 0) - deletedItems.length);
+    const deletedProgressRate = negativeItems?.length
+      ? `${Math.round((deletedItems.length / negativeItems.length) * 100)}%`
+      : "0%";
+
+    if (previewNegativeProgress) {
+      previewNegativeProgress.innerHTML = `
+        <article class="preview-progress-card">
+          <span>Deleted Items</span>
+          <strong>${safeText(deletedItems.length)}</strong>
+        </article>
+        <article class="preview-progress-card">
+          <span>Still Reporting</span>
+          <strong>${safeText(stillReportingCount)}</strong>
+        </article>
+        <article class="preview-progress-card">
+          <span>Progress Rate</span>
+          <strong>${safeText(deletedProgressRate)}</strong>
+        </article>
+      `;
+    }
+
+    if (previewNegativeDeleted) {
+      if (!deletedItems.length) {
+        previewNegativeDeleted.innerHTML = '<li class="preview-empty">No deleted or removed items recorded yet.</li>';
+      } else {
+        for (const row of deletedItems) {
+          const li = document.createElement("li");
+          li.className = "file-record deleted-admin-row";
+          const bureau = row.bureau || "Shared / Unknown";
+          const accountRef = row.account_reference ? ` • Acct ${safeText(row.account_reference)}` : "";
+          const status = row.status || "Deleted / removed";
+          const note = row.notes || "";
+          li.innerHTML = `
+            <div class="negative-admin-head">
+              <div class="preview-item-main">
+                <p class="file-record-title">${safeText(row.creditor)} — ${safeText(
+                  row.item_type
+                )}</p>
+                <p class="file-record-meta">${safeText(bureau)}${accountRef}</p>
+              </div>
+              <span class="negative-admin-pill stage-resolved">Deleted</span>
+            </div>
+            <p class="file-record-meta">${safeText(status)}</p>
+            ${note ? `<p class="negative-admin-note">${safeText(note)}</p>` : ""}
+          `;
+          previewNegativeDeleted.appendChild(li);
+        }
+      }
+    }
+
     if (!negativeItems.length) {
       previewNegativeItems.innerHTML = '<li class="preview-empty">No negative items yet.</li>';
     } else {
