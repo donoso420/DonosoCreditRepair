@@ -6,3 +6,8 @@ functions = "netlify/functions"
 from = "/api/lead"
 to = "/.netlify/functions/lead"
 status = 200
+
+[[redirects]]
+from = "/api/report-opened"
+to = "/.netlify/functions/report-opened"
+status = 200

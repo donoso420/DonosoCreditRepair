@@ -309,6 +309,33 @@ function verificationBadgeClass(value) {
   }
 }
 
+async function markClientReportReviewed(supabase, reportId) {
+  const numericReportId = Number(reportId || 0);
+  if (!numericReportId) return false;
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+  if (!accessToken) return false;
+
+  const response = await fetch("/api/report-opened", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ reportId: numericReportId }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || "Could not update report status.");
+  }
+
+  return Boolean(payload?.updated);
+}
+
 function getNegativeItemStage(row = {}) {
   const status = String(row.status || "").toLowerCase();
   const notes = String(row.notes || "").toLowerCase();
@@ -504,7 +531,11 @@ function renderReports(reports) {
         ? `<p class="report-review-note">${escapeHtml(row.verification_notes)}</p>`
         : "";
       const openLink = row.signed_url
-        ? `<a href="${escapeHtml(row.signed_url)}" target="_blank" rel="noopener noreferrer">Open report</a>`
+        ? `<a href="${escapeHtml(
+            row.signed_url
+          )}" target="_blank" rel="noopener noreferrer" data-action="open-report" data-report-id="${escapeHtml(
+            row.id
+          )}">Open report</a>`
         : "File link unavailable";
       return `
         <article class="report-card">
@@ -750,6 +781,28 @@ function initializePortal() {
     renderFiles(filesWithSignedUrls);
     renderMessages(messages || [], user.id);
   }
+
+  reportGridEl?.addEventListener("click", async (event) => {
+    const actionEl = event.target.closest("[data-action='open-report']");
+    if (!actionEl || !currentUser) return;
+
+    event.preventDefault();
+    const href = actionEl.getAttribute("href") || "";
+    const reportId = actionEl.getAttribute("data-report-id") || "";
+
+    if (href) {
+      window.open(href, "_blank", "noopener,noreferrer");
+    }
+
+    try {
+      const updated = await markClientReportReviewed(supabase, reportId);
+      if (updated) {
+        await loadDashboard(currentUser);
+      }
+    } catch (_) {
+      // Report access should still work even if the status update fails.
+    }
+  });
 
   // Message send
   messageForm?.addEventListener("submit", async (event) => {
