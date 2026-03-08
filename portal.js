@@ -16,6 +16,7 @@ const logoutBtn = document.getElementById("logout-btn");
 const refreshBtn = document.getElementById("refresh-btn");
 const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
+const scoreSnapshotSectionEl = document.getElementById("score-snapshot-section");
 const scoreGridEl = document.getElementById("score-grid");
 const reportGridEl = document.getElementById("report-grid");
 const negativeTrackerStatsEl = document.getElementById("negative-tracker-stats");
@@ -376,12 +377,17 @@ function renderScores(snapshots) {
   if (scoreGridEl) scoreGridEl.innerHTML = cards.join("");
 }
 
-function renderTracker(letters, snapshots) {
+function syncScoreSectionVisibility(snapshots, reports) {
+  if (!scoreSnapshotSectionEl) return;
+  scoreSnapshotSectionEl.classList.toggle("hidden", Array.isArray(reports) && reports.length > 0);
+}
+
+function renderTracker(letters, snapshots, reports) {
   const trackerEl = document.getElementById("progress-tracker");
   if (!trackerEl) return;
 
   let currentStep = 1;
-  if (snapshots && snapshots.length > 0) currentStep = 2;
+  if ((snapshots && snapshots.length > 0) || (reports && reports.length > 0)) currentStep = 2;
   if (letters && letters.length > 0) currentStep = 3;
 
   const hasDelivered = letters.some((l) =>
@@ -698,8 +704,9 @@ function initializePortal() {
 
     renderScores(snapshots || []);
     renderReports(reportsWithUrls);
+    syncScoreSectionVisibility(snapshots || [], reportsWithUrls);
     renderNegativeItems(negativeItems || []);
-    renderTracker(letters || [], snapshots || []);
+    renderTracker(letters || [], snapshots || [], reportsWithUrls);
     renderLetters(letters || []);
     renderUpdates(updates || []);
     renderFiles(filesWithSignedUrls);
