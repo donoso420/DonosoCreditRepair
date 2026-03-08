@@ -34,11 +34,11 @@
             <p class="eyebrow">Restricted Access</p>
             <h1>Admin Sign In</h1>
             <p class="muted">Only authorized accounts can access this dashboard.</p>
-            <form id="admin-auth-form" novalidate>
+            <form id="admin-auth-form" method="post" novalidate>
               <label for="admin-email">Email</label>
-              <input id="admin-email" name="admin-email" type="email" placeholder="admin@email.com" required />
+              <input id="admin-email" type="email" placeholder="admin@email.com" required />
               <label for="admin-password">Password</label>
-              <input id="admin-password" name="admin-password" type="password" placeholder="••••••••" required />
+              <input id="admin-password" type="password" placeholder="••••••••" required />
               <button class="btn primary full" type="submit">Sign In to Dashboard</button>
             </form>
             <p class="status" id="admin-auth-status" role="status" aria-live="polite"></p>
@@ -432,6 +432,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308b"></script>
+    <script type="module" src="admin.js?v=20260308c"></script>
   </body>
 </html>

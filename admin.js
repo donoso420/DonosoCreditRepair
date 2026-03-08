@@ -4,7 +4,7 @@ import {
   buildManualNegativeItem,
   formatCurrency,
   scanCreditDocument,
-} from "./credit-report-tools.js";
+} from "./credit-report-tools.js?v=20260308a";
 
 const config = window.__PORTAL_CONFIG__ || {};
 
