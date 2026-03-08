@@ -538,8 +538,16 @@ async function checkAdmin(userId) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error) return false;
-  return Boolean(data?.user_id);
+  if (error) {
+    return {
+      allowed: false,
+      error: error.message || "Could not verify admin access.",
+    };
+  }
+  return {
+    allowed: Boolean(data?.user_id),
+    error: null,
+  };
 }
 
 async function loadClients() {
@@ -1224,28 +1232,39 @@ function initialize() {
     }
 
     setAuthStatus("Signing in...");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) {
-      setAuthStatus(error?.message || "Could not sign in.", true);
-      return;
-    }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.user) {
+        setAuthStatus(error?.message || "Could not sign in.", true);
+        return;
+      }
 
-    const allowed = await checkAdmin(data.user.id);
-    if (!allowed) {
-      await supabase.auth.signOut();
-      setAuthStatus("Access denied. This account is not in admin_users.", true);
-      showAuth();
-      return;
-    }
+      const access = await checkAdmin(data.user.id);
+      if (access.error) {
+        await supabase.auth.signOut();
+        setAuthStatus(`Could not verify admin access: ${access.error}`, true);
+        showAuth();
+        return;
+      }
 
-    currentAdmin = data.user;
-    adminIdentity.textContent = `Signed in as ${data.user.email}`;
-    prefillProfileUserId(data.user.id);
-    showAdmin();
-    initTabs();
-    setAuthStatus("");
-    setAdminStatus("Admin session ready.");
-    await loadClients();
+      if (!access.allowed) {
+        await supabase.auth.signOut();
+        setAuthStatus("Access denied. This account is not in admin_users.", true);
+        showAuth();
+        return;
+      }
+
+      currentAdmin = data.user;
+      adminIdentity.textContent = `Signed in as ${data.user.email}`;
+      prefillProfileUserId(data.user.id);
+      showAdmin();
+      initTabs();
+      setAuthStatus("");
+      setAdminStatus("Admin session ready.");
+      await loadClients();
+    } catch (error) {
+      setAuthStatus("Could not sign in: " + (error?.message || error), true);
+    }
   });
 
   clientSelect?.addEventListener("change", async () => {
@@ -1808,8 +1827,14 @@ function initialize() {
       showAuth();
       return;
     }
-    const allowed = await checkAdmin(user.id);
-    if (!allowed) {
+    const access = await checkAdmin(user.id);
+    if (access.error) {
+      await supabase.auth.signOut();
+      showAuth();
+      setAuthStatus(`Could not verify admin access: ${access.error}`, true);
+      return;
+    }
+    if (!access.allowed) {
       await supabase.auth.signOut();
       showAuth();
       setAuthStatus("Access denied. This account is not in admin_users.", true);
@@ -1821,6 +1846,9 @@ function initialize() {
     showAdmin();
     initTabs();
     await loadClients();
+  }).catch((error) => {
+    showAuth();
+    setAuthStatus("Could not restore admin session: " + (error?.message || error), true);
   });
 }
 
