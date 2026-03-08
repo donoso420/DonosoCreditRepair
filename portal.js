@@ -16,6 +16,8 @@ const logoutBtn = document.getElementById("logout-btn");
 const refreshBtn = document.getElementById("refresh-btn");
 const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
+const previewBannerEl = document.getElementById("portal-preview-banner");
+const previewMetaEl = document.getElementById("portal-preview-meta");
 const scoreSnapshotSectionEl = document.getElementById("score-snapshot-section");
 const scoreGridEl = document.getElementById("score-grid");
 const reportGridEl = document.getElementById("report-grid");
@@ -147,6 +149,12 @@ function getLocationParams() {
   const searchParams = new URLSearchParams(window.location.search);
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   return { searchParams, hashParams };
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    String(value || "")
+  );
 }
 
 function getFirstLocationParam(...keys) {
@@ -984,8 +992,9 @@ function renderFiles(files) {
     .join("");
 }
 
-function renderMessages(messages, currentUserId) {
+function renderMessages(messages, currentUserId, options = {}) {
   if (!messageThreadEl) return;
+  const isPreviewMode = options.preview === true;
   if (!messages.length) {
     messageThreadEl.innerHTML = '<li class="empty">No messages yet.</li>';
     return;
@@ -995,7 +1004,7 @@ function renderMessages(messages, currentUserId) {
     .map((row) => {
       const isClient = row.sender_role === "client";
       const sideClass = isClient ? "msg-client" : "msg-admin";
-      const label = isClient ? "You" : "Donoso Credit Repair";
+      const label = isClient ? (isPreviewMode ? "Client" : "You") : "Donoso Credit Repair";
       return `
         <li class="msg-bubble ${escapeHtml(sideClass)}">
           <p class="msg-label">${escapeHtml(label)} · ${escapeHtml(formatDateTime(row.created_at))}</p>
@@ -1008,18 +1017,71 @@ function renderMessages(messages, currentUserId) {
   messageThreadEl.scrollTop = messageThreadEl.scrollHeight;
 }
 
+async function checkAdminAccess(supabase, userId) {
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return {
+    allowed: Boolean(data?.user_id) && !error,
+    error: error?.message || "",
+  };
+}
+
+function setPreviewModeUi(enabled, targetUserId = "") {
+  previewBannerEl?.classList.toggle("hidden", !enabled);
+  if (previewMetaEl) {
+    previewMetaEl.textContent = enabled
+      ? `Read-only preview for client user_id ${targetUserId}. Uploads and messages are disabled here.`
+      : "Read-only preview of the selected client portal.";
+  }
+
+  clientUploadForm?.querySelectorAll("input,button").forEach((el) => {
+    el.disabled = enabled;
+  });
+  messageForm?.querySelectorAll("textarea,button").forEach((el) => {
+    el.disabled = enabled;
+  });
+
+  if (messageInput) {
+    messageInput.placeholder = enabled
+      ? "Messaging is disabled in admin preview."
+      : "Send a message to your advisor...";
+  }
+
+  if (logoutBtn) {
+    logoutBtn.textContent = enabled ? "Exit Preview" : "Sign Out";
+  }
+}
+
 function initializePortal() {
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
-  let currentUser = null;
+  const requestedPreviewUserId = (() => {
+    const value = getFirstLocationParam("preview_user_id");
+    return isUuid(value) ? value : "";
+  })();
+  let currentSessionUser = null;
+  let currentPortalUserId = "";
+  let isPreviewMode = false;
   let pendingPasswordSetupFlow = authLandingState.needsPasswordSetup ? authLandingState.type : "";
 
   if (pendingPasswordSetupFlow) {
     configureSetPasswordFlow(pendingPasswordSetupFlow);
   }
 
-  async function loadDashboard(user) {
-    currentUser = user;
-    if (clientEmailEl) clientEmailEl.textContent = user.email || "";
+  async function loadDashboard(user, options = {}) {
+    currentSessionUser = user;
+    currentPortalUserId = options.targetUserId || user.id;
+    isPreviewMode = options.preview === true;
+    setPreviewModeUi(isPreviewMode, currentPortalUserId);
+
+    if (clientEmailEl) {
+      clientEmailEl.textContent = isPreviewMode
+        ? `Admin preview · ${currentPortalUserId}`
+        : user.email || "";
+    }
 
     const [
       { data: profile },
@@ -1033,13 +1095,13 @@ function initializePortal() {
       { data: files },
       { data: messages },
     ] = await Promise.all([
-      supabase.from("client_profiles").select("full_name").eq("user_id", user.id).maybeSingle(),
-      supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", user.id).order("reported_at", { ascending: false }),
+      supabase.from("client_profiles").select("full_name").eq("user_id", currentPortalUserId).maybeSingle(),
+      supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", currentPortalUserId).order("reported_at", { ascending: false }),
       safeTableQuery(
         supabase
           .from("credit_reports")
           .select("id,bureau,score,report_date,summary,verification_status,verification_method,verification_notes,file_id,created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", currentPortalUserId)
           .order("report_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .limit(12)
@@ -1048,7 +1110,7 @@ function initializePortal() {
         supabase
           .from("client_billing_profiles")
           .select("plan_name,plan_amount,billing_interval,billing_status,started_at,renewal_date,payment_terms,zelle_display_name,zelle_handle,zelle_note,notes,updated_at")
-          .eq("user_id", user.id)
+          .eq("user_id", currentPortalUserId)
           .maybeSingle(),
         null
       ),
@@ -1056,7 +1118,7 @@ function initializePortal() {
         supabase
           .from("client_invoices")
           .select("invoice_number,title,plan_name,amount,currency,invoice_date,due_date,status,zelle_display_name,zelle_handle,zelle_memo,notes,created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", currentPortalUserId)
           .order("invoice_date", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .limit(20)
@@ -1065,18 +1127,18 @@ function initializePortal() {
         supabase
           .from("negative_items")
           .select("bureau,creditor,item_type,account_reference,balance,status,notes,is_active,verification_method,evidence_excerpt,created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", currentPortalUserId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
           .limit(40)
       ),
-      supabase.from("client_letters").select("sent_date,bureau,recipient,tracking_number,status,notes").eq("user_id", user.id).order("sent_date", { ascending: false }),
-      supabase.from("client_updates").select("details,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("client_files").select("id,title,category,notes,file_name,file_path,bucket,created_at,uploaded_by").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", user.id).order("created_at", { ascending: true }),
+      supabase.from("client_letters").select("sent_date,bureau,recipient,tracking_number,status,notes").eq("user_id", currentPortalUserId).order("sent_date", { ascending: false }),
+      supabase.from("client_updates").select("details,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
+      supabase.from("client_files").select("id,title,category,notes,file_name,file_path,bucket,created_at,uploaded_by").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
+      supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: true }),
     ]);
 
-    if (clientNameEl) clientNameEl.textContent = profile?.full_name || "Client";
+    if (clientNameEl) clientNameEl.textContent = profile?.full_name || (isPreviewMode ? "Client Preview" : "Client");
 
     const filesWithSignedUrls = await Promise.all(
       (files || []).map(async (row) => {
@@ -1102,12 +1164,39 @@ function initializePortal() {
     renderUpdates(updates || []);
     renderActivity(updates || []);
     renderFiles(filesWithSignedUrls);
-    renderMessages(messages || [], user.id);
+    renderMessages(messages || [], currentPortalUserId, { preview: isPreviewMode });
+  }
+
+  async function loadSessionOrPreview(user) {
+    if (requestedPreviewUserId) {
+      const access = await checkAdminAccess(supabase, user.id);
+      if (!access.allowed) {
+        showAuth();
+        setAuthStatus(access.error || "Preview links require an active admin session.", true);
+        return false;
+      }
+
+      clearAuthRedirectState();
+      showDashboard();
+      await loadDashboard(user, {
+        targetUserId: requestedPreviewUserId,
+        preview: true,
+      });
+      return true;
+    }
+
+    clearAuthRedirectState();
+    showDashboard();
+    await loadDashboard(user, {
+      targetUserId: user.id,
+      preview: false,
+    });
+    return true;
   }
 
   reportGridEl?.addEventListener("click", async (event) => {
     const actionEl = event.target.closest("[data-action='open-report']");
-    if (!actionEl || !currentUser) return;
+    if (!actionEl || !currentSessionUser) return;
 
     event.preventDefault();
     const href = actionEl.getAttribute("href") || "";
@@ -1117,10 +1206,15 @@ function initializePortal() {
       window.open(href, "_blank", "noopener,noreferrer");
     }
 
+    if (isPreviewMode) return;
+
     try {
       const updated = await markClientReportReviewed(supabase, reportId);
       if (updated) {
-        await loadDashboard(currentUser);
+        await loadDashboard(currentSessionUser, {
+          targetUserId: currentPortalUserId,
+          preview: isPreviewMode,
+        });
       }
     } catch (_) {
       // Report access should still work even if the status update fails.
@@ -1152,13 +1246,17 @@ function initializePortal() {
   // Message send
   messageForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!currentUser) return;
+    if (!currentSessionUser || !currentPortalUserId) return;
+    if (isPreviewMode) {
+      setMessageStatus("Messaging is disabled in admin preview.", true);
+      return;
+    }
     const content = String(messageInput?.value || "").trim();
     if (!content) return;
 
     setMessageStatus("Sending...");
     const { error } = await supabase.from("portal_messages").insert({
-      user_id: currentUser.id,
+      user_id: currentPortalUserId,
       sender_role: "client",
       content,
     });
@@ -1174,16 +1272,20 @@ function initializePortal() {
     const { data: messages } = await supabase
       .from("portal_messages")
       .select("sender_role,content,created_at")
-      .eq("user_id", currentUser.id)
+      .eq("user_id", currentPortalUserId)
       .order("created_at", { ascending: true });
 
-    renderMessages(messages || [], currentUser.id);
+    renderMessages(messages || [], currentPortalUserId, { preview: false });
   });
 
   // Client file upload
   clientUploadForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!currentUser) return;
+    if (!currentSessionUser || !currentPortalUserId) return;
+    if (isPreviewMode) {
+      setUploadStatus("Uploads are disabled in admin preview.", true);
+      return;
+    }
 
     const fileInput = document.getElementById("client-file-input");
     const file = fileInput?.files?.[0];
@@ -1203,7 +1305,7 @@ function initializePortal() {
     setUploadStatus("Uploading...");
     const bucket = "client-docs";
     const safeName = sanitizeFileName(file.name);
-    const objectPath = `${currentUser.id}/client-uploads/${Date.now()}-${safeName}`;
+    const objectPath = `${currentPortalUserId}/client-uploads/${Date.now()}-${safeName}`;
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, file, {
       upsert: false,
@@ -1216,7 +1318,7 @@ function initializePortal() {
     }
 
     const { error: rowError } = await supabase.from("client_files").insert({
-      user_id: currentUser.id,
+      user_id: currentPortalUserId,
       bucket,
       file_path: objectPath,
       file_name: file.name,
@@ -1234,7 +1336,10 @@ function initializePortal() {
 
     clientUploadForm.reset();
     setUploadStatus("Document uploaded successfully.");
-    await loadDashboard(currentUser);
+    await loadDashboard(currentSessionUser, {
+      targetUserId: currentPortalUserId,
+      preview: false,
+    });
   });
 
   authForm?.addEventListener("submit", async (event) => {
@@ -1248,8 +1353,7 @@ function initializePortal() {
     if (error || !data.user) { setAuthStatus(error?.message || "Could not sign in.", true); return; }
 
     setAuthStatus("");
-    showDashboard();
-    await loadDashboard(data.user);
+    await loadSessionOrPreview(data.user);
   });
 
   resetBtn?.addEventListener("click", async () => {
@@ -1277,6 +1381,10 @@ function initializePortal() {
   });
 
   logoutBtn?.addEventListener("click", async () => {
+    if (isPreviewMode) {
+      window.location.href = "admin.html";
+      return;
+    }
     logoutBtn.disabled = true;
     logoutBtn.textContent = "Signing out…";
     // Give signOut up to 1s to clear the local session; redirect regardless.
@@ -1292,16 +1400,21 @@ function initializePortal() {
         .filter(k => k.startsWith("sb-"))
         .forEach(k => localStorage.removeItem(k));
     } catch (_) {}
-    currentUser = null;
+    currentSessionUser = null;
+    currentPortalUserId = "";
+    isPreviewMode = false;
     window.location.href = "portal.html";
   });
 
   refreshBtn?.addEventListener("click", async () => {
-    if (!currentUser) return;
+    if (!currentSessionUser) return;
     refreshBtn.disabled = true;
     refreshBtn.textContent = "Refreshing…";
     try {
-      await loadDashboard(currentUser);
+      await loadDashboard(currentSessionUser, {
+        targetUserId: currentPortalUserId || currentSessionUser.id,
+        preview: isPreviewMode,
+      });
     } catch (_) {
       // silently ignore
     } finally {
@@ -1340,7 +1453,7 @@ function initializePortal() {
     clearAuthRedirectState();
     // Password set — load the dashboard
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) { showDashboard(); await loadDashboard(user); }
+    if (user) { await loadSessionOrPreview(user); }
   });
 
   supabase.auth.onAuthStateChange((event, session) => {
@@ -1358,10 +1471,8 @@ function initializePortal() {
         return;
       }
 
-      clearAuthRedirectState();
-      showDashboard();
       window.setTimeout(() => {
-        loadDashboard(session.user).catch(() => {
+        loadSessionOrPreview(session.user).catch(() => {
           setAuthStatus("Could not load your portal data right now.", true);
         });
       }, 0);
@@ -1369,6 +1480,11 @@ function initializePortal() {
     }
 
     showAuth();
+    setPreviewModeUi(false);
+    if (requestedPreviewUserId) {
+      setAuthStatus("Admin preview requires an active admin session. Sign in to the admin portal first.", true);
+      return;
+    }
     if (authLandingState.error) {
       setAuthStatus(authLandingState.error, true);
       return;
@@ -1387,13 +1503,16 @@ function initializePortal() {
         showSetPassword();
         return;
       }
-      clearAuthRedirectState();
-      showDashboard();
-      await loadDashboard(data.session.user);
+      await loadSessionOrPreview(data.session.user);
       return;
     }
 
     showAuth();
+    setPreviewModeUi(false);
+    if (requestedPreviewUserId) {
+      setAuthStatus("Admin preview requires an active admin session. Sign in to the admin portal first.", true);
+      return;
+    }
     if (authLandingState.error) {
       setAuthStatus(authLandingState.error, true);
       return;

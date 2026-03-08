@@ -45,6 +45,7 @@ const inviteStatus = document.getElementById("invite-status");
 
 const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
+const openPortalPreviewBtn = document.getElementById("open-portal-preview-btn");
 
 const previewReports = document.getElementById("preview-reports");
 const previewNegativeItems = document.getElementById("preview-negative-items");
@@ -1876,6 +1877,14 @@ function initialize() {
       refreshAllBtn.disabled = false;
       refreshAllBtn.textContent = "↺ Refresh";
     }
+  });
+
+  openPortalPreviewBtn?.addEventListener("click", () => {
+    if (!activeClientId) {
+      setAdminStatus("Select a client first.", true);
+      return;
+    }
+    window.open(`portal.html?preview_user_id=${encodeURIComponent(activeClientId)}`, "_blank", "noopener,noreferrer");
   });
 
   logoutBtn?.addEventListener("click", async () => {
