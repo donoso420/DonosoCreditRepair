@@ -37,8 +37,6 @@ const timelineEditIdInput = document.getElementById("timeline-edit-id");
 const timelineSubmitBtn = document.getElementById("timeline-submit-btn");
 const timelineCancelBtn = document.getElementById("timeline-cancel-btn");
 const fileUploadForm = document.getElementById("file-upload-form");
-const scanDocumentsBtn = document.getElementById("scan-documents-btn");
-const scanDocumentsStatus = document.getElementById("scan-documents-status");
 const reportAutofillStatus = document.getElementById("report-autofill-status");
 
 const inviteForm = document.getElementById("invite-form");
@@ -85,12 +83,6 @@ function setAdminStatus(message, isError = false) {
   if (!adminStatus) return;
   adminStatus.textContent = message;
   adminStatus.classList.toggle("error", isError);
-}
-
-function setScanStatus(message, isError = false) {
-  if (!scanDocumentsStatus) return;
-  scanDocumentsStatus.textContent = message;
-  scanDocumentsStatus.classList.toggle("error", isError);
 }
 
 function setReportAutofillStatus(message, isError = false) {
@@ -417,7 +409,7 @@ async function autofillCreditReportForm(file) {
 
   if (file.size > MAX_BROWSER_SCAN_SIZE_BYTES) {
     setReportAutofillStatus(
-      "This PDF is too large for browser autofill. Upload it first, then use document scan or enter the report details manually.",
+      "This PDF is too large for browser autofill. Upload it and complete the report details manually.",
       true
     );
     return;
@@ -479,7 +471,7 @@ async function autofillCreditReportForm(file) {
 
     if (!filled.length) {
       setReportAutofillStatus(
-        "The PDF loaded, but browser autofill could not confidently detect report details. You can still upload it and use document scan or enter the report details manually.",
+        "The PDF loaded, but browser autofill could not confidently detect report details. You can still upload it and complete the report details manually.",
         true
       );
       return;
@@ -536,7 +528,6 @@ async function loadClients() {
     activeLetterRows = [];
     activeUpdateRows = [];
     activeClientIdEl.textContent = "";
-    setScanStatus("");
     resetSnapshotForm();
     resetNegativeItemForm();
     resetLetterForm();
@@ -770,16 +761,6 @@ async function loadClientFiles(userId) {
   );
 }
 
-function isScannableFile(fileRow) {
-  const contentType = String(fileRow.content_type || "").toLowerCase();
-  const fileName = String(fileRow.file_name || "").toLowerCase();
-  return (
-    contentType === "application/pdf" ||
-    /image\/(png|jpeg|jpg|webp)/.test(contentType) ||
-    /\.(pdf|png|jpe?g|webp)$/.test(fileName)
-  );
-}
-
 function isPdfFile(fileRow) {
   const contentType = String(fileRow?.content_type || "").toLowerCase();
   const fileName = String(fileRow?.file_name || "").toLowerCase();
@@ -860,84 +841,6 @@ async function upsertNegativeItemRow(item) {
     .upsert(payload, { onConflict: "user_id,fingerprint" });
 
   if (error) throw error;
-}
-
-async function scanFileRows(fileRows, { storeReports = true } = {}) {
-  const scannableFiles = fileRows.filter(isScannableFile);
-  if (!scannableFiles.length) {
-    return { scannedFiles: 0, reportsCreated: 0, itemsCreated: 0, skippedFiles: 0 };
-  }
-
-  let reportsCreated = 0;
-  let itemsCreated = 0;
-  let skippedFiles = 0;
-
-  for (let index = 0; index < scannableFiles.length; index += 1) {
-    const row = scannableFiles[index];
-    const label = row.title || row.file_name || `document ${index + 1}`;
-
-    if (Number(row.file_size || 0) > MAX_BROWSER_SCAN_SIZE_BYTES) {
-      skippedFiles += 1;
-      continue;
-    }
-
-    setScanStatus(`Scanning ${index + 1}/${scannableFiles.length}: ${label}`);
-
-    const signedUrl = row.signed_url || (await getSignedFileUrl(row));
-    if (!signedUrl) {
-      throw new Error(`Could not generate a signed URL for ${label}.`);
-    }
-
-    const response = await fetch(signedUrl);
-    if (!response.ok) {
-      throw new Error(`Could not read ${label} for scanning.`);
-    }
-
-    const blob = await response.blob();
-    const file = new File([blob], row.file_name || `${label}.pdf`, {
-      type: row.content_type || blob.type || "application/octet-stream",
-    });
-
-    const result = await scanCreditDocument(
-      file,
-      {
-        fileId: row.id,
-        fileName: row.file_name,
-        title: row.title,
-        contentType: row.content_type || blob.type,
-        reportDate: String(row.created_at || "").slice(0, 10),
-        bureau: [row.title, row.category, row.notes].filter(Boolean).join(" "),
-      },
-      (message) => {
-        setScanStatus(`Scanning ${index + 1}/${scannableFiles.length}: ${message}`);
-      }
-    );
-
-    if (storeReports) {
-      for (const report of result.reports) {
-        await upsertCreditReportRow({
-          ...report,
-          file_id: row.id,
-        });
-        reportsCreated += 1;
-      }
-    }
-
-    for (const item of result.negativeItems) {
-      await upsertNegativeItemRow({
-        ...item,
-        source_file_id: row.id,
-      });
-      itemsCreated += 1;
-    }
-  }
-
-  return {
-    scannedFiles: scannableFiles.length,
-    reportsCreated,
-    itemsCreated,
-    skippedFiles,
-  };
 }
 
 async function loadClientPreview(userId) {
@@ -1269,7 +1172,6 @@ function initialize() {
     activeLetterRows = [];
     activeUpdateRows = [];
     activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
-    setScanStatus("");
     resetSnapshotForm();
     resetNegativeItemForm();
     resetLetterForm();
@@ -1784,38 +1686,10 @@ function initialize() {
     setReportAutofillStatus("");
     setAdminStatus(
       isCreditReportUpload
-        ? "Credit report uploaded. Use document scan if you want help pulling report details from the PDF."
+        ? "Credit report uploaded."
         : "File uploaded and attached to client record."
     );
     await loadClientPreview(activeClientId);
-  });
-
-  scanDocumentsBtn?.addEventListener("click", async () => {
-    if (!(await requireActiveClient())) return;
-
-    scanDocumentsBtn.disabled = true;
-    setScanStatus("Loading uploaded documents...");
-
-    try {
-      const files = await loadClientFiles(activeClientId);
-      const result = await scanFileRows(files, { storeReports: true });
-      const skippedNote = result.skippedFiles
-        ? ` ${result.skippedFiles} oversized file(s) were skipped because browser scanning is limited to ${formatMbLimit(MAX_BROWSER_SCAN_SIZE_MB)}.`
-        : "";
-      setScanStatus(
-        `Scan complete: ${result.scannedFiles} file(s), ${result.reportsCreated} report summary row(s), ${result.itemsCreated} negative item(s).${skippedNote}`
-      );
-      setAdminStatus("Document scan finished.");
-      await loadClientPreview(activeClientId);
-    } catch (error) {
-      if (isMissingFeatureError(error)) {
-        setScanStatus("Run the updated supabase-portal-schema.sql before using the scanner.", true);
-      } else {
-        setScanStatus("Scanner failed: " + (error?.message || error), true);
-      }
-    } finally {
-      scanDocumentsBtn.disabled = false;
-    }
   });
 
   adminMessageForm?.addEventListener("submit", async (event) => {

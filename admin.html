@@ -101,19 +101,6 @@
 
             <div class="section-group">
               <div class="section-label">
-                <h2>🧾 Document Scan</h2>
-                <p class="muted sm">Review uploaded reports and attachments for report details and negative items</p>
-              </div>
-              <div class="card">
-                <h3 class="card-title">Scan Uploaded Documents</h3>
-                <p class="muted sm">Document scan reviews smaller PDFs or images, creates report summary rows when possible, and pulls potential negative items for you to review manually.</p>
-                <button class="btn secondary full" id="scan-documents-btn" type="button">Scan All Uploaded Documents</button>
-                <p class="statusbar" id="scan-documents-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
-              </div>
-            </div>
-
-            <div class="section-group">
-              <div class="section-label">
                 <h2>📊 Credit Scores</h2>
                 <p class="muted sm">Log bureau score snapshots</p>
               </div>
@@ -329,7 +316,7 @@
                     <label for="report-summary">Report Summary</label>
                     <textarea id="report-summary" rows="3" placeholder="Key notes about this report, bureau pull, or file set"></textarea>
                     <p class="statusbar" id="report-autofill-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
-                    <p class="muted sm">For credit reports, upload the original PDF when possible. Browser autofill works on smaller PDFs and document scan can help pull report details after upload.</p>
+                    <p class="muted sm">For credit reports, upload the original PDF when possible. Browser autofill works on smaller PDFs, and you can still fill these details manually when needed.</p>
                   </div>
                   <label for="file-notes">Notes</label>
                   <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
@@ -470,6 +457,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260307j"></script>
+    <script type="module" src="admin.js?v=20260307k"></script>
   </body>
 </html>

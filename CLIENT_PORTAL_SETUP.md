@@ -107,7 +107,6 @@ Admin dashboard lets you:
 
 - create/update client profile
 - upload current PDF credit reports
-- browser-scan uploaded documents for negative items
 - manually add or correct negative items
 - add credit snapshots
 - add letters with tracking numbers
@@ -140,9 +139,9 @@ Max upload size in UI:
 
 - 500MB per file
 
-Browser scanning note:
+Browser autofill note:
 
-- the built-in credit report scanner skips files over 40MB to avoid locking up the browser on very large PDFs
+- the built-in credit report autofill skips files over 40MB to avoid locking up the browser on very large PDFs
 
 ## 9) Client experience
 
