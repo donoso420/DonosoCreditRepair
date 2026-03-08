@@ -426,7 +426,7 @@ function getNegativeItemStage(row = {}) {
 
   if (
     row.is_active === false ||
-    /\b(resolved|removed|deleted|completed|closed|cleared)\b/.test(combined)
+    /\b(resolved|removed|deleted|cleared)\b/.test(combined)
   ) {
     return { key: "resolved", label: "Resolved", step: 3, badgeClass: "stage-resolved" };
   }

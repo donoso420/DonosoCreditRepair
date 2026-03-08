@@ -75,6 +75,7 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
 ]);
 const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
 const ACTIVITY_PREFIX = "[Activity] ";
+const ALL_CREDIT_BUREAUS = ["Experian", "Equifax", "TransUnion"];
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -308,7 +309,7 @@ function populateNegativeItemForm(row) {
   const statusInput = document.getElementById("negative-status");
   const notesInput = document.getElementById("negative-notes");
   const activeCheckbox = document.getElementById("negative-active");
-  if (bureauInput) bureauInput.value = row.bureau || "";
+  if (bureauInput) bureauInput.value = row.bureau || "Shared / Unknown";
   if (typeInput) typeInput.value = row.item_type || "Collection";
   if (creditorInput) creditorInput.value = row.creditor || "";
   if (accountRefInput) accountRefInput.value = row.account_reference || "";
@@ -382,7 +383,7 @@ function getNegativeItemStage(row = {}) {
 
   if (
     row.is_active === false ||
-    /\b(resolved|removed|deleted|completed|closed|cleared)\b/.test(combined)
+    /\b(resolved|removed|deleted|cleared)\b/.test(combined)
   ) {
     return { label: "Resolved", step: 3, className: "stage-resolved" };
   }
@@ -1459,6 +1460,43 @@ function findActiveRow(rows, rowId) {
   return (rows || []).find((row) => Number(row.id) === numericId) || null;
 }
 
+function normalizeNegativeLookupValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function findMatchingNegativeItemRow(item, rows = activeNegativeItemRows) {
+  return (rows || []).find((row) => {
+    return (
+      normalizeNegativeLookupValue(row.bureau) === normalizeNegativeLookupValue(item.bureau) &&
+      normalizeNegativeLookupValue(row.creditor) === normalizeNegativeLookupValue(item.creditor) &&
+      normalizeNegativeLookupValue(row.item_type) === normalizeNegativeLookupValue(item.item_type) &&
+      normalizeNegativeLookupValue(row.account_reference) === normalizeNegativeLookupValue(item.account_reference)
+    );
+  }) || null;
+}
+
+function buildNegativeItemPersistencePayload(baseItem, existingRow = null) {
+  return {
+    user_id: activeClientId,
+    ...baseItem,
+    bureau: baseItem.bureau || null,
+    account_reference: baseItem.account_reference || null,
+    balance: baseItem.balance ?? null,
+    status: baseItem.status || null,
+    notes: baseItem.notes || null,
+    source: "manual",
+    verification_method: existingRow?.verification_method || "manual",
+    verification_notes: existingRow?.verification_notes || (existingRow ? "Updated by admin." : "Added by admin."),
+    evidence_excerpt: existingRow?.evidence_excerpt || null,
+    source_file_id: existingRow?.source_file_id || null,
+    report_id: existingRow?.report_id || null,
+    verified_at: existingRow?.verified_at || null,
+    ai_model: existingRow?.ai_model || null,
+    confidence: existingRow?.confidence ?? null,
+    last_seen_at: baseItem.last_seen_at || existingRow?.last_seen_at || null,
+  };
+}
+
 async function deleteClientRecord({ table, rowId, label, successMessage, activityMessage }) {
   const numericId = Number(rowId || 0);
   if (!numericId || !activeClientId) return;
@@ -2099,6 +2137,8 @@ function initialize() {
     if (!(await requireActiveClient())) return;
 
     const editId = Number(negativeEditIdInput?.value || 0);
+    const existingRow = editId ? findActiveRow(activeNegativeItemRows, editId) : null;
+    const selectedBureau = String(document.getElementById("negative-bureau")?.value || "").trim();
     const creditor = String(document.getElementById("negative-creditor")?.value || "").trim();
     const itemType = String(document.getElementById("negative-type")?.value || "").trim();
 
@@ -2108,8 +2148,7 @@ function initialize() {
     }
 
     try {
-      const baseItem = buildManualNegativeItem({
-        bureau: String(document.getElementById("negative-bureau")?.value || "").trim(),
+      const sharedItemValues = {
         creditor,
         item_type: itemType,
         account_reference: String(document.getElementById("negative-account-ref")?.value || "").trim(),
@@ -2119,36 +2158,62 @@ function initialize() {
         is_active: Boolean(document.getElementById("negative-active")?.checked),
         source: "manual",
         verification_method: "manual",
-      });
+      };
 
-      if (editId) {
-        const existingRow = findActiveRow(activeNegativeItemRows, editId);
+      const targetBureaus =
+        selectedBureau === "ALL_BUREAUS"
+          ? ALL_CREDIT_BUREAUS
+          : [selectedBureau || "Shared / Unknown"];
+
+      const targetItems = targetBureaus.map((bureau) =>
+        buildManualNegativeItem({
+          ...sharedItemValues,
+          bureau,
+        })
+      );
+
+      for (const item of targetItems) {
+        const matchingRow =
+          findMatchingNegativeItemRow(item) ||
+          (existingRow &&
+          normalizeNegativeLookupValue(existingRow.bureau) === normalizeNegativeLookupValue(item.bureau)
+            ? existingRow
+            : null);
+
         const { error } = await supabase
           .from("negative_items")
-          .update({
-            ...baseItem,
-            bureau: baseItem.bureau || null,
-            account_reference: baseItem.account_reference || null,
-            balance: baseItem.balance ?? null,
-            status: baseItem.status || null,
-            notes: baseItem.notes || null,
-            source: "manual",
-            verification_method: "manual",
-            verification_notes: existingRow?.verification_notes || "Updated by admin.",
-            evidence_excerpt: existingRow?.evidence_excerpt || null,
-            source_file_id: existingRow?.source_file_id || null,
-            report_id: existingRow?.report_id || null,
-            verified_at: existingRow?.verified_at || null,
-            ai_model: existingRow?.ai_model || null,
-            confidence: existingRow?.confidence ?? null,
-            last_seen_at: baseItem.last_seen_at || existingRow?.last_seen_at || null,
-          })
-          .eq("user_id", activeClientId)
-          .eq("id", editId);
+          .upsert(buildNegativeItemPersistencePayload(item, matchingRow), {
+            onConflict: "user_id,fingerprint",
+          });
 
         if (error) throw error;
-      } else {
-        await upsertNegativeItemRow(baseItem);
+      }
+
+      if (editId && existingRow) {
+        const existingFingerprint =
+          existingRow.fingerprint ||
+          buildManualNegativeItem({
+            bureau: existingRow.bureau || "",
+            creditor: existingRow.creditor || "",
+            item_type: existingRow.item_type || "",
+            account_reference: existingRow.account_reference || "",
+            balance: existingRow.balance,
+            status: existingRow.status || "",
+            notes: existingRow.notes || "",
+            is_active: existingRow.is_active !== false,
+            source: existingRow.source || "manual",
+            verification_method: existingRow.verification_method || "manual",
+          }).fingerprint;
+        const nextFingerprints = new Set(targetItems.map((item) => item.fingerprint));
+
+        if (!nextFingerprints.has(existingFingerprint)) {
+          const { error } = await supabase
+            .from("negative_items")
+            .delete()
+            .eq("user_id", activeClientId)
+            .eq("id", editId);
+          if (error) throw error;
+        }
       }
     } catch (error) {
       if (isMissingFeatureError(error)) {
@@ -2159,13 +2224,26 @@ function initialize() {
       return;
     }
 
+    const savedToAllBureaus = selectedBureau === "ALL_BUREAUS";
     await logClientActivity(
       editId
-        ? `Negative item updated: ${creditor} — ${itemType}.`
-        : `Negative item added: ${creditor} — ${itemType}.`
+        ? savedToAllBureaus
+          ? `Negative item updated on all 3 bureaus: ${creditor} — ${itemType}.`
+          : `Negative item updated: ${creditor} — ${itemType}.`
+        : savedToAllBureaus
+          ? `Negative item added on all 3 bureaus: ${creditor} — ${itemType}.`
+          : `Negative item added: ${creditor} — ${itemType}.`
     );
     resetNegativeItemForm();
-    setAdminStatus(editId ? "Negative item updated." : "Negative item saved.");
+    setAdminStatus(
+      savedToAllBureaus
+        ? editId
+          ? "Negative item updated across Experian, Equifax, and TransUnion."
+          : "Negative item saved across Experian, Equifax, and TransUnion."
+        : editId
+          ? "Negative item updated."
+          : "Negative item saved."
+    );
     await loadClientPreview(activeClientId);
   });
 
