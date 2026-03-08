@@ -99,6 +99,10 @@ function isCreditReportCategory(value = fileCategorySelect?.value) {
   return String(value || "").trim() === "Credit Report";
 }
 
+function isDisputeSummaryCategory(value = fileCategorySelect?.value) {
+  return String(value || "").trim() === "Dispute Summary";
+}
+
 function syncUploadCategoryUi() {
   const showReportFields = isCreditReportCategory();
   creditReportFields?.classList.toggle("hidden", !showReportFields);
@@ -159,6 +163,21 @@ function fileHasAllowedUploadType(file) {
   return (
     ALLOWED_UPLOAD_MIME_TYPES.has(fileType) ||
     ALLOWED_UPLOAD_EXTENSIONS.some((extension) => fileName.endsWith(extension))
+  );
+}
+
+function isPdfFile(file) {
+  const fileType = String(file?.type || "").toLowerCase();
+  const fileName = String(file?.name || "").toLowerCase();
+  return fileType === "application/pdf" || fileName.endsWith(".pdf");
+}
+
+function isDocxFile(file) {
+  const fileType = String(file?.type || "").toLowerCase();
+  const fileName = String(file?.name || "").toLowerCase();
+  return (
+    fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    fileName.endsWith(".docx")
   );
 }
 
@@ -843,6 +862,42 @@ async function upsertNegativeItemRow(item) {
     .upsert(payload, { onConflict: "user_id,fingerprint" });
 
   if (error) throw error;
+}
+
+async function importNegativeItemsFromUploadedFile(file, fileRow, category) {
+  const importLabel = isDisputeSummaryCategory(category) ? "dispute summary" : "uploaded document";
+
+  const result = await scanCreditDocument(
+    file,
+    {
+      fileId: fileRow?.id || null,
+      fileName: file?.name || fileRow?.file_name || "",
+      title: fileRow?.title || file?.name || "",
+      category,
+      contentType: getUploadContentType(file),
+    },
+    (message) => {
+      setAdminStatus(`Importing negative items: ${message}`);
+    }
+  );
+
+  const negativeItems = Array.isArray(result?.negativeItems) ? result.negativeItems : [];
+  for (const item of negativeItems) {
+    await upsertNegativeItemRow(
+      buildManualNegativeItem({
+        ...item,
+        source: item.source || "scanned",
+        verification_method: item.verification_method || "browser_scan",
+        verification_notes:
+          item.verification_notes || `Imported from uploaded ${importLabel} document.`,
+        source_file_id: fileRow?.id || null,
+      })
+    );
+  }
+
+  return {
+    importedCount: negativeItems.length,
+  };
 }
 
 async function loadClientPreview(userId) {
@@ -1582,6 +1637,7 @@ function initialize() {
     const notes = String(document.getElementById("file-notes")?.value || "").trim();
     const titleInput = String(document.getElementById("file-title")?.value || "").trim();
     const isCreditReportUpload = isCreditReportCategory(category);
+    const isDisputeSummaryUpload = isDisputeSummaryCategory(category);
     const bureau = String(document.getElementById("report-bureau")?.value || "").trim();
     const reportDate = String(document.getElementById("report-date")?.value || "").trim();
     const scoreRaw = String(document.getElementById("report-score")?.value || "").trim();
@@ -1603,10 +1659,22 @@ function initialize() {
     }
 
     if (isCreditReportUpload) {
-      const isPdfUpload =
-        String(file.type || "").toLowerCase() === "application/pdf" || /\.pdf$/i.test(file.name);
-      if (!isPdfUpload) {
+      if (!isPdfFile(file)) {
         setAdminStatus("Credit report uploads must be PDFs.", true);
+        return;
+      }
+    }
+
+    if (isDisputeSummaryUpload) {
+      if (!isPdfFile(file) && !isDocxFile(file)) {
+        setAdminStatus("Dispute summary imports currently support DOCX or PDF files.", true);
+        return;
+      }
+      if (file.size > MAX_BROWSER_SCAN_SIZE_BYTES) {
+        setAdminStatus(
+          `Dispute summary imports must be ${formatMbLimit(MAX_BROWSER_SCAN_SIZE_MB)} or smaller.`,
+          true
+        );
         return;
       }
     }
@@ -1620,6 +1688,8 @@ function initialize() {
     const safeName = sanitizeFileName(file.name);
     const objectPath = isCreditReportUpload
       ? `${activeClientId}/reports/${Date.now()}-${safeName}`
+      : isDisputeSummaryUpload
+        ? `${activeClientId}/summaries/${Date.now()}-${safeName}`
       : `${activeClientId}/${Date.now()}-${safeName}`;
     const fileLabel = titleInput || (isCreditReportUpload ? `${bureau || "Credit"} report` : file.name);
     const fileNotes = isCreditReportUpload ? reportSummary || notes || null : notes || null;
@@ -1681,12 +1751,34 @@ function initialize() {
       }
     }
 
+    let importedNegativeItemCount = 0;
+    if (isDisputeSummaryUpload) {
+      try {
+        const result = await importNegativeItemsFromUploadedFile(file, fileRow, category);
+        importedNegativeItemCount = result.importedCount || 0;
+      } catch (error) {
+        if (isMissingFeatureError(error)) {
+          setAdminStatus("Run the updated supabase-portal-schema.sql before importing negative items.", true);
+          return;
+        }
+        setAdminStatus(
+          "File uploaded but negative item import failed: " + (error?.message || error),
+          true
+        );
+        return;
+      }
+    }
+
     fileUploadForm.reset();
     syncUploadCategoryUi();
     setReportAutofillStatus("");
     setAdminStatus(
       isCreditReportUpload
         ? "Credit report uploaded."
+        : isDisputeSummaryUpload
+          ? importedNegativeItemCount
+            ? `Dispute summary uploaded. Imported ${importedNegativeItemCount} negative item(s).`
+            : "Dispute summary uploaded, but no negative items were detected."
         : "File uploaded and attached to client record."
     );
     await loadClientPreview(activeClientId);

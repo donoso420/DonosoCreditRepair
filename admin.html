@@ -143,14 +143,18 @@
                         <option value="Collection">Collection</option>
                         <option value="Charge Off">Charge Off</option>
                         <option value="Late Payment">Late Payment</option>
+                        <option value="Hard Inquiry">Hard Inquiry</option>
                         <option value="Delinquent">Delinquent</option>
                         <option value="Derogatory">Derogatory</option>
+                        <option value="Duplicate Account">Duplicate Account</option>
+                        <option value="Personal Information">Personal Information</option>
                         <option value="Repossession">Repossession</option>
                         <option value="Bankruptcy">Bankruptcy</option>
                         <option value="Foreclosure">Foreclosure</option>
                         <option value="Judgment">Judgment</option>
                         <option value="Lien">Lien</option>
                         <option value="Settlement">Settlement</option>
+                        <option value="Negative Item">Negative Item</option>
                       </select>
                     </div>
                   </div>
@@ -263,6 +267,7 @@
                   <select id="file-category" required>
                     <option value="">Choose category</option>
                     <option value="Credit Report">Credit Report</option>
+                    <option value="Dispute Summary">Dispute Summary</option>
                     <option value="Letter Copy">Letter Copy</option>
                     <option value="CFPB Screenshot">CFPB Screenshot</option>
                     <option value="Credit Report Screenshot">Credit Report Screenshot</option>
@@ -295,6 +300,7 @@
                   <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
                   <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</span></label>
                   <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
+                  <p class="muted sm">Use <strong>Dispute Summary</strong> for a Credit Dispute Master Summary `.docx` or PDF. The uploader will import the detected negative items into the section on the left.</p>
                   <button class="btn primary full mt" type="submit">Upload File</button>
                 </form>
               </div>

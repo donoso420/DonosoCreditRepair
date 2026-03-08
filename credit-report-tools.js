@@ -19,6 +19,7 @@ const NEGATIVE_PATTERNS = [
 
 let pdfJsPromise = null;
 let tesseractPromise = null;
+let jsZipPromise = null;
 
 function normalizeWhitespace(value) {
   return String(value || "")
@@ -54,17 +55,30 @@ function inferBureauFromText(...values) {
 
 function inferReportDate(text, fallbackDate = "") {
   const normalized = normalizeWhitespace(text);
-  const match = normalized.match(
+  const numericMatch = normalized.match(
     /\b(?:report date|generated(?: on)?|as of|pulled on)\b[^0-9]{0,12}(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i
   );
-  if (!match) return fallbackDate || "";
+  if (numericMatch) {
+    const parts = numericMatch[1].split(/[/-]/).map((part) => part.trim());
+    if (parts.length === 3) {
+      let [month, day, year] = parts;
+      if (year.length === 2) year = `20${year}`;
+      const iso = `${year.padStart(4, "0")}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+    }
+  }
 
-  const parts = match[1].split(/[/-]/).map((part) => part.trim());
-  if (parts.length !== 3) return fallbackDate || "";
-  let [month, day, year] = parts;
-  if (year.length === 2) year = `20${year}`;
-  const iso = `${year.padStart(4, "0")}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : fallbackDate || "";
+  const writtenMatch = normalized.match(
+    /\b(?:report date|generated(?: on)?|as of|pulled on)\b[^a-z0-9]{0,12}([A-Za-z]+\s+\d{1,2},\s+\d{4})/i
+  );
+  if (writtenMatch) {
+    const parsed = new Date(writtenMatch[1]);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+
+  return fallbackDate || "";
 }
 
 function cleanLine(line) {
@@ -111,6 +125,158 @@ function extractStatus(text) {
 
   const fallback = NEGATIVE_PATTERNS.find(({ pattern }) => pattern.test(normalized));
   return fallback ? fallback.type : "";
+}
+
+function isBureauOnlyLine(line) {
+  const normalized = cleanLine(line)
+    .toLowerCase()
+    .replace(/[,+/&]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return false;
+  return /^(experian|equifax|transunion|exp|eq|tu|all 3|all three)( (experian|equifax|transunion|exp|eq|tu))*$/.test(
+    normalized
+  );
+}
+
+function extractBureausFromSummary(text) {
+  const normalized = cleanLine(text).toLowerCase();
+  const bureaus = [];
+
+  if (/\ball 3\b|\ball three\b/.test(normalized)) {
+    return [...BUREAU_NAMES];
+  }
+  if (/\bexperian\b|\bexp\b/.test(normalized)) bureaus.push("Experian");
+  if (/\bequifax\b|\beq\b/.test(normalized)) bureaus.push("Equifax");
+  if (/\btransunion\b|\btrans union\b|\btu\b/.test(normalized)) bureaus.push("TransUnion");
+
+  return bureaus.length ? bureaus : [""];
+}
+
+function inferSummaryItemType(issue) {
+  const normalized = cleanLine(issue).toLowerCase();
+  if (/\b(inquiry|hard pull|hard inquiry)\b/.test(normalized)) return "Hard Inquiry";
+  if (/\b(name variants?|addresses?)\b/.test(normalized)) return "Personal Information";
+  if (/\b(duplicate|listed twice|same account)\b/.test(normalized)) return "Duplicate Account";
+  if (/\b(charge[\s-]*off|written off)\b/.test(normalized)) return "Charge Off";
+  if (/\bcollection\b/.test(normalized)) return "Collection";
+  if (/\b(90|120|150|180)\s+days?\s+past due\b|\bdays?\s+late\b/.test(normalized)) {
+    return "Late Payment";
+  }
+  if (/\bbankruptcy\b/.test(normalized)) return "Bankruptcy";
+  if (/\bforeclosure\b/.test(normalized)) return "Foreclosure";
+  if (/\blien\b/.test(normalized)) return "Lien";
+  if (/\bjudg(?:e)?ment\b/.test(normalized)) return "Judgment";
+  return extractStatus(issue) || "Negative Item";
+}
+
+function extractSummaryCreditor(issue) {
+  const normalized = cleanLine(issue.replace(/^\d+\s+/, ""));
+
+  if (/\bname variants?\b/i.test(normalized)) return "Name Variants";
+  if (/\baddresses?\b/i.test(normalized)) return "Address History";
+
+  const groupedMatch = normalized.match(
+    /^(.+?)\s+(?:collection accounts|hard inquiries|name variants|addresses)\b/i
+  );
+  if (groupedMatch) {
+    return cleanLine(groupedMatch[1]).replace(/^\d+\s+/, "");
+  }
+
+  const accountLabelMatch = normalized.match(/account:\s*([^;—]+?)(?:\s+opened|\s+—|$)/i);
+  if (accountLabelMatch) {
+    return cleanLine(accountLabelMatch[1]).replace(/\s*#\s*[a-z0-9*Xx-]+$/i, "");
+  }
+
+  const separatorMatch = normalized.match(/^(.+?)(?:\s+[—–-]\s+|:\s)/);
+  if (separatorMatch) {
+    return cleanLine(separatorMatch[1]).replace(/\s*#\s*[a-z0-9*Xx-]+$/i, "");
+  }
+
+  return cleanLine(normalized).slice(0, 80) || "Reported Item";
+}
+
+function extractSummaryNegativeItems(text, fileMeta = {}) {
+  const normalized = normalizeWhitespace(text);
+  const startIndex = normalized.indexOf("PRIORITY DISPUTE ACTION LIST");
+  const endIndex = normalized.indexOf("LEGAL REFERENCE GUIDE");
+  if (startIndex === -1) return [];
+
+  const section = normalized.slice(
+    startIndex + "PRIORITY DISPUTE ACTION LIST".length,
+    endIndex === -1 ? normalized.length : endIndex
+  );
+
+  const lines = section
+    .split("\n")
+    .map((line) => cleanLine(line))
+    .filter(Boolean)
+    .filter((line) => !["#", "Priority", "Issue", "Bureaus", "Legal Basis", "Action"].includes(line));
+
+  const reportDate = inferReportDate(normalized, fileMeta.reportDate || "");
+  const detected = [];
+
+  for (let index = 0; index < lines.length; ) {
+    if (!/^\d+$/.test(lines[index])) {
+      index += 1;
+      continue;
+    }
+
+    let cursor = index + 1;
+    const priority = /^(critical|high|medium|low)$/i.test(lines[cursor] || "") ? lines[cursor++] : "";
+    const issueLines = [];
+    while (cursor < lines.length && !/^\d+$/.test(lines[cursor]) && !isBureauOnlyLine(lines[cursor])) {
+      issueLines.push(lines[cursor]);
+      cursor += 1;
+    }
+
+    const bureauLines = [];
+    while (cursor < lines.length && isBureauOnlyLine(lines[cursor])) {
+      bureauLines.push(lines[cursor]);
+      cursor += 1;
+    }
+
+    while (cursor < lines.length && !/^\d+$/.test(lines[cursor])) {
+      cursor += 1;
+    }
+
+    const issue = cleanLine(issueLines.join(" "));
+    if (!issue) {
+      index = cursor;
+      continue;
+    }
+
+    const bureaus = extractBureausFromSummary(bureauLines.join(" "));
+    const creditor = extractSummaryCreditor(issue);
+    const accountReference = extractAccountReference(issue);
+    const itemType = inferSummaryItemType(issue);
+    const status = priority ? `${priority.toUpperCase()} priority dispute` : "Needs review";
+    const notes = cleanLine(issue).slice(0, 240);
+    const balance = extractMoney(issue);
+
+    bureaus.forEach((bureau) => {
+      detected.push({
+        bureau,
+        creditor,
+        item_type: itemType,
+        account_reference: accountReference,
+        status,
+        balance,
+        notes,
+        source: "scanned",
+        verification_method: "browser_scan",
+        verification_notes: "Imported from uploaded dispute summary document.",
+        evidence_excerpt: notes,
+        source_file_id: fileMeta.fileId || null,
+        last_seen_at: reportDate || fileMeta.reportDate || "",
+        is_active: true,
+      });
+    });
+
+    index = cursor;
+  }
+
+  return dedupeItems(detected, buildNegativeItemFingerprint);
 }
 
 function extractCreditor(contextLines, sourceName) {
@@ -321,6 +487,15 @@ async function getTesseract() {
   return tesseractPromise;
 }
 
+async function getJsZip() {
+  if (!jsZipPromise) {
+    jsZipPromise = import("https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm").then(
+      (module) => module.default || module
+    );
+  }
+  return jsZipPromise;
+}
+
 async function runOcr(source, progress, label = "document") {
   const Tesseract = await getTesseract();
   progress?.(`Running OCR on ${label}...`);
@@ -367,6 +542,27 @@ async function extractTextFromImage(file, progress) {
   return runOcr(file, progress, file.name || "image");
 }
 
+async function extractTextFromDocx(file, progress) {
+  progress?.(`Reading Word document ${file.name || ""}...`);
+  const JSZip = await getJsZip();
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const documentXml = await zip.file("word/document.xml")?.async("text");
+  if (!documentXml) return "";
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(documentXml, "application/xml");
+  const paragraphs = Array.from(xmlDoc.getElementsByTagName("w:p"))
+    .map((paragraph) =>
+      Array.from(paragraph.getElementsByTagName("w:t"))
+        .map((node) => node.textContent || "")
+        .join("")
+    )
+    .map((line) => cleanLine(line))
+    .filter(Boolean);
+
+  return normalizeWhitespace(paragraphs.join("\n"));
+}
+
 export async function scanCreditDocument(file, fileMeta = {}, progress) {
   const contentType = String(fileMeta.contentType || file.type || "").toLowerCase();
   const fileName = String(fileMeta.fileName || file.name || "");
@@ -374,6 +570,11 @@ export async function scanCreditDocument(file, fileMeta = {}, progress) {
 
   if (contentType === "application/pdf" || /\.pdf$/i.test(fileName)) {
     text = await extractTextFromPdf(file, progress);
+  } else if (
+    contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    /\.docx$/i.test(fileName)
+  ) {
+    text = await extractTextFromDocx(file, progress);
   } else if (/image\/(png|jpeg|jpg|webp)/.test(contentType) || /\.(png|jpe?g|webp)$/i.test(fileName)) {
     text = await extractTextFromImage(file, progress);
   }
@@ -383,7 +584,10 @@ export async function scanCreditDocument(file, fileMeta = {}, progress) {
     fingerprint: buildCreditReportFingerprint(report),
   }));
 
-  const negativeItems = extractNegativeItems(text, fileMeta).map((item) => ({
+  const negativeItems = dedupeItems(
+    [...extractSummaryNegativeItems(text, fileMeta), ...extractNegativeItems(text, fileMeta)],
+    buildNegativeItemFingerprint
+  ).map((item) => ({
     ...item,
     fingerprint: buildNegativeItemFingerprint(item),
   }));
