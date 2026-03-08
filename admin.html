@@ -101,33 +101,6 @@
 
             <div class="section-group">
               <div class="section-label">
-                <h2>📊 Credit Scores</h2>
-                <p class="muted sm">Log bureau score snapshots</p>
-              </div>
-              <div class="card">
-                <h3 class="card-title">Add Score Snapshot</h3>
-                <form id="snapshot-form">
-                  <input id="snapshot-edit-id" type="hidden" />
-                  <label for="snapshot-bureau">Bureau <span class="req">*</span></label>
-                  <select id="snapshot-bureau" required>
-                    <option value="Experian">Experian</option>
-                    <option value="Equifax">Equifax</option>
-                    <option value="TransUnion">TransUnion</option>
-                  </select>
-                  <label for="snapshot-score">Score <span class="req">*</span></label>
-                  <input id="snapshot-score" type="number" min="300" max="850" placeholder="e.g. 612" required />
-                  <label for="snapshot-date">Reported Date <span class="req">*</span></label>
-                  <input id="snapshot-date" type="date" required />
-                  <div class="form-actions mt">
-                    <button class="btn primary full" id="snapshot-submit-btn" type="submit">Add Snapshot</button>
-                    <button class="btn secondary full hidden" id="snapshot-cancel-btn" type="button">Cancel Edit</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-            <div class="section-group">
-              <div class="section-label">
                 <h2>📅 Timeline Update</h2>
                 <p class="muted sm">Post a progress note to the client</p>
               </div>
@@ -279,7 +252,7 @@
             <div class="section-group">
               <div class="section-label">
                 <h2>📁 Upload File</h2>
-                <p class="muted sm">One uploader for credit reports, letters, screenshots, and other client documents</p>
+                <p class="muted sm">One uploader for credit reports, scores, letters, screenshots, and other client documents</p>
               </div>
               <div class="card">
                 <h3 class="card-title">Upload Client Document</h3>
@@ -371,10 +344,6 @@
               <ul id="preview-negative-items" class="list"></ul>
             </div>
             <div class="card">
-              <h4 class="preview-title">📊 Scores</h4>
-              <ul id="preview-scores" class="list"></ul>
-            </div>
-            <div class="card">
               <h4 class="preview-title">✉️ Letters</h4>
               <ul id="preview-letters" class="list"></ul>
             </div>
@@ -457,6 +426,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260307m"></script>
+    <script type="module" src="admin.js?v=20260307n"></script>
   </body>
 </html>

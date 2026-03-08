@@ -19,10 +19,6 @@ const profileForm = document.getElementById("profile-form");
 const clientSelect = document.getElementById("client-select");
 const activeClientIdEl = document.getElementById("active-client-id");
 
-const snapshotForm = document.getElementById("snapshot-form");
-const snapshotEditIdInput = document.getElementById("snapshot-edit-id");
-const snapshotSubmitBtn = document.getElementById("snapshot-submit-btn");
-const snapshotCancelBtn = document.getElementById("snapshot-cancel-btn");
 const negativeItemForm = document.getElementById("negative-item-form");
 const negativeEditIdInput = document.getElementById("negative-edit-id");
 const negativeSubmitBtn = document.getElementById("negative-submit-btn");
@@ -45,7 +41,6 @@ const inviteStatus = document.getElementById("invite-status");
 const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
 
-const previewScores = document.getElementById("preview-scores");
 const previewReports = document.getElementById("preview-reports");
 const previewNegativeItems = document.getElementById("preview-negative-items");
 const previewLetters = document.getElementById("preview-letters");
@@ -78,7 +73,6 @@ let currentAdmin = null;
 let activeClientId = null;
 let activeClientFiles = [];
 let activeReportRows = [];
-let activeScoreRows = [];
 let activeNegativeItemRows = [];
 let activeLetterRows = [];
 let activeUpdateRows = [];
@@ -232,25 +226,6 @@ function renderRecordActionButtons(id, editAction, deleteAction) {
 function toggleFormEditMode(submitBtn, cancelBtn, isEditing, createLabel, editLabel) {
   if (submitBtn) submitBtn.textContent = isEditing ? editLabel : createLabel;
   cancelBtn?.classList.toggle("hidden", !isEditing);
-}
-
-function resetSnapshotForm() {
-  snapshotForm?.reset();
-  if (snapshotEditIdInput) snapshotEditIdInput.value = "";
-  toggleFormEditMode(snapshotSubmitBtn, snapshotCancelBtn, false, "Add Snapshot", "Save Snapshot");
-}
-
-function populateSnapshotForm(row) {
-  if (!row) return;
-  if (snapshotEditIdInput) snapshotEditIdInput.value = String(row.id || "");
-  const bureauInput = document.getElementById("snapshot-bureau");
-  const scoreInput = document.getElementById("snapshot-score");
-  const dateInput = document.getElementById("snapshot-date");
-  if (bureauInput) bureauInput.value = row.bureau || "Experian";
-  if (scoreInput) scoreInput.value = row.score ?? "";
-  if (dateInput) dateInput.value = row.reported_at || "";
-  toggleFormEditMode(snapshotSubmitBtn, snapshotCancelBtn, true, "Add Snapshot", "Save Snapshot");
-  snapshotForm?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function resetTimelineForm() {
@@ -564,12 +539,10 @@ async function loadClients() {
     clientSelect.innerHTML = '<option value="">No clients yet</option>';
     activeClientId = null;
     activeClientFiles = [];
-    activeScoreRows = [];
     activeNegativeItemRows = [];
     activeLetterRows = [];
     activeUpdateRows = [];
     activeClientIdEl.textContent = "";
-    resetSnapshotForm();
     resetNegativeItemForm();
     resetLetterForm();
     resetTimelineForm();
@@ -638,10 +611,9 @@ function renderClientUploads(files) {
     .join("");
 }
 
-function renderPreview(reports, negativeItems, scores, letters, updates, files) {
+function renderPreview(reports, negativeItems, letters, updates, files) {
   if (previewReports) previewReports.innerHTML = "";
   if (previewNegativeItems) previewNegativeItems.innerHTML = "";
-  previewScores.innerHTML = "";
   previewLetters.innerHTML = "";
   previewUpdates.innerHTML = "";
   previewFiles.innerHTML = "";
@@ -703,21 +675,6 @@ function renderPreview(reports, negativeItems, scores, letters, updates, files) 
         `;
         previewNegativeItems.appendChild(li);
       }
-    }
-  }
-
-  if (!scores.length) {
-    previewScores.innerHTML = "<li>No score records yet.</li>";
-  } else {
-    for (const row of scores) {
-      const li = document.createElement("li");
-      li.className = "file-record";
-      li.innerHTML = `
-        <p class="file-record-title">${safeText(row.bureau)}: ${safeText(row.score)}</p>
-        <p class="file-record-meta">${safeText(formatDate(row.reported_at))}</p>
-        ${renderRecordActionButtons(row.id, "edit-score", "delete-score")}
-      `;
-      previewScores.appendChild(li);
     }
   }
 
@@ -891,7 +848,6 @@ async function upsertNegativeItemRow(item) {
 async function loadClientPreview(userId) {
   if (!userId) return;
   const [
-    { data: scores },
     { data: letters },
     { data: updates },
     files,
@@ -900,7 +856,6 @@ async function loadClientPreview(userId) {
     negativeItems,
   ] =
     await Promise.all([
-      supabase.from("credit_snapshots").select("id,bureau,score,reported_at,created_at").eq("user_id", userId).order("reported_at", { ascending: false }).limit(12),
       supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date,notes,created_at").eq("user_id", userId).order("sent_date", { ascending: false }).limit(20),
       supabase.from("client_updates").select("id,details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
       loadClientFiles(userId),
@@ -928,7 +883,6 @@ async function loadClientPreview(userId) {
   const filesWithUrls = files || [];
   activeClientFiles = filesWithUrls;
   activeReportRows = reports || [];
-  activeScoreRows = scores || [];
   activeLetterRows = letters || [];
   activeUpdateRows = updates || [];
   activeNegativeItemRows = negativeItems || [];
@@ -941,7 +895,6 @@ async function loadClientPreview(userId) {
   renderPreview(
     reportsWithUrls,
     negativeItems || [],
-    scores || [],
     letters || [],
     updates || [],
     filesWithUrls.filter((f) => f.uploaded_by !== "client")
@@ -1106,29 +1059,6 @@ async function handlePreviewRecordAction(action, rowId) {
       }
       return;
     }
-    case "edit-score": {
-      const row = findActiveRow(activeScoreRows, rowId);
-      if (!row) {
-        setAdminStatus("Score snapshot not found. Refresh and try again.", true);
-        return;
-      }
-      populateSnapshotForm(row);
-      return;
-    }
-    case "delete-score": {
-      const row = findActiveRow(activeScoreRows, rowId);
-      if (!row) {
-        setAdminStatus("Score snapshot not found. Refresh and try again.", true);
-        return;
-      }
-      await deleteClientRecord({
-        table: "credit_snapshots",
-        rowId,
-        label: `${row.bureau} score snapshot from ${formatDate(row.reported_at)}`,
-        successMessage: "Score snapshot deleted.",
-      });
-      return;
-    }
     case "edit-negative-item": {
       const row = findActiveRow(activeNegativeItemRows, rowId);
       if (!row) {
@@ -1267,12 +1197,10 @@ function initialize() {
     activeClientId = clientSelect.value || null;
     activeClientFiles = [];
     activeReportRows = [];
-    activeScoreRows = [];
     activeNegativeItemRows = [];
     activeLetterRows = [];
     activeUpdateRows = [];
     activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
-    resetSnapshotForm();
     resetNegativeItemForm();
     resetLetterForm();
     resetTimelineForm();
@@ -1327,7 +1255,6 @@ function initialize() {
     await handlePreviewRecordAction(action, rowId);
   };
 
-  previewScores?.addEventListener("click", handlePreviewRecordClick);
   previewReports?.addEventListener("click", handlePreviewRecordClick);
   previewNegativeItems?.addEventListener("click", handlePreviewRecordClick);
   previewLetters?.addEventListener("click", handlePreviewRecordClick);
@@ -1345,7 +1272,6 @@ function initialize() {
   });
   syncUploadCategoryUi();
 
-  snapshotCancelBtn?.addEventListener("click", resetSnapshotForm);
   negativeCancelBtn?.addEventListener("click", resetNegativeItemForm);
   letterCancelBtn?.addEventListener("click", resetLetterForm);
   timelineCancelBtn?.addEventListener("click", resetTimelineForm);
@@ -1531,49 +1457,6 @@ function initialize() {
 
     resetNegativeItemForm();
     setAdminStatus(editId ? "Negative item updated." : "Negative item saved.");
-    await loadClientPreview(activeClientId);
-  });
-
-  snapshotForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!(await requireActiveClient())) return;
-
-    const editId = Number(snapshotEditIdInput?.value || 0);
-    const bureau = String(document.getElementById("snapshot-bureau")?.value || "");
-    const score = Number(document.getElementById("snapshot-score")?.value || 0);
-    const reportedAt = String(document.getElementById("snapshot-date")?.value || "");
-
-    if (!reportedAt || !score) {
-      setAdminStatus("Score and reported date are required.", true);
-      return;
-    }
-
-    const query = editId
-      ? supabase
-          .from("credit_snapshots")
-          .update({
-            bureau,
-            score,
-            reported_at: reportedAt,
-          })
-          .eq("user_id", activeClientId)
-          .eq("id", editId)
-      : supabase.from("credit_snapshots").insert({
-          user_id: activeClientId,
-          bureau,
-          score,
-          reported_at: reportedAt,
-        });
-
-    const { error } = await query;
-
-    if (error) {
-      setAdminStatus("Could not add snapshot: " + error.message, true);
-      return;
-    }
-
-    resetSnapshotForm();
-    setAdminStatus(editId ? "Snapshot updated." : "Snapshot added.");
     await loadClientPreview(activeClientId);
   });
 
