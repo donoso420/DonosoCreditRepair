@@ -216,16 +216,42 @@ textarea {
   flex-wrap: wrap;
 }
 
+#dashboard-card {
+  padding: 1.2rem;
+}
+
+.dashboard-section {
+  margin-top: 1rem;
+  padding: 1.15rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(247, 178, 221, 0.08), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #fcf9ff 100%);
+  box-shadow: 0 10px 24px rgba(86, 62, 128, 0.04);
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.85rem;
+}
+
+.section-head h3 {
+  margin: 0;
+}
+
 .score-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.85rem;
 }
 
 .report-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.85rem;
 }
 
 .score-card {
@@ -300,14 +326,6 @@ textarea {
   font-weight: 700;
 }
 
-.negative-tracker-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-end;
-  margin-bottom: 0.8rem;
-}
-
 .subtle {
   margin: 0;
   color: var(--muted);
@@ -316,8 +334,8 @@ textarea {
 .negative-tracker-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.55rem;
-  flex: 1;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
 }
 
 .negative-stat-card {
@@ -346,7 +364,7 @@ textarea {
 .negative-tracker-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.8rem;
+  gap: 0.9rem;
 }
 
 .negative-track-card {
@@ -620,11 +638,6 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 
-  .negative-tracker-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .negative-tracker-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -713,7 +726,7 @@ tbody tr:last-child td {
 }
 
 /* ── Messages ───────────────────────────────────────────── */
-.messages-section { margin-top: 1rem; }
+.messages-section { margin-top: 0; }
 
 .message-thread {
   list-style: none;
@@ -840,5 +853,5 @@ tbody tr:last-child td {
 .section-sub {
   font-size: 0.88rem;
   color: #666;
-  margin: 0 0 0.75rem;
+  margin: 0;
 }

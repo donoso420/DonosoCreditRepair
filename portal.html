@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260307e" />
+    <link rel="stylesheet" href="portal.css?v=20260307f" />
   </head>
   <body>
     <header class="portal-nav">
@@ -82,7 +82,7 @@
             </div>
           </div>
 
-          <section id="score-snapshot-section">
+          <section id="score-snapshot-section" class="dashboard-section">
             <h3>Credit Snapshot</h3>
             <div class="score-grid" id="score-grid">
               <article class="score-card">
@@ -103,8 +103,11 @@
             </div>
           </section>
 
-          <section>
-            <h3>Current Credit Reports</h3>
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Current Credit Reports</h3>
+              <p class="section-sub">Latest bureau reports and scores currently on file.</p>
+            </div>
             <div class="report-grid" id="report-grid">
               <article class="report-card empty-card">
                 <p class="empty">No current credit reports uploaded yet.</p>
@@ -112,30 +115,28 @@
             </div>
           </section>
 
-          <section>
-            <div class="negative-tracker-head">
-              <div>
-                <h3>Negative Item Tracker</h3>
-                <p class="subtle">Track each negative account from intake through resolution.</p>
-              </div>
-              <div class="negative-tracker-stats" id="negative-tracker-stats">
-                <article class="negative-stat-card">
-                  <span>Total Items</span>
-                  <strong>0</strong>
-                </article>
-                <article class="negative-stat-card">
-                  <span>In Progress</span>
-                  <strong>0</strong>
-                </article>
-                <article class="negative-stat-card">
-                  <span>Resolved</span>
-                  <strong>0</strong>
-                </article>
-                <article class="negative-stat-card">
-                  <span>Active Balance</span>
-                  <strong>$0</strong>
-                </article>
-              </div>
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Negative Item Tracker</h3>
+              <p class="subtle">Track each negative account from intake through resolution.</p>
+            </div>
+            <div class="negative-tracker-stats" id="negative-tracker-stats">
+              <article class="negative-stat-card">
+                <span>Total Items</span>
+                <strong>0</strong>
+              </article>
+              <article class="negative-stat-card">
+                <span>In Progress</span>
+                <strong>0</strong>
+              </article>
+              <article class="negative-stat-card">
+                <span>Resolved</span>
+                <strong>0</strong>
+              </article>
+              <article class="negative-stat-card">
+                <span>Active Balance</span>
+                <strong>$0</strong>
+              </article>
             </div>
             <div class="negative-tracker-grid" id="negative-tracker-grid">
               <article class="negative-track-card empty-card">
@@ -144,8 +145,10 @@
             </div>
           </section>
 
-          <section>
-            <h3>Letters Sent + Tracking Numbers</h3>
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Letters Sent + Tracking Numbers</h3>
+            </div>
             <div class="table-wrap">
               <table>
                 <thead>
@@ -166,8 +169,10 @@
             </div>
           </section>
 
-          <section>
-            <h3>Dispute Progress</h3>
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Dispute Progress</h3>
+            </div>
             <div class="tracker" id="progress-tracker">
               <div class="tracker-step" data-step="1">
                 <div class="tracker-dot"></div>
@@ -207,15 +212,19 @@
             </div>
           </section>
 
-          <section>
-            <h3>Account Updates</h3>
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Account Updates</h3>
+            </div>
             <ul class="timeline" id="updates-list">
               <li class="empty">No updates posted yet.</li>
             </ul>
           </section>
 
-          <section>
-            <h3>Documents &amp; Letters</h3>
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Documents &amp; Letters</h3>
+            </div>
             <ul class="file-list" id="files-list">
               <li class="empty">No files uploaded yet.</li>
             </ul>
@@ -243,9 +252,11 @@
             <p class="reports-note">Opens in a new tab · This is the official, federally mandated free credit report site (no credit card required).</p>
           </section>
 
-          <section>
-            <h3>Upload Incoming Mail</h3>
-            <p class="section-sub">Received something from a bureau or creditor — or downloaded your credit reports? Upload here so we can review and track the items manually.</p>
+          <section class="dashboard-section">
+            <div class="section-head">
+              <h3>Upload Incoming Mail</h3>
+              <p class="section-sub">Received something from a bureau or creditor, or downloaded your reports? Upload here so we can review and track everything manually.</p>
+            </div>
             <form id="client-upload-form" class="upload-form">
               <label for="client-file-title">Description</label>
               <input id="client-file-title" type="text" placeholder="e.g. Experian response letter — March 2026" required />
@@ -256,8 +267,10 @@
             <p id="upload-status" class="status" role="status" aria-live="polite"></p>
           </section>
 
-          <section class="messages-section">
-            <h3>Messages</h3>
+          <section class="dashboard-section messages-section">
+            <div class="section-head">
+              <h3>Messages</h3>
+            </div>
             <ul class="message-thread" id="message-thread">
               <li class="empty">No messages yet.</li>
             </ul>
