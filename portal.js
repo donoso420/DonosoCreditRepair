@@ -23,6 +23,7 @@ const negativeTrackerStatsEl = document.getElementById("negative-tracker-stats")
 const negativeTrackerGridEl = document.getElementById("negative-tracker-grid");
 const lettersBodyEl = document.getElementById("letters-body");
 const updatesListEl = document.getElementById("updates-list");
+const activityListEl = document.getElementById("activity-list");
 const filesListEl = document.getElementById("files-list");
 const messageThreadEl = document.getElementById("message-thread");
 const messageForm = document.getElementById("message-form");
@@ -44,6 +45,7 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
+const ACTIVITY_PREFIX = "[Activity] ";
 
 const requiredConfig = ["supabaseUrl", "supabaseAnonKey"];
 const missingConfig = requiredConfig.filter((k) => !config[k]);
@@ -711,17 +713,42 @@ function renderNegativeItems(items) {
 
 function renderUpdates(updates) {
   if (!updatesListEl) return;
-  if (!updates.length) {
+  const manualUpdates = (updates || []).filter((row) => !String(row.details || "").startsWith(ACTIVITY_PREFIX));
+
+  if (!manualUpdates.length) {
     updatesListEl.innerHTML = '<li class="empty">No updates posted yet.</li>';
     return;
   }
 
-  updatesListEl.innerHTML = updates
+  updatesListEl.innerHTML = manualUpdates
     .map(
       (row) => `
         <li>
           <p class="timeline-date">${escapeHtml(formatDate(row.created_at))}</p>
           <p class="timeline-text">${escapeHtml(row.details || "")}</p>
+        </li>
+      `
+    )
+    .join("");
+}
+
+function renderActivity(updates) {
+  if (!activityListEl) return;
+  const activityRows = (updates || []).filter((row) => String(row.details || "").startsWith(ACTIVITY_PREFIX));
+
+  if (!activityRows.length) {
+    activityListEl.innerHTML = '<li class="empty">No record activity yet.</li>';
+    return;
+  }
+
+  activityListEl.innerHTML = activityRows
+    .map(
+      (row) => `
+        <li>
+          <p class="timeline-date">${escapeHtml(formatDateTime(row.created_at))}</p>
+          <p class="timeline-text">${escapeHtml(
+            String(row.details || "").replace(ACTIVITY_PREFIX, "").trim()
+          )}</p>
         </li>
       `
     )
@@ -853,6 +880,7 @@ function initializePortal() {
     renderTracker(letters || [], snapshots || [], reportsWithUrls);
     renderLetters(letters || []);
     renderUpdates(updates || []);
+    renderActivity(updates || []);
     renderFiles(filesWithSignedUrls);
     renderMessages(messages || [], user.id);
   }

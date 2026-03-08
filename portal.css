@@ -649,6 +649,13 @@ tbody tr:last-child td {
   color: #3f3458;
 }
 
+.activity-feed {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+  scrollbar-gutter: stable;
+}
+
 .file-list {
   margin: 0;
   padding: 0;

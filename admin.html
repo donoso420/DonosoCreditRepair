@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260308a" />
+    <link rel="stylesheet" href="admin.css?v=20260308b" />
   </head>
   <body>
 
@@ -358,6 +358,10 @@
                 <span>📋 Updates</span>
                 <span class="preview-count" id="preview-count-updates">0</span>
               </button>
+              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('activity',this)">
+                <span>🕘 Activity</span>
+                <span class="preview-count" id="preview-count-activity">0</span>
+              </button>
               <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('files',this)">
                 <span>📁 Files</span>
                 <span class="preview-count" id="preview-count-files">0</span>
@@ -390,6 +394,13 @@
                 <p class="muted sm preview-subtitle">Recent client-facing timeline notes.</p>
                 <div class="preview-panel-body">
                   <ul id="preview-updates" class="list preview-list"></ul>
+                </div>
+              </section>
+              <section class="card preview-panel" id="preview-panel-activity" style="display:none">
+                <h4 class="preview-title">🕘 Record Activity</h4>
+                <p class="muted sm preview-subtitle">Automatic log of uploads, edits, and deletions for this client file.</p>
+                <div class="preview-panel-body">
+                  <ul id="preview-activity" class="list preview-list"></ul>
                 </div>
               </section>
               <section class="card preview-panel" id="preview-panel-files" style="display:none">
@@ -481,6 +492,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308d"></script>
+    <script type="module" src="admin.js?v=20260308e"></script>
   </body>
 </html>

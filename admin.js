@@ -45,6 +45,7 @@ const previewReports = document.getElementById("preview-reports");
 const previewNegativeItems = document.getElementById("preview-negative-items");
 const previewLetters = document.getElementById("preview-letters");
 const previewUpdates = document.getElementById("preview-updates");
+const previewActivity = document.getElementById("preview-activity");
 const previewFiles = document.getElementById("preview-files");
 const adminMessageThread = document.getElementById("admin-message-thread");
 const adminMessageForm = document.getElementById("admin-message-form");
@@ -66,6 +67,7 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
+const ACTIVITY_PREFIX = "[Activity] ";
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -407,6 +409,15 @@ function setPreviewCount(id, value) {
   el.textContent = String(value || 0);
 }
 
+function isActivityUpdateRow(row = {}) {
+  return String(row.details || "").startsWith(ACTIVITY_PREFIX);
+}
+
+function formatActivityDetails(details) {
+  const value = String(details || "");
+  return value.startsWith(ACTIVITY_PREFIX) ? value.slice(ACTIVITY_PREFIX.length).trim() : value;
+}
+
 function normalizeReportBureau(value) {
   const raw = String(value || "").toLowerCase();
   if (raw.includes("experian")) return "Experian";
@@ -659,12 +670,17 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
   if (previewNegativeItems) previewNegativeItems.innerHTML = "";
   previewLetters.innerHTML = "";
   previewUpdates.innerHTML = "";
+  if (previewActivity) previewActivity.innerHTML = "";
   previewFiles.innerHTML = "";
+
+  const activityRows = (updates || []).filter((row) => isActivityUpdateRow(row));
+  const manualUpdates = (updates || []).filter((row) => !isActivityUpdateRow(row));
 
   setPreviewCount("preview-count-reports", reports?.length || 0);
   setPreviewCount("preview-count-negative", negativeItems?.length || 0);
   setPreviewCount("preview-count-letters", letters?.length || 0);
-  setPreviewCount("preview-count-updates", updates?.length || 0);
+  setPreviewCount("preview-count-updates", manualUpdates.length);
+  setPreviewCount("preview-count-activity", activityRows.length);
   setPreviewCount("preview-count-files", files?.length || 0);
 
   if (previewReports) {
@@ -756,10 +772,10 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
     }
   }
 
-  if (!updates.length) {
+  if (!manualUpdates.length) {
     previewUpdates.innerHTML = '<li class="preview-empty">No updates yet.</li>';
   } else {
-    for (const row of updates) {
+    for (const row of manualUpdates) {
       const li = document.createElement("li");
       li.className = "file-record";
       li.innerHTML = `
@@ -768,6 +784,22 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
         ${renderRecordActionButtons(row.id, "edit-update", "delete-update")}
       `;
       previewUpdates.appendChild(li);
+    }
+  }
+
+  if (previewActivity) {
+    if (!activityRows.length) {
+      previewActivity.innerHTML = '<li class="preview-empty">No record activity yet.</li>';
+    } else {
+      for (const row of activityRows) {
+        const li = document.createElement("li");
+        li.className = "file-record";
+        li.innerHTML = `
+          <p class="file-record-title">${safeText(formatDateTime(row.created_at))}</p>
+          <p class="file-record-meta">${safeText(formatActivityDetails(row.details))}</p>
+        `;
+        previewActivity.appendChild(li);
+      }
     }
   }
 
@@ -902,6 +934,19 @@ async function upsertNegativeItemRow(item) {
     .upsert(payload, { onConflict: "user_id,fingerprint" });
 
   if (error) throw error;
+}
+
+async function logClientActivity(message) {
+  if (!activeClientId || !message) return;
+
+  const { error } = await supabase.from("client_updates").insert({
+    user_id: activeClientId,
+    details: `${ACTIVITY_PREFIX}${message}`,
+  });
+
+  if (error) {
+    console.warn("Could not log client activity:", error.message || error);
+  }
 }
 
 async function importNegativeItemsFromUploadedFile(file, fileRow, category) {
@@ -1064,6 +1109,7 @@ async function deleteClientFile(fileId) {
       setAdminStatus(`${label} deleted.`);
     }
 
+    await logClientActivity(`File deleted: ${label}.`);
     await loadClientPreview(activeClientId);
   } catch (error) {
     setAdminStatus("Could not delete file: " + (error?.message || error), true);
@@ -1115,7 +1161,7 @@ function findActiveRow(rows, rowId) {
   return (rows || []).find((row) => Number(row.id) === numericId) || null;
 }
 
-async function deleteClientRecord({ table, rowId, label, successMessage }) {
+async function deleteClientRecord({ table, rowId, label, successMessage, activityMessage }) {
   const numericId = Number(rowId || 0);
   if (!numericId || !activeClientId) return;
 
@@ -1136,6 +1182,9 @@ async function deleteClientRecord({ table, rowId, label, successMessage }) {
   }
 
   setAdminStatus(successMessage);
+  if (activityMessage) {
+    await logClientActivity(activityMessage);
+  }
   await loadClientPreview(activeClientId);
 }
 
@@ -1174,6 +1223,7 @@ async function handlePreviewRecordAction(action, rowId) {
         rowId,
         label: `${row.creditor} ${row.item_type}`,
         successMessage: "Negative item deleted.",
+        activityMessage: `Negative item deleted: ${row.creditor} — ${row.item_type}.`,
       });
       return;
     }
@@ -1197,6 +1247,7 @@ async function handlePreviewRecordAction(action, rowId) {
         rowId,
         label: `letter #${row.id}`,
         successMessage: "Letter record deleted.",
+        activityMessage: `Letter deleted: ${row.recipient || row.bureau || `#${row.id}`}.`,
       });
       return;
     }
@@ -1220,6 +1271,7 @@ async function handlePreviewRecordAction(action, rowId) {
         rowId,
         label: "this timeline update",
         successMessage: "Timeline update deleted.",
+        activityMessage: "Timeline update deleted.",
       });
       return;
     }
@@ -1562,6 +1614,11 @@ function initialize() {
       return;
     }
 
+    await logClientActivity(
+      editId
+        ? `Negative item updated: ${creditor} — ${itemType}.`
+        : `Negative item added: ${creditor} — ${itemType}.`
+    );
     resetNegativeItemForm();
     setAdminStatus(editId ? "Negative item updated." : "Negative item saved.");
     await loadClientPreview(activeClientId);
@@ -1613,6 +1670,11 @@ function initialize() {
       return;
     }
 
+    await logClientActivity(
+      editId
+        ? `Letter updated: ${recipient} — ${tracking}.`
+        : `Letter added: ${recipient} — ${tracking}.`
+    );
     resetLetterForm();
     setAdminStatus(editId ? "Letter record updated." : "Letter record added.");
     await loadClientPreview(activeClientId);
@@ -1639,6 +1701,7 @@ function initialize() {
       return;
     }
 
+    await logClientActivity(`Letter status updated: #${letterId} → ${status}.`);
     letterUpdateForm.reset();
     setAdminStatus("Letter status updated.");
     if (activeClientId) await loadClientPreview(activeClientId);
@@ -1673,6 +1736,9 @@ function initialize() {
       return;
     }
 
+    if (editId) {
+      await logClientActivity("Timeline update edited.");
+    }
     resetTimelineForm();
     setAdminStatus(editId ? "Timeline update saved." : "Timeline update added.");
     await loadClientPreview(activeClientId);
@@ -1808,6 +1874,15 @@ function initialize() {
       }
     }
 
+    const uploadActivityMessage = isCreditReportUpload
+      ? `Credit report uploaded: ${fileLabel}.`
+      : isDisputeSummaryUpload
+        ? importedNegativeItemCount
+          ? `Dispute summary uploaded: ${fileLabel}. Imported ${importedNegativeItemCount} negative item(s).`
+          : `Dispute summary uploaded: ${fileLabel}.`
+        : `File uploaded: ${fileLabel}.`;
+
+    await logClientActivity(uploadActivityMessage);
     fileUploadForm.reset();
     syncUploadCategoryUi();
     setReportAutofillStatus("");
