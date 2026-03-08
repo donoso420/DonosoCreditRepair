@@ -400,6 +400,30 @@ function verificationBadgeClass(value) {
   }
 }
 
+function isScannerGeneratedReportText(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return (
+    normalized.startsWith("detected a likely credit report") ||
+    normalized.startsWith("detected by the browser document scanner")
+  );
+}
+
+function getReportCardSummary(row) {
+  const summary = String(row?.summary || "").trim();
+  if (!summary || isScannerGeneratedReportText(summary)) {
+    return "Current report on file.";
+  }
+  return summary;
+}
+
+function getReportCardReviewNotes(row) {
+  const notes = String(row?.verification_notes || "").trim();
+  if (!notes || isScannerGeneratedReportText(notes)) {
+    return "";
+  }
+  return notes;
+}
+
 async function markClientReportReviewed(supabase, reportId) {
   const numericReportId = Number(reportId || 0);
   if (!numericReportId) return false;
@@ -615,11 +639,12 @@ function renderReports(reports) {
   reportGridEl.innerHTML = orderedReports
     .map((row) => {
       const reportDate = formatDate(row.report_date || row.created_at);
-      const summary = row.summary || "Current report on file.";
+      const summary = getReportCardSummary(row);
       const reviewLabel = formatVerificationStatus(row.verification_status);
       const reviewMethod = formatVerificationMethod(row.verification_method);
-      const reviewNotes = row.verification_notes
-        ? `<p class="report-review-note">${escapeHtml(row.verification_notes)}</p>`
+      const reviewNotesText = getReportCardReviewNotes(row);
+      const reviewNotes = reviewNotesText
+        ? `<p class="report-review-note">${escapeHtml(reviewNotesText)}</p>`
         : "";
       const openLink = row.signed_url
         ? `<a href="${escapeHtml(
