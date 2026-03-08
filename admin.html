@@ -233,12 +233,14 @@
 
               <div class="card">
                 <h3 class="card-title">Update Existing Letter Status</h3>
-                <p class="muted sm">Use the Letter ID from the preview panel below.</p>
+                <p class="muted sm">Choose any letter from the active client's records below.</p>
                 <form id="letter-update-form">
                   <div class="form-row">
                     <div>
-                      <label for="letter-id">Letter ID <span class="req">*</span></label>
-                      <input id="letter-id" type="number" min="1" placeholder="e.g. 3" required />
+                      <label for="letter-update-id">Letter Record <span class="req">*</span></label>
+                      <select id="letter-update-id" required>
+                        <option value="">Select a letter...</option>
+                      </select>
                     </div>
                     <div>
                       <label for="letter-update-status">New Status</label>
@@ -249,6 +251,7 @@
                       </select>
                     </div>
                   </div>
+                  <p class="muted sm" id="letter-update-selected-meta">No letter selected yet.</p>
                   <label for="letter-update-notes">Notes</label>
                   <textarea id="letter-update-notes" rows="2" placeholder="Optional note about the update"></textarea>
                   <button class="btn secondary full mt" type="submit">Update Letter</button>
@@ -664,6 +667,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308i"></script>
+    <script type="module" src="admin.js?v=20260308j"></script>
   </body>
 </html>
