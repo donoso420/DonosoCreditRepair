@@ -37,12 +37,12 @@ h2,
 h3 {
   margin: 0 0 0.65rem;
   line-height: 1.12;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 h1,
 h2 {
-  font-family: "Syne", sans-serif;
+  font-family: "Sora", sans-serif;
 }
 
 p {
@@ -77,10 +77,10 @@ a {
 
 .brand {
   text-decoration: none;
-  font-family: "Syne", sans-serif;
-  font-size: 1.12rem;
+  font-family: "Sora", sans-serif;
+  font-size: 1.06rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   background: linear-gradient(90deg, #e8c97a, #f5dfa0, #c9a84c);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -254,14 +254,14 @@ h1 {
 }
 
 .stat-value {
-  font-family: "Syne", sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 2rem;
   margin: 0;
 }
 
 .stat-label {
   margin: 0 0 0.55rem;
-  font-family: "Syne", sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 1.05rem;
   color: var(--ink);
   font-weight: 700;
@@ -277,7 +277,8 @@ h1 {
 }
 
 .section-title {
-  font-size: clamp(2rem, 4.3vw, 3.35rem);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  max-width: 12ch;
 }
 
 .section-kicker {
@@ -520,7 +521,7 @@ h1 {
 }
 
 .plan-price {
-  font-family: "Syne", sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 2.08rem;
   margin: 0.08rem 0 0.64rem;
 }
