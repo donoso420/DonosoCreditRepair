@@ -322,23 +322,41 @@ h1 {
   margin-bottom: 1rem;
 }
 
+.results-hint {
+  margin: -0.15rem 0 0.95rem;
+  color: #6a5d85;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .results-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 1020px;
+  overflow-y: auto;
+  padding: 0.15rem 0.35rem 0.15rem 0;
+  scroll-snap-type: y proximity;
+  scrollbar-gutter: stable;
 }
 
 .result-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
   background: #ffffff;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 0.82rem;
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: 0 14px 32px rgba(45, 31, 83, 0.06);
+  scroll-snap-align: start;
 }
 
 .result-media {
-  min-height: 160px;
+  min-height: 240px;
   border: 1px solid #d4c4e3;
-  border-radius: 10px;
+  border-radius: 14px;
   overflow: hidden;
   background: #f9f5ff;
 }
@@ -349,20 +367,42 @@ h1 {
   object-fit: contain;
   object-position: top;
   display: block;
-  min-height: 220px;
+  min-height: 260px;
   background: #ffffff;
 }
 
+.result-card > .result-title,
+.result-card > .result-text {
+  grid-column: 2;
+}
+
 .result-title {
-  margin: 0.7rem 0 0.25rem;
+  margin: 0.15rem 0 0.35rem;
   font-weight: 800;
   color: #3f3158;
+  font-size: 1.12rem;
 }
 
 .result-text {
   margin: 0;
   color: #665980;
   font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.results-grid::-webkit-scrollbar {
+  width: 11px;
+}
+
+.results-grid::-webkit-scrollbar-track {
+  background: #f1eafd;
+  border-radius: 999px;
+}
+
+.results-grid::-webkit-scrollbar-thumb {
+  background: #c2b1ef;
+  border-radius: 999px;
+  border: 2px solid #f1eafd;
 }
 
 .issue-grid {
@@ -727,9 +767,21 @@ h1 {
 @media (max-width: 1020px) {
   .hero-grid,
   .stats-grid,
-  .results-grid,
   .pricing-grid {
     grid-template-columns: 1fr;
+  }
+
+  .results-grid {
+    max-height: 920px;
+  }
+
+  .result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .result-card > .result-title,
+  .result-card > .result-text {
+    grid-column: auto;
   }
 
   .issue-grid {
@@ -815,6 +867,20 @@ h1 {
   }
 
   /* Results */
+  .results-grid {
+    max-height: 760px;
+    padding-right: 0.1rem;
+  }
+
+  .results-hint {
+    font-size: 0.84rem;
+  }
+
+  .result-card {
+    gap: 0.8rem;
+    padding: 0.85rem;
+  }
+
   .result-media img {
     min-height: 160px;
   }
