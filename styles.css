@@ -96,6 +96,18 @@ a {
   display: none;
 }
 
+.nav-signin {
+  text-decoration: none;
+  color: #f2eaff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.nav-signin:hover {
+  color: #ffffff;
+}
+
 .nav-links a {
   text-decoration: none;
   font-size: 0.92rem;
@@ -826,6 +838,10 @@ h1 {
     display: none;
   }
 
+  .nav-signin {
+    font-size: 0.86rem;
+  }
+
   .mobile-nav {
     display: flex;
     gap: 0.6rem;
@@ -879,6 +895,10 @@ h1 {
     padding: 0.5rem 0.75rem;
     font-size: 0.82rem;
     white-space: nowrap;
+  }
+
+  .nav-signin {
+    font-size: 0.82rem;
   }
 
   .mobile-nav {
