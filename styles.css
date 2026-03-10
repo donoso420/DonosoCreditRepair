@@ -190,6 +190,22 @@ h1 {
   margin-top: 0.9rem;
 }
 
+.hero-slogan {
+  max-width: 36ch;
+  margin: 1rem 0 0;
+  padding: 0.9rem 1rem 0.92rem;
+  border-left: 4px solid #a88df2;
+  border-radius: 0 16px 16px 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fbf7ff;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1rem, 2vw, 1.28rem);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  box-shadow: inset 0 0 0 1px rgba(198, 177, 242, 0.18);
+}
+
 .hero-points {
   margin: 0.9rem 0 0;
   padding-left: 1.05rem;
@@ -892,6 +908,12 @@ h1 {
 
   .hero-lead {
     font-size: 0.97rem;
+  }
+
+  .hero-slogan {
+    max-width: none;
+    font-size: 1rem;
+    padding: 0.82rem 0.88rem 0.86rem;
   }
 
   .hero-actions {
