@@ -92,6 +92,10 @@ a {
   gap: 1.1rem;
 }
 
+.mobile-nav {
+  display: none;
+}
+
 .nav-links a {
   text-decoration: none;
   font-size: 0.92rem;
@@ -806,6 +810,37 @@ h1 {
     display: none;
   }
 
+  .mobile-nav {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding: 0 0 0.82rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .mobile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-nav a {
+    flex: 0 0 auto;
+    text-decoration: none;
+    color: #f1e8ff;
+    border: 1px solid rgba(189, 166, 237, 0.42);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+    padding: 0.48rem 0.82rem;
+    font-size: 0.86rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .mobile-nav a:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+
   .hero-grid {
     gap: 2rem;
     padding: 3rem 0 2.5rem;
@@ -828,6 +863,17 @@ h1 {
     padding: 0.5rem 0.75rem;
     font-size: 0.82rem;
     white-space: nowrap;
+  }
+
+  .mobile-nav {
+    width: 92%;
+    margin: 0 auto;
+    padding-bottom: 0.74rem;
+  }
+
+  .mobile-nav a {
+    font-size: 0.82rem;
+    padding: 0.44rem 0.72rem;
   }
 
   /* Hero */
