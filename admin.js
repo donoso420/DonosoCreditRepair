@@ -17,6 +17,12 @@ const adminIdentity = document.getElementById("admin-identity");
 
 const profileForm = document.getElementById("profile-form");
 const clientSelect = document.getElementById("client-select");
+const clientSearchInput = document.getElementById("client-search");
+const clientSearchCount = document.getElementById("client-search-count");
+const clientList = document.getElementById("client-list");
+const activeClientNameEl = document.getElementById("active-client-name");
+const activeClientPhoneEl = document.getElementById("active-client-phone");
+const activeClientAddressEl = document.getElementById("active-client-address");
 const activeClientIdEl = document.getElementById("active-client-id");
 
 const negativeItemForm = document.getElementById("negative-item-form");
@@ -88,6 +94,7 @@ const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k
 let supabase = null;
 let currentAdmin = null;
 let activeClientId = null;
+let clientDirectory = [];
 let activeClientFiles = [];
 let activeScoreSnapshotRows = [];
 let activeReportRows = [];
@@ -167,6 +174,169 @@ function safeText(value) {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function getClientDisplayName(row = {}) {
+  return String(row.full_name || "").trim() || "Unnamed Client";
+}
+
+function getClientInitials(name = "") {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  if (!parts.length) return "CL";
+  return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "CL";
+}
+
+function getClientListMeta(row = {}) {
+  const details = [];
+  if (row.phone) details.push(row.phone);
+  if (row.address) details.push(String(row.address).split(",")[0].trim());
+  if (row.user_id) details.push(row.user_id.slice(0, 8));
+  return details.filter(Boolean).join(" · ") || "Client record";
+}
+
+function getClientSearchValue(row = {}) {
+  return [row.user_id, row.full_name, row.phone, row.address]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function getClientRow(userId = activeClientId) {
+  return clientDirectory.find((row) => row.user_id === userId) || null;
+}
+
+function updateActiveClientSummary(row) {
+  if (activeClientNameEl) {
+    activeClientNameEl.textContent = row ? getClientDisplayName(row) : "Select a client";
+  }
+  if (activeClientPhoneEl) {
+    activeClientPhoneEl.textContent = row?.phone ? `Phone: ${row.phone}` : "Phone not added yet.";
+  }
+  if (activeClientAddressEl) {
+    activeClientAddressEl.textContent = row?.address ? `Address: ${row.address}` : "Address not added yet.";
+  }
+  if (activeClientIdEl) {
+    activeClientIdEl.textContent = row?.user_id ? `Client ID: ${row.user_id}` : "";
+  }
+  if (openPortalPreviewBtn) {
+    openPortalPreviewBtn.disabled = !row?.user_id;
+  }
+}
+
+function renderClientSelectOptions() {
+  if (!clientSelect) return;
+
+  clientSelect.innerHTML = "";
+  if (!clientDirectory.length) {
+    clientSelect.innerHTML = '<option value="">No clients yet</option>';
+    return;
+  }
+
+  clientDirectory.forEach((row) => {
+    const option = document.createElement("option");
+    option.value = row.user_id;
+    option.textContent = `${getClientDisplayName(row)}${row.phone ? ` · ${row.phone}` : ""}`;
+    clientSelect.appendChild(option);
+  });
+}
+
+function renderClientList() {
+  if (!clientList) return;
+
+  const query = String(clientSearchInput?.value || "")
+    .trim()
+    .toLowerCase();
+  const visibleRows = query
+    ? clientDirectory.filter((row) => getClientSearchValue(row).includes(query))
+    : clientDirectory;
+
+  if (clientSearchCount) {
+    if (!clientDirectory.length) {
+      clientSearchCount.textContent = "No clients yet";
+    } else if (query) {
+      clientSearchCount.textContent = `Showing ${visibleRows.length} of ${clientDirectory.length} clients`;
+    } else {
+      clientSearchCount.textContent = `${clientDirectory.length} client${clientDirectory.length === 1 ? "" : "s"}`;
+    }
+  }
+
+  if (!visibleRows.length) {
+    clientList.innerHTML = '<p class="client-list-empty">No clients match that search.</p>';
+    return;
+  }
+
+  clientList.innerHTML = visibleRows
+    .map((row) => {
+      const name = getClientDisplayName(row);
+      const isActive = row.user_id === activeClientId;
+      return `
+        <button
+          class="client-list-item${isActive ? " active" : ""}"
+          type="button"
+          data-client-id="${safeText(row.user_id)}"
+          role="option"
+          aria-selected="${isActive ? "true" : "false"}"
+        >
+          <span class="client-list-avatar" aria-hidden="true">${safeText(getClientInitials(name))}</span>
+          <span class="client-list-copy">
+            <span class="client-list-name">${safeText(name)}</span>
+            <span class="client-list-meta">${safeText(getClientListMeta(row))}</span>
+          </span>
+          <span class="client-list-state">${isActive ? "Active" : "Open"}</span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function resetActiveClientCollections() {
+  activeClientFiles = [];
+  activeScoreSnapshotRows = [];
+  activeReportRows = [];
+  activeNegativeItemRows = [];
+  activeLetterRows = [];
+  activeUpdateRows = [];
+  activeBillingProfile = null;
+  activeInvoiceRows = [];
+}
+
+function resetActiveClientForms() {
+  resetNegativeItemForm();
+  resetLetterForm();
+  resetLetterStatusForm();
+  resetTimelineForm();
+  resetScoreForm();
+  resetInvoiceForm();
+}
+
+function clearRenderedClientState() {
+  renderPreview([], [], [], [], [], []);
+  renderBillingManager(null, []);
+  renderAdminMessages([]);
+  renderClientUploads([]);
+}
+
+async function setActiveClient(userId) {
+  activeClientId = userId || null;
+  if (clientSelect) {
+    clientSelect.value = activeClientId || "";
+  }
+
+  resetActiveClientCollections();
+  resetActiveClientForms();
+  updateActiveClientSummary(getClientRow(activeClientId));
+  renderClientList();
+
+  if (!activeClientId) {
+    clearRenderedClientState();
+    return;
+  }
+
+  await loadClientPreview(activeClientId);
 }
 
 function sanitizeFileName(name) {
@@ -693,70 +863,77 @@ async function checkAdmin(userId) {
   };
 }
 
-async function loadClients() {
-  const [
-    { data: profileRows, error: profileError },
-    { data: adminRows, error: adminError },
-  ] = await Promise.all([
-    supabase
-      .from("client_profiles")
-      .select("user_id,full_name,phone")
-      .order("full_name", { ascending: true }),
-    supabase
-      .from("admin_users")
-      .select("user_id"),
-  ]);
+async function loadClientDirectoryRows() {
+  const primary = await supabase
+    .from("client_profiles")
+    .select("user_id,full_name,phone,address,created_at")
+    .order("full_name", { ascending: true });
 
-  if (profileError) {
-    setAdminStatus("Could not load clients: " + profileError.message, true);
-    return;
+  if (!primary.error) {
+    return primary.data || [];
   }
 
-  if (adminError) {
-    setAdminStatus("Could not verify admin accounts while loading clients: " + adminError.message, true);
+  if (!isMissingFeatureError(primary.error)) {
+    throw primary.error;
+  }
+
+  const fallback = await supabase
+    .from("client_profiles")
+    .select("user_id,full_name,phone,created_at")
+    .order("full_name", { ascending: true });
+
+  if (fallback.error) {
+    throw fallback.error;
+  }
+
+  return (fallback.data || []).map((row) => ({
+    ...row,
+    address: null,
+  }));
+}
+
+async function loadClients() {
+  let profileRows;
+  let adminRows;
+
+  try {
+    [profileRows, adminRows] = await Promise.all([
+      loadClientDirectoryRows(),
+      safeTableQuery(
+        supabase
+          .from("admin_users")
+          .select("user_id")
+      ),
+    ]);
+  } catch (error) {
+    setAdminStatus("Could not load clients: " + (error?.message || error), true);
     return;
   }
 
   const adminIds = new Set((adminRows || []).map((row) => row.user_id));
-  const data = (profileRows || []).filter((row) => row.user_id && !adminIds.has(row.user_id));
+  clientDirectory = (profileRows || [])
+    .filter((row) => row.user_id && !adminIds.has(row.user_id))
+    .sort((a, b) =>
+      getClientDisplayName(a).localeCompare(getClientDisplayName(b), undefined, { sensitivity: "base" })
+    );
 
-  clientSelect.innerHTML = "";
-  if (!data || data.length === 0) {
-    clientSelect.innerHTML = '<option value="">No clients yet</option>';
+  renderClientSelectOptions();
+  renderClientList();
+
+  if (!clientDirectory.length) {
     activeClientId = null;
-    activeClientFiles = [];
-    activeScoreSnapshotRows = [];
-    activeReportRows = [];
-    activeNegativeItemRows = [];
-    activeLetterRows = [];
-    activeUpdateRows = [];
-    activeBillingProfile = null;
-    activeInvoiceRows = [];
-    activeClientIdEl.textContent = "";
-    resetNegativeItemForm();
-    resetLetterForm();
-    resetTimelineForm();
-    resetScoreForm();
-    resetInvoiceForm();
-    renderPreview([], [], [], [], [], []);
-    renderBillingManager(null, []);
+    resetActiveClientCollections();
+    resetActiveClientForms();
+    updateActiveClientSummary(null);
+    clearRenderedClientState();
     return;
   }
 
-  for (const row of data) {
-    const option = document.createElement("option");
-    option.value = row.user_id;
-    const name = row.full_name || "Unnamed Client";
-    option.textContent = `${name} (${row.user_id.slice(0, 8)}...)`;
-    clientSelect.appendChild(option);
+  if (!activeClientId || !clientDirectory.some((row) => row.user_id === activeClientId)) {
+    activeClientId = clientDirectory[0].user_id;
   }
 
-  if (!activeClientId || !data.some((x) => x.user_id === activeClientId)) {
-    activeClientId = data[0].user_id;
-  }
-  clientSelect.value = activeClientId;
-  activeClientIdEl.textContent = `Active user_id: ${activeClientId}`;
-  await loadClientPreview(activeClientId);
+  await setActiveClient(activeClientId);
 }
 
 function formatDateTime(value) {
@@ -2023,23 +2200,27 @@ function initialize() {
   });
 
   clientSelect?.addEventListener("change", async () => {
-    activeClientId = clientSelect.value || null;
-    activeClientFiles = [];
-    activeScoreSnapshotRows = [];
-    activeReportRows = [];
-    activeNegativeItemRows = [];
-    activeLetterRows = [];
-    activeUpdateRows = [];
-    activeBillingProfile = null;
-    activeInvoiceRows = [];
-    activeClientIdEl.textContent = activeClientId ? `Active user_id: ${activeClientId}` : "";
-    resetNegativeItemForm();
-    resetLetterForm();
-    resetLetterStatusForm();
-    resetTimelineForm();
-    resetScoreForm();
-    resetInvoiceForm();
-    await loadClientPreview(activeClientId);
+    await setActiveClient(clientSelect.value || null);
+  });
+
+  clientSearchInput?.addEventListener("input", () => {
+    renderClientList();
+  });
+
+  clientSearchInput?.addEventListener("keydown", async (event) => {
+    if (event.key !== "Enter") return;
+    const firstMatch = clientList?.querySelector("[data-client-id]");
+    if (!firstMatch) return;
+    event.preventDefault();
+    await setActiveClient(firstMatch.getAttribute("data-client-id") || null);
+  });
+
+  clientList?.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-client-id]");
+    if (!button) return;
+    const nextClientId = button.getAttribute("data-client-id") || "";
+    if (!nextClientId || nextClientId === activeClientId) return;
+    await setActiveClient(nextClientId);
   });
 
   const handleFileActionClick = async (event) => {

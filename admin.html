@@ -81,406 +81,471 @@
         <!-- Active client selector bar -->
         <div class="container client-bar" id="shared-client-bar">
           <div class="client-bar-inner card client-select-card">
-            <div class="client-bar-left">
-              <h3 class="card-title" style="margin:0">Active Client</h3>
-              <p class="muted sm" style="margin:0">All actions below apply to the selected client.</p>
-            </div>
-            <div class="client-bar-right">
-              <select id="client-select"></select>
-              <p class="active-client-id" id="active-client-id"></p>
-              <button class="btn secondary sm" id="open-portal-preview-btn" type="button">Open Portal Preview</button>
+            <div class="client-picker-grid">
+              <section class="client-picker-panel" aria-labelledby="client-picker-title">
+                <div class="client-picker-head">
+                  <div>
+                    <p class="eyebrow">Client Switcher</p>
+                    <h3 class="card-title client-picker-title" id="client-picker-title">Choose a client</h3>
+                    <p class="muted sm">Search by name, phone, address, or client ID.</p>
+                  </div>
+                  <div class="client-picker-tools">
+                    <label class="sr-only" for="client-search">Search clients</label>
+                    <input
+                      id="client-search"
+                      type="search"
+                      placeholder="Search clients..."
+                      autocomplete="off"
+                    />
+                    <p class="client-search-count" id="client-search-count">0 clients</p>
+                  </div>
+                </div>
+                <select id="client-select" class="hidden" aria-hidden="true" tabindex="-1"></select>
+                <div class="client-list" id="client-list" role="listbox" aria-label="Client list">
+                  <p class="preview-empty">No clients yet.</p>
+                </div>
+              </section>
+
+              <aside class="client-active-card" aria-live="polite">
+                <p class="eyebrow">Active Client</p>
+                <h3 class="client-active-name" id="active-client-name">Select a client</h3>
+                <p class="client-active-detail" id="active-client-phone">Phone will show here.</p>
+                <p class="client-active-detail" id="active-client-address">Address will show here.</p>
+                <p class="active-client-id" id="active-client-id"></p>
+                <div class="client-active-actions">
+                  <button class="btn secondary sm" id="open-portal-preview-btn" type="button" disabled>
+                    Open Portal Preview
+                  </button>
+                </div>
+              </aside>
             </div>
           </div>
         </div>
 
         <!-- ── TAB: Client Dashboard ─────────────────────── -->
         <div class="tab-panel active" id="tab-dashboard">
+          <div class="container dashboard-shell">
+            <aside class="workspace-nav-card card">
+              <p class="eyebrow">Client Workspace</p>
+              <h2 class="workspace-title">Dashboard Sections</h2>
+              <p class="muted sm">Work on one part of the client record at a time.</p>
+              <nav class="workspace-nav" aria-label="Client dashboard sections">
+                <button class="workspace-tab-btn active" type="button" onclick="adminWorkspaceTab('updates',this)">
+                  📅 Updates
+                </button>
+                <button class="workspace-tab-btn" type="button" onclick="adminWorkspaceTab('negative-items',this)">
+                  ⚠️ Negative Items
+                </button>
+                <button class="workspace-tab-btn" type="button" onclick="adminWorkspaceTab('letters',this)">
+                  ✉️ Letters
+                </button>
+                <button class="workspace-tab-btn" type="button" onclick="adminWorkspaceTab('documents',this)">
+                  📁 Scores &amp; Files
+                </button>
+                <button class="workspace-tab-btn" type="button" onclick="adminWorkspaceTab('messages',this)">
+                  💬 Messages
+                </button>
+                <button class="workspace-tab-btn" type="button" onclick="adminWorkspaceTab('record',this)">
+                  🔍 Record Preview
+                </button>
+              </nav>
+            </aside>
 
-          <div class="container admin-body">
-
-          <!-- ── COLUMN A ───────────────────────── -->
-          <div class="admin-col">
-
-            <div class="section-group">
-              <div class="section-label">
-                <h2>📅 Timeline Update</h2>
-                <p class="muted sm">Post a progress note to the client</p>
-              </div>
-              <div class="card">
-                <h3 class="card-title">Add Update</h3>
-                <form id="timeline-form">
-                  <input id="timeline-edit-id" type="hidden" />
-                  <label for="timeline-details">Update Details <span class="req">*</span></label>
-                  <textarea id="timeline-details" rows="4" placeholder="e.g. Dispute letter mailed to Equifax via certified mail on 3/6/2026." required></textarea>
-                  <div class="form-actions mt">
-                    <button class="btn primary full" id="timeline-submit-btn" type="submit">Post Update</button>
-                    <button class="btn secondary full hidden" id="timeline-cancel-btn" type="button">Cancel Edit</button>
+            <div class="workspace-panels">
+              <section class="workspace-panel active" id="workspace-panel-updates">
+                <div class="section-group">
+                  <div class="section-label">
+                    <h2>📅 Timeline Update</h2>
+                    <p class="muted sm">Post a progress note to the client</p>
                   </div>
-                </form>
-              </div>
-            </div>
+                  <div class="card">
+                    <h3 class="card-title">Add Update</h3>
+                    <form id="timeline-form">
+                      <input id="timeline-edit-id" type="hidden" />
+                      <label for="timeline-details">Update Details <span class="req">*</span></label>
+                      <textarea id="timeline-details" rows="4" placeholder="e.g. Dispute letter mailed to Equifax via certified mail on 3/6/2026." required></textarea>
+                      <div class="form-actions mt">
+                        <button class="btn primary full" id="timeline-submit-btn" type="submit">Post Update</button>
+                        <button class="btn secondary full hidden" id="timeline-cancel-btn" type="button">Cancel Edit</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </section>
 
-            <div class="section-group">
-              <div class="section-label">
-                <h2>⚠️ Negative Items</h2>
-                <p class="muted sm">Add or correct negative accounts showing on the current report</p>
-              </div>
-              <div class="card">
-                <h3 class="card-title">Add / Update Negative Item</h3>
-                <form id="negative-item-form">
-                  <input id="negative-edit-id" type="hidden" />
-                  <div class="form-row">
-                    <div>
-                      <label for="negative-bureau">Bureau</label>
-                      <select id="negative-bureau">
-                        <option value="ALL_BUREAUS">All 3 Bureaus</option>
-                        <option value="Shared / Unknown">Shared / Unknown</option>
-                        <option value="Experian">Experian</option>
-                        <option value="Equifax">Equifax</option>
-                        <option value="TransUnion">TransUnion</option>
-                      </select>
+              <section class="workspace-panel" id="workspace-panel-negative-items" style="display:none">
+                <div class="section-group">
+                  <div class="section-label">
+                    <h2>⚠️ Negative Items</h2>
+                    <p class="muted sm">Add or correct negative accounts showing on the current report</p>
+                  </div>
+                  <div class="card">
+                    <h3 class="card-title">Add / Update Negative Item</h3>
+                    <form id="negative-item-form">
+                      <input id="negative-edit-id" type="hidden" />
+                      <div class="form-row">
+                        <div>
+                          <label for="negative-bureau">Bureau</label>
+                          <select id="negative-bureau">
+                            <option value="ALL_BUREAUS">All 3 Bureaus</option>
+                            <option value="Shared / Unknown">Shared / Unknown</option>
+                            <option value="Experian">Experian</option>
+                            <option value="Equifax">Equifax</option>
+                            <option value="TransUnion">TransUnion</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label for="negative-type">Item Type <span class="req">*</span></label>
+                          <select id="negative-type" required>
+                            <option value="Collection">Collection</option>
+                            <option value="Charge Off">Charge Off</option>
+                            <option value="Late Payment">Late Payment</option>
+                            <option value="Hard Inquiry">Hard Inquiry</option>
+                            <option value="Delinquent">Delinquent</option>
+                            <option value="Derogatory">Derogatory</option>
+                            <option value="Duplicate Account">Duplicate Account</option>
+                            <option value="Personal Information">Personal Information</option>
+                            <option value="Repossession">Repossession</option>
+                            <option value="Bankruptcy">Bankruptcy</option>
+                            <option value="Foreclosure">Foreclosure</option>
+                            <option value="Judgment">Judgment</option>
+                            <option value="Lien">Lien</option>
+                            <option value="Settlement">Settlement</option>
+                            <option value="Negative Item">Negative Item</option>
+                          </select>
+                        </div>
+                      </div>
+                      <label for="negative-creditor">Creditor / Furnisher <span class="req">*</span></label>
+                      <input id="negative-creditor" type="text" placeholder="e.g. Midland Credit Management" required />
+                      <div class="form-row">
+                        <div>
+                          <label for="negative-account-ref">Account / Reference</label>
+                          <input id="negative-account-ref" type="text" placeholder="Last 4 or masked account number" />
+                        </div>
+                        <div>
+                          <label for="negative-balance">Balance</label>
+                          <input id="negative-balance" type="number" min="0" step="0.01" placeholder="e.g. 850.00" />
+                        </div>
+                      </div>
+                      <label for="negative-status">Status</label>
+                      <input id="negative-status" type="text" placeholder="e.g. Open collection, 90 days late" />
+                      <div class="negative-status-actions" aria-label="Negative item outcome helpers">
+                        <button class="btn secondary sm negative-status-chip" data-negative-outcome="deleted" type="button">
+                          Mark Deleted
+                        </button>
+                        <button class="btn secondary sm negative-status-chip" data-negative-outcome="removed" type="button">
+                          Mark Removed
+                        </button>
+                        <button class="btn secondary sm negative-status-chip" data-negative-outcome="updated" type="button">
+                          Mark Updated
+                        </button>
+                      </div>
+                      <p class="negative-status-hint">
+                        Use <strong>Deleted</strong> or <strong>Removed</strong> when the bureau has taken the item off the report.
+                      </p>
+                      <label for="negative-notes">Notes</label>
+                      <textarea id="negative-notes" rows="3" placeholder="Optional details, dates, or dispute notes"></textarea>
+                      <label class="checkbox-row" for="negative-active">
+                        <input id="negative-active" type="checkbox" checked />
+                        <span>Item is still active on the current report</span>
+                      </label>
+                      <div class="form-actions mt">
+                        <button class="btn primary full" id="negative-submit-btn" type="submit">Save Negative Item</button>
+                        <button class="btn secondary full hidden" id="negative-cancel-btn" type="button">Cancel Edit</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </section>
+
+              <section class="workspace-panel" id="workspace-panel-letters" style="display:none">
+                <div class="section-group">
+                  <div class="section-label">
+                    <h2>✉️ Letters &amp; Tracking</h2>
+                    <p class="muted sm">Log sent letters and update their status</p>
+                  </div>
+
+                  <div class="card">
+                    <h3 class="card-title">Add New Letter</h3>
+                    <form id="letter-form">
+                      <input id="letter-edit-id" type="hidden" />
+                      <div class="form-row">
+                        <div>
+                          <label for="letter-date">Sent Date <span class="req">*</span></label>
+                          <input id="letter-date" type="date" required />
+                        </div>
+                        <div>
+                          <label for="letter-status">Status <span class="req">*</span></label>
+                          <select id="letter-status" required>
+                            <option>In Transit</option>
+                            <option>Delivered</option>
+                            <option>Response Received</option>
+                          </select>
+                        </div>
+                      </div>
+                      <label for="letter-recipient">Bureau / Creditor <span class="req">*</span></label>
+                      <input id="letter-recipient" type="text" placeholder="e.g. Experian, NCB Management" required />
+                      <label for="letter-tracking">Tracking Number <span class="req">*</span></label>
+                      <input id="letter-tracking" type="text" placeholder="USPS or UPS tracking number" required />
+                      <label for="letter-notes">Notes</label>
+                      <textarea id="letter-notes" rows="2" placeholder="Optional — dispute reason, account number, etc."></textarea>
+                      <div class="form-actions mt">
+                        <button class="btn primary full" id="letter-submit-btn" type="submit">Add Letter Record</button>
+                        <button class="btn secondary full hidden" id="letter-cancel-btn" type="button">Cancel Edit</button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <div class="card">
+                    <h3 class="card-title">Update Existing Letter Status</h3>
+                    <p class="muted sm">Choose any letter from the active client's records below.</p>
+                    <form id="letter-update-form">
+                      <div class="form-row">
+                        <div>
+                          <label for="letter-update-id">Letter Record <span class="req">*</span></label>
+                          <select id="letter-update-id" required>
+                            <option value="">Select a letter...</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label for="letter-update-status">New Status</label>
+                          <select id="letter-update-status" required>
+                            <option>In Transit</option>
+                            <option>Delivered</option>
+                            <option>Response Received</option>
+                          </select>
+                        </div>
+                      </div>
+                      <p class="muted sm" id="letter-update-selected-meta">No letter selected yet.</p>
+                      <label for="letter-update-notes">Notes</label>
+                      <textarea id="letter-update-notes" rows="2" placeholder="Optional note about the update"></textarea>
+                      <button class="btn secondary full mt" type="submit">Update Letter</button>
+                    </form>
+                  </div>
+                </div>
+              </section>
+
+              <section class="workspace-panel" id="workspace-panel-documents" style="display:none">
+                <div class="workspace-grid two-up">
+                  <div class="section-group">
+                    <div class="section-label">
+                      <h2>📈 Credit Scores</h2>
+                      <p class="muted sm">Add a bureau score without uploading a report file</p>
                     </div>
-                    <div>
-                      <label for="negative-type">Item Type <span class="req">*</span></label>
-                      <select id="negative-type" required>
-                        <option value="Collection">Collection</option>
-                        <option value="Charge Off">Charge Off</option>
-                        <option value="Late Payment">Late Payment</option>
-                        <option value="Hard Inquiry">Hard Inquiry</option>
-                        <option value="Delinquent">Delinquent</option>
-                        <option value="Derogatory">Derogatory</option>
-                        <option value="Duplicate Account">Duplicate Account</option>
-                        <option value="Personal Information">Personal Information</option>
-                        <option value="Repossession">Repossession</option>
-                        <option value="Bankruptcy">Bankruptcy</option>
-                        <option value="Foreclosure">Foreclosure</option>
-                        <option value="Judgment">Judgment</option>
-                        <option value="Lien">Lien</option>
-                        <option value="Settlement">Settlement</option>
-                        <option value="Negative Item">Negative Item</option>
-                      </select>
+                    <div class="card">
+                      <h3 class="card-title">Add Credit Score Snapshot</h3>
+                      <form id="score-form">
+                        <div class="form-row">
+                          <div>
+                            <label for="score-bureau">Bureau <span class="req">*</span></label>
+                            <select id="score-bureau" required>
+                              <option value="Experian">Experian</option>
+                              <option value="Equifax">Equifax</option>
+                              <option value="TransUnion">TransUnion</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label for="score-value">Score <span class="req">*</span></label>
+                            <input id="score-value" type="number" min="300" max="850" placeholder="e.g. 612" required />
+                          </div>
+                        </div>
+                        <label for="score-date">Reported Date <span class="req">*</span></label>
+                        <input id="score-date" type="date" required />
+                        <p class="muted sm">Use this when you want the client portal to show a current bureau score without attaching a report file.</p>
+                        <button class="btn primary full mt" type="submit">Save Credit Score</button>
+                      </form>
                     </div>
                   </div>
-                  <label for="negative-creditor">Creditor / Furnisher <span class="req">*</span></label>
-                  <input id="negative-creditor" type="text" placeholder="e.g. Midland Credit Management" required />
-                  <div class="form-row">
-                    <div>
-                      <label for="negative-account-ref">Account / Reference</label>
-                      <input id="negative-account-ref" type="text" placeholder="Last 4 or masked account number" />
-                    </div>
-                    <div>
-                      <label for="negative-balance">Balance</label>
-                      <input id="negative-balance" type="number" min="0" step="0.01" placeholder="e.g. 850.00" />
-                    </div>
-                  </div>
-                  <label for="negative-status">Status</label>
-                  <input id="negative-status" type="text" placeholder="e.g. Open collection, 90 days late" />
-                  <div class="negative-status-actions" aria-label="Negative item outcome helpers">
-                    <button class="btn secondary sm negative-status-chip" data-negative-outcome="deleted" type="button">
-                      Mark Deleted
-                    </button>
-                    <button class="btn secondary sm negative-status-chip" data-negative-outcome="removed" type="button">
-                      Mark Removed
-                    </button>
-                    <button class="btn secondary sm negative-status-chip" data-negative-outcome="updated" type="button">
-                      Mark Updated
-                    </button>
-                  </div>
-                  <p class="negative-status-hint">
-                    Use <strong>Deleted</strong> or <strong>Removed</strong> when the bureau has taken the item off the report.
-                  </p>
-                  <label for="negative-notes">Notes</label>
-                  <textarea id="negative-notes" rows="3" placeholder="Optional details, dates, or dispute notes"></textarea>
-                  <label class="checkbox-row" for="negative-active">
-                    <input id="negative-active" type="checkbox" checked />
-                    <span>Item is still active on the current report</span>
-                  </label>
-                  <div class="form-actions mt">
-                    <button class="btn primary full" id="negative-submit-btn" type="submit">Save Negative Item</button>
-                    <button class="btn secondary full hidden" id="negative-cancel-btn" type="button">Cancel Edit</button>
-                  </div>
-                </form>
-              </div>
-            </div>
 
-          </div>
-
-          <!-- ── COLUMN B: Letters + Files + Messages ─── -->
-          <div class="admin-col">
-
-            <div class="section-group">
-              <div class="section-label">
-                <h2>✉️ Letters &amp; Tracking</h2>
-                <p class="muted sm">Log sent letters and update their status</p>
-              </div>
-
-              <div class="card">
-                <h3 class="card-title">Add New Letter</h3>
-                <form id="letter-form">
-                  <input id="letter-edit-id" type="hidden" />
-                  <div class="form-row">
-                    <div>
-                      <label for="letter-date">Sent Date <span class="req">*</span></label>
-                      <input id="letter-date" type="date" required />
+                  <div class="section-group">
+                    <div class="section-label">
+                      <h2>📁 Upload File</h2>
+                      <p class="muted sm">One uploader for credit reports, scores, letters, screenshots, and other client documents</p>
                     </div>
-                    <div>
-                      <label for="letter-status">Status <span class="req">*</span></label>
-                      <select id="letter-status" required>
-                        <option>In Transit</option>
-                        <option>Delivered</option>
-                        <option>Response Received</option>
-                      </select>
-                    </div>
-                  </div>
-                  <label for="letter-recipient">Bureau / Creditor <span class="req">*</span></label>
-                  <input id="letter-recipient" type="text" placeholder="e.g. Experian, NCB Management" required />
-                  <label for="letter-tracking">Tracking Number <span class="req">*</span></label>
-                  <input id="letter-tracking" type="text" placeholder="USPS or UPS tracking number" required />
-                  <label for="letter-notes">Notes</label>
-                  <textarea id="letter-notes" rows="2" placeholder="Optional — dispute reason, account number, etc."></textarea>
-                  <div class="form-actions mt">
-                    <button class="btn primary full" id="letter-submit-btn" type="submit">Add Letter Record</button>
-                    <button class="btn secondary full hidden" id="letter-cancel-btn" type="button">Cancel Edit</button>
-                  </div>
-                </form>
-              </div>
-
-              <div class="card">
-                <h3 class="card-title">Update Existing Letter Status</h3>
-                <p class="muted sm">Choose any letter from the active client's records below.</p>
-                <form id="letter-update-form">
-                  <div class="form-row">
-                    <div>
-                      <label for="letter-update-id">Letter Record <span class="req">*</span></label>
-                      <select id="letter-update-id" required>
-                        <option value="">Select a letter...</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label for="letter-update-status">New Status</label>
-                      <select id="letter-update-status" required>
-                        <option>In Transit</option>
-                        <option>Delivered</option>
-                        <option>Response Received</option>
-                      </select>
-                    </div>
-                  </div>
-                  <p class="muted sm" id="letter-update-selected-meta">No letter selected yet.</p>
-                  <label for="letter-update-notes">Notes</label>
-                  <textarea id="letter-update-notes" rows="2" placeholder="Optional note about the update"></textarea>
-                  <button class="btn secondary full mt" type="submit">Update Letter</button>
-                </form>
-              </div>
-            </div>
-
-            <div class="section-group">
-              <div class="section-label">
-                <h2>📈 Credit Scores</h2>
-                <p class="muted sm">Add a bureau score without uploading a report file</p>
-              </div>
-              <div class="card">
-                <h3 class="card-title">Add Credit Score Snapshot</h3>
-                <form id="score-form">
-                  <div class="form-row">
-                    <div>
-                      <label for="score-bureau">Bureau <span class="req">*</span></label>
-                      <select id="score-bureau" required>
-                        <option value="Experian">Experian</option>
-                        <option value="Equifax">Equifax</option>
-                        <option value="TransUnion">TransUnion</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label for="score-value">Score <span class="req">*</span></label>
-                      <input id="score-value" type="number" min="300" max="850" placeholder="e.g. 612" required />
-                    </div>
-                  </div>
-                  <label for="score-date">Reported Date <span class="req">*</span></label>
-                  <input id="score-date" type="date" required />
-                  <p class="muted sm">Use this when you want the client portal to show a current bureau score without attaching a report file.</p>
-                  <button class="btn primary full mt" type="submit">Save Credit Score</button>
-                </form>
-              </div>
-            </div>
-
-            <div class="section-group">
-              <div class="section-label">
-                <h2>📁 Upload File</h2>
-                <p class="muted sm">One uploader for credit reports, scores, letters, screenshots, and other client documents</p>
-              </div>
-              <div class="card">
-                <h3 class="card-title">Upload Client Document</h3>
-                <form id="file-upload-form">
-                  <label for="file-title">Title / Report Label</label>
-                  <input id="file-title" type="text" placeholder="e.g. Experian report pulled March 2026" />
-                  <label for="file-category">Category <span class="req">*</span></label>
-                  <select id="file-category" required>
-                    <option value="">Choose category</option>
-                    <option value="Government ID">Government ID</option>
-                    <option value="Social Security Card">Social Security Card</option>
-                    <option value="Proof of Address">Proof of Address</option>
-                    <option value="Credit Report">Credit Report</option>
-                    <option value="Dispute Summary">Dispute Summary</option>
-                    <option value="Letter Copy">Letter Copy</option>
-                    <option value="CFPB Screenshot">CFPB Screenshot</option>
-                    <option value="Credit Report Screenshot">Credit Report Screenshot</option>
-                    <option value="Other">Other</option>
-                  </select>
-                  <div id="credit-report-fields" class="hidden">
-                    <div class="form-row">
-                      <div>
-                        <label for="report-bureau">Bureau <span class="req">*</span></label>
-                        <select id="report-bureau">
-                          <option value="Experian">Experian</option>
-                          <option value="Equifax">Equifax</option>
-                          <option value="TransUnion">TransUnion</option>
+                    <div class="card">
+                      <h3 class="card-title">Upload Client Document</h3>
+                      <form id="file-upload-form">
+                        <label for="file-title">Title / Report Label</label>
+                        <input id="file-title" type="text" placeholder="e.g. Experian report pulled March 2026" />
+                        <label for="file-category">Category <span class="req">*</span></label>
+                        <select id="file-category" required>
+                          <option value="">Choose category</option>
+                          <option value="Government ID">Government ID</option>
+                          <option value="Social Security Card">Social Security Card</option>
+                          <option value="Proof of Address">Proof of Address</option>
+                          <option value="Credit Report">Credit Report</option>
+                          <option value="Dispute Summary">Dispute Summary</option>
+                          <option value="Letter Copy">Letter Copy</option>
+                          <option value="CFPB Screenshot">CFPB Screenshot</option>
+                          <option value="Credit Report Screenshot">Credit Report Screenshot</option>
                           <option value="Other">Other</option>
                         </select>
-                      </div>
-                      <div>
-                        <label for="report-score">Current Score</label>
-                        <input id="report-score" type="number" min="300" max="850" placeholder="e.g. 612" />
-                      </div>
+                        <div id="credit-report-fields" class="hidden">
+                          <div class="form-row">
+                            <div>
+                              <label for="report-bureau">Bureau <span class="req">*</span></label>
+                              <select id="report-bureau">
+                                <option value="Experian">Experian</option>
+                                <option value="Equifax">Equifax</option>
+                                <option value="TransUnion">TransUnion</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label for="report-score">Current Score</label>
+                              <input id="report-score" type="number" min="300" max="850" placeholder="e.g. 612" />
+                            </div>
+                          </div>
+                          <label for="report-date">Report Date</label>
+                          <input id="report-date" type="date" />
+                          <label for="report-summary">Report Summary</label>
+                          <textarea id="report-summary" rows="3" placeholder="Key notes about this report, bureau pull, or file set"></textarea>
+                          <p class="statusbar" id="report-autofill-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
+                          <p class="muted sm">Credit report uploads accept images, PDFs, and Word documents. Browser autofill only runs on smaller PDFs, and you can still fill these details manually when needed.</p>
+                        </div>
+                        <label for="file-notes">Notes</label>
+                        <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
+                        <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</span></label>
+                        <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
+                        <p class="muted sm">Use <strong>Dispute Summary</strong> for a Credit Dispute Master Summary image, PDF, or Word document. When the file is small enough and parseable in the browser, the uploader will import the detected negative items into the section on the left.</p>
+                        <button class="btn primary full mt" type="submit">Upload File</button>
+                      </form>
                     </div>
-                    <label for="report-date">Report Date</label>
-                    <input id="report-date" type="date" />
-                    <label for="report-summary">Report Summary</label>
-                    <textarea id="report-summary" rows="3" placeholder="Key notes about this report, bureau pull, or file set"></textarea>
-                    <p class="statusbar" id="report-autofill-status" role="status" aria-live="polite" style="margin-top:0.75rem;"></p>
-                    <p class="muted sm">Credit report uploads accept images, PDFs, and Word documents. Browser autofill only runs on smaller PDFs, and you can still fill these details manually when needed.</p>
                   </div>
-                  <label for="file-notes">Notes</label>
-                  <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
-                  <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</span></label>
-                  <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
-                  <p class="muted sm">Use <strong>Dispute Summary</strong> for a Credit Dispute Master Summary image, PDF, or Word document. When the file is small enough and parseable in the browser, the uploader will import the detected negative items into the section on the left.</p>
-                  <button class="btn primary full mt" type="submit">Upload File</button>
-                </form>
-              </div>
+                </div>
+              </section>
+
+              <section class="workspace-panel" id="workspace-panel-messages" style="display:none">
+                <div class="workspace-grid two-up">
+                  <div class="section-group">
+                    <div class="section-label">
+                      <h2>💬 Messages</h2>
+                      <p class="muted sm">Two-way client communication</p>
+                    </div>
+                    <div class="card">
+                      <h3 class="card-title">Message Thread</h3>
+                      <ul class="admin-message-thread" id="admin-message-thread">
+                        <li class="muted">Select a client to load messages.</li>
+                      </ul>
+                      <form id="admin-message-form" class="reply-form">
+                        <textarea id="admin-message-input" rows="3" placeholder="Type your reply to the client..."></textarea>
+                        <button class="btn primary full mt" type="submit">Send Reply</button>
+                      </form>
+                    </div>
+                  </div>
+
+                  <div class="section-group">
+                    <div class="section-label">
+                      <h2>📨 Client Uploads</h2>
+                      <p class="muted sm">Documents the client has uploaded for your team</p>
+                    </div>
+                    <div class="card">
+                      <h3 class="card-title">Client Uploads</h3>
+                      <ul id="preview-client-uploads" class="list">
+                        <li class="muted">Select a client to see their uploads.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="workspace-panel" id="workspace-panel-record" style="display:none">
+                <div class="preview-section workspace-preview-section">
+                  <div class="section-label">
+                    <h2>🔍 Client Record Preview</h2>
+                    <p class="muted sm">Live view of the active client's data</p>
+                  </div>
+                  <div class="preview-shell">
+                    <nav class="preview-nav" aria-label="Preview sections">
+                      <button class="preview-nav-btn active" type="button" onclick="adminPreviewTab('reports',this)">
+                        <span>🧾 Reports + Scores</span>
+                        <span class="preview-count" id="preview-count-reports">0</span>
+                      </button>
+                      <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('negative-items',this)">
+                        <span>⚠️ Negative Items</span>
+                        <span class="preview-count" id="preview-count-negative">0</span>
+                      </button>
+                      <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('letters',this)">
+                        <span>✉️ Letters</span>
+                        <span class="preview-count" id="preview-count-letters">0</span>
+                      </button>
+                      <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('updates',this)">
+                        <span>📋 Updates</span>
+                        <span class="preview-count" id="preview-count-updates">0</span>
+                      </button>
+                      <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('activity',this)">
+                        <span>🕘 Activity</span>
+                        <span class="preview-count" id="preview-count-activity">0</span>
+                      </button>
+                      <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('files',this)">
+                        <span>📁 Files</span>
+                        <span class="preview-count" id="preview-count-files">0</span>
+                      </button>
+                    </nav>
+                    <div class="preview-panels">
+                      <section class="card preview-panel active" id="preview-panel-reports">
+                        <h4 class="preview-title">🧾 Credit Reports + Scores</h4>
+                        <p class="muted sm preview-subtitle">Current score snapshots and bureau reports on file.</p>
+                        <div class="preview-subgroup">
+                          <p class="preview-subgroup-title">Credit Score Snapshots</p>
+                          <ul id="preview-score-snapshots" class="list preview-list preview-sublist"></ul>
+                        </div>
+                        <div class="preview-subgroup">
+                          <p class="preview-subgroup-title">Credit Reports</p>
+                        </div>
+                        <div class="preview-panel-body">
+                          <ul id="preview-reports" class="list preview-list"></ul>
+                        </div>
+                      </section>
+                      <section class="card preview-panel" id="preview-panel-negative-items" style="display:none">
+                        <h4 class="preview-title">⚠️ Negative Items</h4>
+                        <p class="muted sm preview-subtitle">Progress summary, deleted-item wins, and the full negative item tracker.</p>
+                        <div class="preview-negative-progress" id="preview-negative-progress"></div>
+                        <div class="preview-subgroup">
+                          <p class="preview-subgroup-title">Deleted / Removed Items</p>
+                          <ul id="preview-negative-deleted" class="list preview-list preview-sublist"></ul>
+                        </div>
+                        <div class="preview-subgroup">
+                          <p class="preview-subgroup-title">All Negative Items</p>
+                        </div>
+                        <div class="preview-panel-body">
+                          <ul id="preview-negative-items" class="list preview-list"></ul>
+                        </div>
+                      </section>
+                      <section class="card preview-panel" id="preview-panel-letters" style="display:none">
+                        <h4 class="preview-title">✉️ Letters</h4>
+                        <p class="muted sm preview-subtitle">Sent letters and their current delivery or response status.</p>
+                        <div class="preview-panel-body">
+                          <ul id="preview-letters" class="list preview-list"></ul>
+                        </div>
+                      </section>
+                      <section class="card preview-panel" id="preview-panel-updates" style="display:none">
+                        <h4 class="preview-title">📋 Updates</h4>
+                        <p class="muted sm preview-subtitle">Recent client-facing timeline notes.</p>
+                        <div class="preview-panel-body">
+                          <ul id="preview-updates" class="list preview-list"></ul>
+                        </div>
+                      </section>
+                      <section class="card preview-panel" id="preview-panel-activity" style="display:none">
+                        <h4 class="preview-title">🕘 Record Activity</h4>
+                        <p class="muted sm preview-subtitle">Automatic log of uploads, edits, and deletions for this client file.</p>
+                        <div class="preview-panel-body">
+                          <ul id="preview-activity" class="list preview-list"></ul>
+                        </div>
+                      </section>
+                      <section class="card preview-panel" id="preview-panel-files" style="display:none">
+                        <h4 class="preview-title">📁 Files (Admin)</h4>
+                        <p class="muted sm preview-subtitle">Files uploaded by the admin team for this client.</p>
+                        <div class="preview-panel-body">
+                          <ul id="preview-files" class="list preview-list"></ul>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
-
-            <div class="section-group">
-              <div class="section-label">
-                <h2>💬 Messages</h2>
-                <p class="muted sm">Two-way client communication</p>
-              </div>
-              <div class="card">
-                <h3 class="card-title">Message Thread</h3>
-                <ul class="admin-message-thread" id="admin-message-thread">
-                  <li class="muted">Select a client to load messages.</li>
-                </ul>
-                <form id="admin-message-form" class="reply-form">
-                  <textarea id="admin-message-input" rows="3" placeholder="Type your reply to the client..."></textarea>
-                  <button class="btn primary full mt" type="submit">Send Reply</button>
-                </form>
-              </div>
-
-              <div class="card">
-                <h3 class="card-title">Client Uploads</h3>
-                <p class="muted sm">Documents the client has uploaded (bureau letters, incoming mail, etc.)</p>
-                <ul id="preview-client-uploads" class="list">
-                  <li class="muted">Select a client to see their uploads.</li>
-                </ul>
-              </div>
-            </div>
-
           </div>
-        </div>
-
-        <!-- ── Preview Panel ─────────────────────────────── -->
-        <div class="container preview-section">
-          <div class="section-label">
-            <h2>🔍 Client Record Preview</h2>
-            <p class="muted sm">Live view of the active client's data</p>
-          </div>
-          <div class="preview-shell">
-            <nav class="preview-nav" aria-label="Preview sections">
-              <button class="preview-nav-btn active" type="button" onclick="adminPreviewTab('reports',this)">
-                <span>🧾 Reports + Scores</span>
-                <span class="preview-count" id="preview-count-reports">0</span>
-              </button>
-              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('negative-items',this)">
-                <span>⚠️ Negative Items</span>
-                <span class="preview-count" id="preview-count-negative">0</span>
-              </button>
-              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('letters',this)">
-                <span>✉️ Letters</span>
-                <span class="preview-count" id="preview-count-letters">0</span>
-              </button>
-              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('updates',this)">
-                <span>📋 Updates</span>
-                <span class="preview-count" id="preview-count-updates">0</span>
-              </button>
-              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('activity',this)">
-                <span>🕘 Activity</span>
-                <span class="preview-count" id="preview-count-activity">0</span>
-              </button>
-              <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('files',this)">
-                <span>📁 Files</span>
-                <span class="preview-count" id="preview-count-files">0</span>
-              </button>
-            </nav>
-            <div class="preview-panels">
-              <section class="card preview-panel active" id="preview-panel-reports">
-                <h4 class="preview-title">🧾 Credit Reports + Scores</h4>
-                <p class="muted sm preview-subtitle">Current score snapshots and bureau reports on file.</p>
-                <div class="preview-subgroup">
-                  <p class="preview-subgroup-title">Credit Score Snapshots</p>
-                  <ul id="preview-score-snapshots" class="list preview-list preview-sublist"></ul>
-                </div>
-                <div class="preview-subgroup">
-                  <p class="preview-subgroup-title">Credit Reports</p>
-                </div>
-                <div class="preview-panel-body">
-                  <ul id="preview-reports" class="list preview-list"></ul>
-                </div>
-              </section>
-              <section class="card preview-panel" id="preview-panel-negative-items" style="display:none">
-                <h4 class="preview-title">⚠️ Negative Items</h4>
-                <p class="muted sm preview-subtitle">Progress summary, deleted-item wins, and the full negative item tracker.</p>
-                <div class="preview-negative-progress" id="preview-negative-progress"></div>
-                <div class="preview-subgroup">
-                  <p class="preview-subgroup-title">Deleted / Removed Items</p>
-                  <ul id="preview-negative-deleted" class="list preview-list preview-sublist"></ul>
-                </div>
-                <div class="preview-subgroup">
-                  <p class="preview-subgroup-title">All Negative Items</p>
-                </div>
-                <div class="preview-panel-body">
-                  <ul id="preview-negative-items" class="list preview-list"></ul>
-                </div>
-              </section>
-              <section class="card preview-panel" id="preview-panel-letters" style="display:none">
-                <h4 class="preview-title">✉️ Letters</h4>
-                <p class="muted sm preview-subtitle">Sent letters and their current delivery or response status.</p>
-                <div class="preview-panel-body">
-                  <ul id="preview-letters" class="list preview-list"></ul>
-                </div>
-              </section>
-              <section class="card preview-panel" id="preview-panel-updates" style="display:none">
-                <h4 class="preview-title">📋 Updates</h4>
-                <p class="muted sm preview-subtitle">Recent client-facing timeline notes.</p>
-                <div class="preview-panel-body">
-                  <ul id="preview-updates" class="list preview-list"></ul>
-                </div>
-              </section>
-              <section class="card preview-panel" id="preview-panel-activity" style="display:none">
-                <h4 class="preview-title">🕘 Record Activity</h4>
-                <p class="muted sm preview-subtitle">Automatic log of uploads, edits, and deletions for this client file.</p>
-                <div class="preview-panel-body">
-                  <ul id="preview-activity" class="list preview-list"></ul>
-                </div>
-              </section>
-              <section class="card preview-panel" id="preview-panel-files" style="display:none">
-                <h4 class="preview-title">📁 Files (Admin)</h4>
-                <p class="muted sm preview-subtitle">Files uploaded by the admin team for this client.</p>
-                <div class="preview-panel-body">
-                  <ul id="preview-files" class="list preview-list"></ul>
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
 
         </div>
 
@@ -721,6 +786,16 @@
         if (clientBar) clientBar.style.display = (target === 'dashboard' || target === 'billing') ? 'block' : 'none';
       }
 
+      function adminWorkspaceTab(target, btn) {
+        var panels = document.querySelectorAll('.workspace-panel');
+        var btns = document.querySelectorAll('.workspace-tab-btn');
+        for (var i = 0; i < panels.length; i++) panels[i].style.display = 'none';
+        for (var j = 0; j < btns.length; j++) btns[j].classList.remove('active');
+        var panel = document.getElementById('workspace-panel-' + target);
+        if (panel) panel.style.display = 'block';
+        if (btn) btn.classList.add('active');
+      }
+
       function adminPreviewTab(target, btn) {
         var panels = document.querySelectorAll('.preview-panel');
         var btns = document.querySelectorAll('.preview-nav-btn');
@@ -731,6 +806,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260312b"></script>
+    <script type="module" src="admin.js?v=20260312c"></script>
   </body>
 </html>
