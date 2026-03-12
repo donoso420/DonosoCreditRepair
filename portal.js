@@ -11,7 +11,16 @@ const setPasswordSub = setPasswordCard?.querySelector(".sub");
 const setPasswordSubmitBtn = setPasswordForm?.querySelector("button[type=submit]");
 const authForm = document.getElementById("auth-form");
 const authStatus = document.getElementById("auth-status");
+const authTitle = document.getElementById("auth-title");
+const authSub = document.getElementById("auth-sub");
+const authSubmitBtn = document.getElementById("auth-submit-btn");
+const signupFields = document.getElementById("signup-fields");
+const signupConfirmWrap = document.getElementById("signup-confirm-wrap");
+const signupFullNameInput = document.getElementById("signup-full-name");
+const signupPhoneInput = document.getElementById("signup-phone");
+const signupConfirmPasswordInput = document.getElementById("signup-confirm-password");
 const resetBtn = document.getElementById("reset-btn");
+const toggleAuthModeBtn = document.getElementById("toggle-auth-mode-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const refreshBtn = document.getElementById("refresh-btn");
 const clientNameEl = document.getElementById("client-name");
@@ -81,6 +90,7 @@ function setAuthControlsDisabled(disabled) {
     el.disabled = disabled;
   });
   if (resetBtn) resetBtn.disabled = disabled;
+  if (toggleAuthModeBtn) toggleAuthModeBtn.disabled = disabled;
 }
 
 function getAuthEmailCooldownMs() {
@@ -256,6 +266,61 @@ function clearAuthRedirectState() {
   const nextHash = hashParams.toString();
   const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${nextHash ? `#${nextHash}` : ""}`;
   window.history.replaceState({}, document.title, nextUrl);
+}
+
+function normalizeAuthMode(value) {
+  return String(value || "").toLowerCase() === "signup" ? "signup" : "signin";
+}
+
+function updateAuthModeUrl(mode) {
+  const url = new URL(window.location.href);
+  if (mode === "signup") {
+    url.searchParams.set("mode", "signup");
+  } else {
+    url.searchParams.delete("mode");
+  }
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
+
+function getAuthModeCopy(mode) {
+  if (mode === "signup") {
+    return {
+      title: "Create Account",
+      sub: "Create your portal account to get started. After signup, you can sign in and track your progress here.",
+      submit: "Create Account",
+      toggle: "Already have an account? Sign in",
+    };
+  }
+
+  return {
+    title: "Sign In",
+    sub: "Use the email and password from your portal invite. Need access? Contact Donoso Credit Repair so we can send your setup email.",
+    submit: "Sign In",
+    toggle: "Create account",
+  };
+}
+
+function getProfileDraftFromInputs() {
+  return {
+    fullName: String(signupFullNameInput?.value || "").trim(),
+    phone: String(signupPhoneInput?.value || "").trim(),
+  };
+}
+
+async function ensureOwnClientProfile(supabase, user, draft = {}) {
+  if (!user?.id) return;
+
+  const metadata = user.user_metadata || {};
+  const fullName = String(draft.fullName || metadata.full_name || metadata.fullName || "").trim();
+  const phone = String(draft.phone || metadata.phone || "").trim();
+
+  if (!fullName && !phone) return;
+
+  const payload = { user_id: user.id };
+  if (fullName) payload.full_name = fullName;
+  if (phone) payload.phone = phone;
+
+  await supabase.from("client_profiles").upsert(payload, { onConflict: "user_id" });
 }
 
 function escapeHtml(value) {
@@ -1173,6 +1238,7 @@ function setPreviewModeUi(enabled, targetUserId = "") {
 
 function initializePortal() {
   const supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
+  let authMode = normalizeAuthMode(getFirstLocationParam("mode"));
   const requestedPreviewUserId = (() => {
     const value = getFirstLocationParam("preview_user_id");
     return isUuid(value) ? value : "";
@@ -1185,6 +1251,36 @@ function initializePortal() {
   if (pendingPasswordSetupFlow) {
     configureSetPasswordFlow(pendingPasswordSetupFlow);
   }
+
+  function setAuthMode(nextMode, options = {}) {
+    authMode = normalizeAuthMode(nextMode);
+    const copy = getAuthModeCopy(authMode);
+
+    if (authTitle) authTitle.textContent = copy.title;
+    if (authSub) authSub.textContent = copy.sub;
+    if (authSubmitBtn) authSubmitBtn.textContent = copy.submit;
+    if (toggleAuthModeBtn) toggleAuthModeBtn.textContent = copy.toggle;
+
+    signupFields?.classList.toggle("hidden", authMode !== "signup");
+    signupConfirmWrap?.classList.toggle("hidden", authMode !== "signup");
+    resetBtn?.classList.toggle("hidden", authMode === "signup");
+
+    if (authMode === "signup") {
+      document.getElementById("password")?.setAttribute("autocomplete", "new-password");
+      signupConfirmPasswordInput?.setAttribute("required", "required");
+      signupFullNameInput?.setAttribute("required", "required");
+    } else {
+      document.getElementById("password")?.setAttribute("autocomplete", "current-password");
+      signupConfirmPasswordInput?.removeAttribute("required");
+      signupFullNameInput?.removeAttribute("required");
+    }
+
+    if (options.syncUrl !== false) {
+      updateAuthModeUrl(authMode);
+    }
+  }
+
+  setAuthMode(authMode, { syncUrl: false });
 
   const savedTab = (() => {
     try {
@@ -1316,6 +1412,11 @@ function initializePortal() {
 
     clearAuthRedirectState();
     showDashboard();
+    try {
+      await ensureOwnClientProfile(supabase, user);
+    } catch (_) {
+      // Dashboard should still load even if profile sync fails.
+    }
     await loadDashboard(user, {
       targetUserId: user.id,
       preview: false,
@@ -1475,7 +1576,76 @@ function initializePortal() {
     event.preventDefault();
     const email = String(document.getElementById("email")?.value || "").trim();
     const password = String(document.getElementById("password")?.value || "");
-    if (!email || !password) { setAuthStatus("Please enter email and password.", true); return; }
+    if (!email || !password) {
+      setAuthStatus(
+        authMode === "signup"
+          ? "Please enter your name, email, and password."
+          : "Please enter email and password.",
+        true
+      );
+      return;
+    }
+
+    if (authMode === "signup") {
+      const draft = getProfileDraftFromInputs();
+      const confirmPassword = String(signupConfirmPasswordInput?.value || "");
+
+      if (!draft.fullName) {
+        setAuthStatus("Please enter your full name.", true);
+        return;
+      }
+      if (password.length < 8) {
+        setAuthStatus("Password must be at least 8 characters.", true);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setAuthStatus("Passwords do not match.", true);
+        return;
+      }
+      if (!requireAuthEmailCooldown("signup confirmation")) return;
+
+      setAuthControlsDisabled(true);
+      setAuthStatus("Creating your account...");
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/portal.html`,
+            data: {
+              full_name: draft.fullName,
+              phone: draft.phone,
+            },
+          },
+        });
+
+        if (error) {
+          if (String(error.message || "").toLowerCase().includes("rate limit")) {
+            startAuthEmailCooldown();
+          }
+          setAuthStatus(formatAuthError(error, "signup"), true);
+          return;
+        }
+
+        if (data.session?.user) {
+          try {
+            await ensureOwnClientProfile(supabase, data.session.user, draft);
+          } catch (_) {}
+          setAuthStatus("");
+          await loadSessionOrPreview(data.session.user);
+          return;
+        }
+
+        startAuthEmailCooldown();
+        setAuthMode("signin");
+        if (signupConfirmPasswordInput) signupConfirmPasswordInput.value = "";
+        document.getElementById("password").value = "";
+        setAuthStatus("Account created. Check your email to confirm it, then sign in.");
+        return;
+      } finally {
+        setAuthControlsDisabled(false);
+      }
+    }
 
     setAuthStatus("Signing in...");
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -1483,6 +1653,11 @@ function initializePortal() {
 
     setAuthStatus("");
     await loadSessionOrPreview(data.user);
+  });
+
+  toggleAuthModeBtn?.addEventListener("click", () => {
+    setAuthStatus("");
+    setAuthMode(authMode === "signup" ? "signin" : "signup");
   });
 
   resetBtn?.addEventListener("click", async () => {
@@ -1619,6 +1794,7 @@ function initializePortal() {
       return;
     }
     if (authLandingState.isSignupConfirmation) {
+      setAuthMode("signin");
       setAuthStatus("Email confirmed. Sign in below with the password you created.");
       return;
     }
@@ -1647,6 +1823,7 @@ function initializePortal() {
       return;
     }
     if (authLandingState.isSignupConfirmation) {
+      setAuthMode("signin");
       setAuthStatus("Email confirmed. Sign in below with the password you created.");
       return;
     }

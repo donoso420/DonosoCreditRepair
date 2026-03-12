@@ -146,6 +146,14 @@ textarea {
   flex-wrap: wrap;
 }
 
+.auth-links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.7rem;
+}
+
 .btn {
   display: inline-block;
   border-radius: 999px;
@@ -180,7 +188,6 @@ textarea {
 }
 
 .inline-btn {
-  margin-top: 0.7rem;
   background: none;
   border: 0;
   color: #7a599f;
@@ -1008,6 +1015,12 @@ tbody tr:last-child td {
 
   .dash-head {
     flex-direction: column;
+  }
+
+  .auth-links {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
   }
 }
 
