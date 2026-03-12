@@ -227,6 +227,46 @@ function updateActiveClientSummary(row) {
   }
 }
 
+function findWorkspaceTabButton(target) {
+  return document.querySelector(`.workspace-tab-btn[onclick*="adminWorkspaceTab('${target}'"]`);
+}
+
+function findAdminTabButton(target) {
+  return document.querySelector(`.tab-btn[data-tab="${target}"]`);
+}
+
+function activateAdminTab(target) {
+  const button = findAdminTabButton(target);
+  if (typeof window.adminTab === "function") {
+    window.adminTab(target, button || null);
+    return;
+  }
+
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.style.display = panel.id === `tab-${target}` ? "block" : "none";
+  });
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn === button);
+  });
+}
+
+function activateWorkspaceTab(target) {
+  activateAdminTab("dashboard");
+
+  const button = findWorkspaceTabButton(target);
+  if (typeof window.adminWorkspaceTab === "function") {
+    window.adminWorkspaceTab(target, button || null);
+    return;
+  }
+
+  document.querySelectorAll(".workspace-panel").forEach((panel) => {
+    panel.style.display = panel.id === `workspace-panel-${target}` ? "block" : "none";
+  });
+  document.querySelectorAll(".workspace-tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn === button);
+  });
+}
+
 function renderClientSelectOptions() {
   if (!clientSelect) return;
 
@@ -2027,6 +2067,7 @@ async function handlePreviewRecordAction(action, rowId) {
         setAdminStatus("Negative item not found. Refresh and try again.", true);
         return;
       }
+      activateWorkspaceTab("negative-items");
       populateNegativeItemForm(row);
       return;
     }
@@ -2051,6 +2092,7 @@ async function handlePreviewRecordAction(action, rowId) {
         setAdminStatus("Letter record not found. Refresh and try again.", true);
         return;
       }
+      activateWorkspaceTab("letters");
       populateLetterForm(row);
       return;
     }
@@ -2060,6 +2102,7 @@ async function handlePreviewRecordAction(action, rowId) {
         setAdminStatus("Letter record not found. Refresh and try again.", true);
         return;
       }
+      activateWorkspaceTab("letters");
       populateLetterStatusForm(row);
       return;
     }
@@ -2084,6 +2127,7 @@ async function handlePreviewRecordAction(action, rowId) {
         setAdminStatus("Timeline update not found. Refresh and try again.", true);
         return;
       }
+      activateWorkspaceTab("updates");
       populateTimelineForm(row);
       return;
     }
