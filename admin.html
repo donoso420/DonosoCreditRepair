@@ -275,6 +275,36 @@
 
             <div class="section-group">
               <div class="section-label">
+                <h2>📈 Credit Scores</h2>
+                <p class="muted sm">Add a bureau score without uploading a report file</p>
+              </div>
+              <div class="card">
+                <h3 class="card-title">Add Credit Score Snapshot</h3>
+                <form id="score-form">
+                  <div class="form-row">
+                    <div>
+                      <label for="score-bureau">Bureau <span class="req">*</span></label>
+                      <select id="score-bureau" required>
+                        <option value="Experian">Experian</option>
+                        <option value="Equifax">Equifax</option>
+                        <option value="TransUnion">TransUnion</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="score-value">Score <span class="req">*</span></label>
+                      <input id="score-value" type="number" min="300" max="850" placeholder="e.g. 612" required />
+                    </div>
+                  </div>
+                  <label for="score-date">Reported Date <span class="req">*</span></label>
+                  <input id="score-date" type="date" required />
+                  <p class="muted sm">Use this when you want the client portal to show a current bureau score without attaching a report file.</p>
+                  <button class="btn primary full mt" type="submit">Save Credit Score</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="section-group">
+              <div class="section-label">
                 <h2>📁 Upload File</h2>
                 <p class="muted sm">One uploader for credit reports, scores, letters, screenshots, and other client documents</p>
               </div>
@@ -363,7 +393,7 @@
           <div class="preview-shell">
             <nav class="preview-nav" aria-label="Preview sections">
               <button class="preview-nav-btn active" type="button" onclick="adminPreviewTab('reports',this)">
-                <span>🧾 Reports</span>
+                <span>🧾 Reports + Scores</span>
                 <span class="preview-count" id="preview-count-reports">0</span>
               </button>
               <button class="preview-nav-btn" type="button" onclick="adminPreviewTab('negative-items',this)">
@@ -389,8 +419,15 @@
             </nav>
             <div class="preview-panels">
               <section class="card preview-panel active" id="preview-panel-reports">
-                <h4 class="preview-title">🧾 Credit Reports</h4>
-                <p class="muted sm preview-subtitle">Current bureau reports and scores on file.</p>
+                <h4 class="preview-title">🧾 Credit Reports + Scores</h4>
+                <p class="muted sm preview-subtitle">Current score snapshots and bureau reports on file.</p>
+                <div class="preview-subgroup">
+                  <p class="preview-subgroup-title">Credit Score Snapshots</p>
+                  <ul id="preview-score-snapshots" class="list preview-list preview-sublist"></ul>
+                </div>
+                <div class="preview-subgroup">
+                  <p class="preview-subgroup-title">Credit Reports</p>
+                </div>
                 <div class="preview-panel-body">
                   <ul id="preview-reports" class="list preview-list"></ul>
                 </div>
@@ -689,6 +726,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260308l"></script>
+    <script type="module" src="admin.js?v=20260312a"></script>
   </body>
 </html>

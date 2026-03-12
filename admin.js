@@ -34,6 +34,7 @@ const timelineForm = document.getElementById("timeline-form");
 const timelineEditIdInput = document.getElementById("timeline-edit-id");
 const timelineSubmitBtn = document.getElementById("timeline-submit-btn");
 const timelineCancelBtn = document.getElementById("timeline-cancel-btn");
+const scoreForm = document.getElementById("score-form");
 const fileUploadForm = document.getElementById("file-upload-form");
 const billingPlanForm = document.getElementById("billing-plan-form");
 const invoiceForm = document.getElementById("invoice-form");
@@ -49,6 +50,7 @@ const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
 const openPortalPreviewBtn = document.getElementById("open-portal-preview-btn");
 
+const previewScoreSnapshots = document.getElementById("preview-score-snapshots");
 const previewReports = document.getElementById("preview-reports");
 const previewNegativeItems = document.getElementById("preview-negative-items");
 const previewNegativeProgress = document.getElementById("preview-negative-progress");
@@ -87,6 +89,7 @@ let supabase = null;
 let currentAdmin = null;
 let activeClientId = null;
 let activeClientFiles = [];
+let activeScoreSnapshotRows = [];
 let activeReportRows = [];
 let activeNegativeItemRows = [];
 let activeLetterRows = [];
@@ -278,6 +281,12 @@ function resetTimelineForm() {
   timelineForm?.reset();
   if (timelineEditIdInput) timelineEditIdInput.value = "";
   toggleFormEditMode(timelineSubmitBtn, timelineCancelBtn, false, "Post Update", "Save Update");
+}
+
+function resetScoreForm() {
+  scoreForm?.reset();
+  const scoreDateInput = document.getElementById("score-date");
+  if (scoreDateInput) scoreDateInput.value = todayIsoDate();
 }
 
 function populateTimelineForm(row) {
@@ -708,6 +717,8 @@ async function loadClients() {
     clientSelect.innerHTML = '<option value="">No clients yet</option>';
     activeClientId = null;
     activeClientFiles = [];
+    activeScoreSnapshotRows = [];
+    activeReportRows = [];
     activeNegativeItemRows = [];
     activeLetterRows = [];
     activeUpdateRows = [];
@@ -717,6 +728,7 @@ async function loadClients() {
     resetNegativeItemForm();
     resetLetterForm();
     resetTimelineForm();
+    resetScoreForm();
     resetInvoiceForm();
     renderPreview([], [], [], [], [], []);
     renderBillingManager(null, []);
@@ -1047,7 +1059,8 @@ function renderClientUploads(files) {
     .join("");
 }
 
-function renderPreview(reports, negativeItems, letters, updates, files) {
+function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates, files) {
+  if (previewScoreSnapshots) previewScoreSnapshots.innerHTML = "";
   if (previewReports) previewReports.innerHTML = "";
   if (previewNegativeItems) previewNegativeItems.innerHTML = "";
   if (previewNegativeProgress) previewNegativeProgress.innerHTML = "";
@@ -1060,12 +1073,31 @@ function renderPreview(reports, negativeItems, letters, updates, files) {
   const activityRows = (updates || []).filter((row) => isActivityUpdateRow(row));
   const manualUpdates = (updates || []).filter((row) => !isActivityUpdateRow(row));
 
-  setPreviewCount("preview-count-reports", reports?.length || 0);
+  setPreviewCount("preview-count-reports", (scoreSnapshots?.length || 0) + (reports?.length || 0));
   setPreviewCount("preview-count-negative", negativeItems?.length || 0);
   setPreviewCount("preview-count-letters", letters?.length || 0);
   setPreviewCount("preview-count-updates", manualUpdates.length);
   setPreviewCount("preview-count-activity", activityRows.length);
   setPreviewCount("preview-count-files", files?.length || 0);
+
+  if (previewScoreSnapshots) {
+    if (!scoreSnapshots.length) {
+      previewScoreSnapshots.innerHTML = '<li class="preview-empty">No credit score snapshots yet.</li>';
+    } else {
+      previewScoreSnapshots.innerHTML = scoreSnapshots
+        .map((row) => {
+          const bureau = row.bureau || "Other";
+          const date = formatDate(row.reported_at || row.created_at);
+          return `
+            <li class="file-record">
+              <p class="file-record-title">${safeText(bureau)} · Score ${safeText(row.score)}</p>
+              <p class="file-record-meta">${safeText(date)}</p>
+            </li>
+          `;
+        })
+        .join("");
+    }
+  }
 
   if (previewReports) {
     if (!reports.length) {
@@ -1434,6 +1466,7 @@ async function importNegativeItemsFromUploadedFile(file, fileRow, category) {
 async function loadClientPreview(userId) {
   if (!userId) return;
   const [
+    scoreSnapshots,
     { data: letters },
     { data: updates },
     files,
@@ -1444,6 +1477,15 @@ async function loadClientPreview(userId) {
     invoices,
   ] =
     await Promise.all([
+      safeTableQuery(
+        supabase
+          .from("credit_snapshots")
+          .select("id,bureau,score,reported_at,created_at")
+          .eq("user_id", userId)
+          .order("reported_at", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(12)
+      ),
       supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date,notes,created_at").eq("user_id", userId).order("sent_date", { ascending: false }),
       supabase.from("client_updates").select("id,details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
       loadClientFiles(userId),
@@ -1486,6 +1528,7 @@ async function loadClientPreview(userId) {
 
   const filesWithUrls = files || [];
   activeClientFiles = filesWithUrls;
+  activeScoreSnapshotRows = scoreSnapshots || [];
   activeReportRows = reports || [];
   activeLetterRows = letters || [];
   syncLetterUpdateChoices();
@@ -1500,6 +1543,7 @@ async function loadClientPreview(userId) {
   }));
 
   renderPreview(
+    scoreSnapshots || [],
     reportsWithUrls,
     negativeItems || [],
     letters || [],
@@ -1908,6 +1952,7 @@ function initialize() {
   }
 
   supabase = createClient(config.supabaseUrl, config.supabaseAnonKey);
+  resetScoreForm();
 
   authForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1957,6 +2002,7 @@ function initialize() {
   clientSelect?.addEventListener("change", async () => {
     activeClientId = clientSelect.value || null;
     activeClientFiles = [];
+    activeScoreSnapshotRows = [];
     activeReportRows = [];
     activeNegativeItemRows = [];
     activeLetterRows = [];
@@ -1968,6 +2014,7 @@ function initialize() {
     resetLetterForm();
     resetLetterStatusForm();
     resetTimelineForm();
+    resetScoreForm();
     resetInvoiceForm();
     await loadClientPreview(activeClientId);
   });
@@ -2568,6 +2615,71 @@ function initialize() {
     }
     resetTimelineForm();
     setAdminStatus(editId ? "Timeline update saved." : "Timeline update added.");
+    await loadClientPreview(activeClientId);
+  });
+
+  scoreForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await requireActiveClient())) return;
+
+    const bureau = String(document.getElementById("score-bureau")?.value || "").trim();
+    const scoreValueRaw = String(document.getElementById("score-value")?.value || "").trim();
+    const reportedAt = String(document.getElementById("score-date")?.value || "").trim();
+    const scoreValue = Number(scoreValueRaw);
+
+    if (!bureau) {
+      setAdminStatus("Choose a bureau for this score.", true);
+      return;
+    }
+
+    if (!Number.isInteger(scoreValue) || scoreValue < 300 || scoreValue > 850) {
+      setAdminStatus("Enter a valid credit score between 300 and 850.", true);
+      return;
+    }
+
+    if (!reportedAt) {
+      setAdminStatus("Choose the date this score was reported.", true);
+      return;
+    }
+
+    const existingRow = activeScoreSnapshotRows.find(
+      (row) => row.bureau === bureau && row.reported_at === reportedAt
+    );
+
+    const query = existingRow
+      ? supabase
+          .from("credit_snapshots")
+          .update({ score: scoreValue })
+          .eq("user_id", activeClientId)
+          .eq("id", existingRow.id)
+      : supabase.from("credit_snapshots").insert({
+          user_id: activeClientId,
+          bureau,
+          score: scoreValue,
+          reported_at: reportedAt,
+        });
+
+    const { error } = await query;
+
+    if (error) {
+      if (isMissingFeatureError(error)) {
+        setAdminStatus(
+          "Run the latest supabase-portal-schema.sql before using credit score snapshots.",
+          true
+        );
+        return;
+      }
+      setAdminStatus("Could not save credit score: " + error.message, true);
+      return;
+    }
+
+    await logClientActivity(
+      existingRow
+        ? `Credit score updated: ${bureau} ${scoreValue} on ${reportedAt}.`
+        : `Credit score added: ${bureau} ${scoreValue} on ${reportedAt}.`
+    );
+    resetScoreForm();
+    setAdminStatus(existingRow ? "Credit score updated." : "Credit score saved.");
     await loadClientPreview(activeClientId);
   });
 

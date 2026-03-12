@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260312f" />
+    <link rel="stylesheet" href="portal.css?v=20260312g" />
   </head>
   <body>
     <header class="portal-nav">
@@ -41,6 +41,10 @@
             Use the email and password from your portal invite. Need access? Contact Donoso Credit
             Repair so we can send your setup email.
           </p>
+          <div id="auth-notice" class="auth-notice hidden" role="status" aria-live="polite">
+            <strong id="auth-notice-title">Verify your email</strong>
+            <p id="auth-notice-text">Open the confirmation email we sent you, then sign in here.</p>
+          </div>
           <form id="auth-form" novalidate>
             <div id="signup-fields" class="hidden">
               <label for="signup-full-name">Full Name</label>
@@ -141,8 +145,8 @@
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Current Credit Reports</h3>
-              <p class="section-sub">Latest bureau reports and scores currently on file.</p>
+              <h3>Credit Reports</h3>
+              <p class="section-sub">Latest bureau reports currently on file.</p>
             </div>
             <div class="report-grid" id="report-grid">
               <article class="report-card empty-card">
@@ -375,6 +379,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260308i"></script>
+    <script type="module" src="portal.js?v=20260312k"></script>
   </body>
 </html>

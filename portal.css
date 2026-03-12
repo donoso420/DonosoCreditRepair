@@ -121,6 +121,34 @@ a {
   margin-bottom: 0.8rem;
 }
 
+.auth-notice {
+  margin: 0 0 0.95rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #d9caef;
+  border-left: 4px solid #7c5cbf;
+  border-radius: 12px;
+  background: #f6f0ff;
+  color: #4b3b6e;
+}
+
+.auth-notice[data-tone="success"] {
+  border-color: #cfe6dc;
+  border-left-color: var(--ok);
+  background: #f2fbf7;
+  color: #245a4c;
+}
+
+.auth-notice strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: inherit;
+}
+
+.auth-notice p {
+  margin: 0;
+  color: inherit;
+}
+
 label {
   display: block;
   margin: 0.56rem 0 0.24rem;

@@ -14,6 +14,9 @@ const authStatus = document.getElementById("auth-status");
 const authTitle = document.getElementById("auth-title");
 const authSub = document.getElementById("auth-sub");
 const authSubmitBtn = document.getElementById("auth-submit-btn");
+const authNotice = document.getElementById("auth-notice");
+const authNoticeTitle = document.getElementById("auth-notice-title");
+const authNoticeText = document.getElementById("auth-notice-text");
 const signupFields = document.getElementById("signup-fields");
 const signupConfirmWrap = document.getElementById("signup-confirm-wrap");
 const signupFullNameInput = document.getElementById("signup-full-name");
@@ -85,6 +88,24 @@ function setAuthStatus(message, isError = false) {
   authStatus.classList.toggle("error", isError);
 }
 
+function setAuthNotice(title = "", message = "", tone = "info") {
+  if (!authNotice || !authNoticeTitle || !authNoticeText) return;
+
+  const hasNotice = Boolean(title || message);
+  authNotice.classList.toggle("hidden", !hasNotice);
+
+  if (!hasNotice) {
+    authNotice.removeAttribute("data-tone");
+    authNoticeTitle.textContent = "";
+    authNoticeText.textContent = "";
+    return;
+  }
+
+  authNotice.dataset.tone = tone;
+  authNoticeTitle.textContent = title;
+  authNoticeText.textContent = message;
+}
+
 function setAuthControlsDisabled(disabled) {
   authForm?.querySelectorAll("input,button").forEach((el) => {
     el.disabled = disabled;
@@ -130,6 +151,11 @@ function formatAuthError(error, context = "auth") {
   return message || "Unexpected authentication error.";
 }
 
+function isEmailConfirmationError(error) {
+  const message = String(error?.message || error || "").trim().toLowerCase();
+  return message.includes("email not confirmed") || message.includes("email not verified");
+}
+
 function setUploadStatus(message, isError = false) {
   if (!uploadStatus) return;
   uploadStatus.textContent = message;
@@ -162,6 +188,7 @@ function setMessageStatus(message, isError = false) {
 }
 
 function showDashboard() {
+  setAuthNotice("", "");
   if (authCard) authCard.classList.add("hidden");
   if (setPasswordCard) setPasswordCard.classList.add("hidden");
   if (dashboardCard) dashboardCard.classList.remove("hidden");
@@ -497,14 +524,6 @@ function isScannerGeneratedReportText(value) {
   );
 }
 
-function getReportCardSummary(row) {
-  const summary = String(row?.summary || "").trim();
-  if (!summary || isScannerGeneratedReportText(summary)) {
-    return "Current report on file.";
-  }
-  return summary;
-}
-
 function getReportCardReviewNotes(row) {
   const notes = String(row?.verification_notes || "").trim();
   if (!notes || isScannerGeneratedReportText(notes)) {
@@ -672,7 +691,7 @@ function renderScores(snapshots) {
 
 function syncScoreSectionVisibility(snapshots, reports) {
   if (!scoreSnapshotSectionEl) return;
-  scoreSnapshotSectionEl.classList.toggle("hidden", Array.isArray(reports) && reports.length > 0);
+  scoreSnapshotSectionEl.hidden = Array.isArray(reports) && reports.length > 0;
 }
 
 function renderTracker(letters, snapshots, reports) {
@@ -752,7 +771,6 @@ function renderReports(reports) {
   reportGridEl.innerHTML = orderedReports
     .map((row) => {
       const reportDate = formatDate(row.report_date || row.created_at);
-      const summary = getReportCardSummary(row);
       const reviewLabel = formatVerificationStatus(row.verification_status);
       const reviewMethod = formatVerificationMethod(row.verification_method);
       const reviewNotesText = getReportCardReviewNotes(row);
@@ -774,7 +792,6 @@ function renderReports(reports) {
           )}">${escapeHtml(reviewLabel)}</span> ${escapeHtml(reviewMethod)}</p>
           <p class="report-score">${escapeHtml(row.score != null ? row.score : "--")}</p>
           <p class="stamp">${escapeHtml(reportDate)}</p>
-          <p class="report-summary">${escapeHtml(summary)}</p>
           ${reviewNotes}
           <p class="report-link">${openLink}</p>
         </article>
@@ -1266,6 +1283,9 @@ function initializePortal() {
     resetBtn?.classList.toggle("hidden", authMode === "signup");
 
     if (authMode === "signup") {
+      if (options.keepNotice !== true) {
+        setAuthNotice("", "");
+      }
       document.getElementById("password")?.setAttribute("autocomplete", "new-password");
       signupConfirmPasswordInput?.setAttribute("required", "required");
       signupFullNameInput?.setAttribute("required", "required");
@@ -1605,6 +1625,7 @@ function initializePortal() {
       if (!requireAuthEmailCooldown("signup confirmation")) return;
 
       setAuthControlsDisabled(true);
+      setAuthNotice("", "");
       setAuthStatus("Creating your account...");
       try {
         const { data, error } = await supabase.auth.signUp({
@@ -1640,17 +1661,35 @@ function initializePortal() {
         setAuthMode("signin");
         if (signupConfirmPasswordInput) signupConfirmPasswordInput.value = "";
         document.getElementById("password").value = "";
-        setAuthStatus("Account created. Check your email to confirm it, then sign in.");
+        setAuthStatus("");
+        setAuthNotice(
+          "Verify your email",
+          `We sent a confirmation link to ${email}. Open that email, tap the link, then sign in here.`,
+        );
         return;
       } finally {
         setAuthControlsDisabled(false);
       }
     }
 
+    setAuthNotice("", "");
     setAuthStatus("Signing in...");
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) { setAuthStatus(error?.message || "Could not sign in.", true); return; }
+    if (error || !data.user) {
+      if (isEmailConfirmationError(error)) {
+        setAuthStatus("");
+        setAuthNotice(
+          "Verify your email",
+          `Please open the confirmation email sent to ${email}, tap the link, then sign in here.`,
+        );
+        return;
+      }
 
+      setAuthStatus(formatAuthError(error, "signin"), true);
+      return;
+    }
+
+    setAuthNotice("", "");
     setAuthStatus("");
     await loadSessionOrPreview(data.user);
   });
@@ -1790,14 +1829,21 @@ function initializePortal() {
       return;
     }
     if (authLandingState.error) {
+      setAuthNotice("", "");
       setAuthStatus(authLandingState.error, true);
       return;
     }
     if (authLandingState.isSignupConfirmation) {
       setAuthMode("signin");
-      setAuthStatus("Email confirmed. Sign in below with the password you created.");
+      setAuthStatus("");
+      setAuthNotice(
+        "Email verified",
+        "Your email is confirmed. Sign in below with the password you created.",
+        "success",
+      );
       return;
     }
+    setAuthNotice("", "");
     setAuthStatus("");
   });
 
@@ -1819,14 +1865,21 @@ function initializePortal() {
       return;
     }
     if (authLandingState.error) {
+      setAuthNotice("", "");
       setAuthStatus(authLandingState.error, true);
       return;
     }
     if (authLandingState.isSignupConfirmation) {
       setAuthMode("signin");
-      setAuthStatus("Email confirmed. Sign in below with the password you created.");
+      setAuthStatus("");
+      setAuthNotice(
+        "Email verified",
+        "Your email is confirmed. Sign in below with the password you created.",
+        "success",
+      );
       return;
     }
+    setAuthNotice("", "");
     setAuthStatus("");
   });
 }
