@@ -345,6 +345,42 @@ textarea {
   gap: 0.85rem;
 }
 
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.contact-card {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 0.9rem;
+  background: #fff;
+}
+
+.contact-card-wide {
+  grid-column: 1 / -1;
+}
+
+.contact-label {
+  display: block;
+  margin-bottom: 0.28rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #816d9f;
+  font-weight: 800;
+}
+
+.contact-value {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #2b2142;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
 .score-card {
   border: 1px solid var(--line);
   border-radius: 11px;
@@ -1033,6 +1069,18 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-card-wide {
+    grid-column: auto;
+  }
+
+  .doc-checklist {
+    grid-template-columns: 1fr;
+  }
+
   .negative-tracker-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1255,6 +1303,64 @@ tbody tr:last-child td {
   color: #8b78aa;
 }
 
+.onboarding-callout {
+  background: linear-gradient(135deg, #fff6e9 0%, #f8eefc 100%);
+  border-color: #e7d6f4;
+}
+
+.doc-checklist {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.doc-status-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid #decff0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.doc-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #3a2460;
+}
+
+.doc-note {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: #65557f;
+}
+
+.doc-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  padding: 0.34rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.doc-badge.complete {
+  background: #e7fbf6;
+  color: var(--ok);
+}
+
+.doc-badge.pending {
+  background: #fff3dc;
+  color: var(--warn);
+}
+
 /* ── Client upload form ─────────────────────────────────── */
 .upload-form {
   display: flex;
@@ -1264,6 +1370,8 @@ tbody tr:last-child td {
 }
 
 .upload-form input[type="text"],
+.upload-form select,
+.upload-form textarea,
 .upload-form input[type="file"] {
   border: 1px solid #d4c4e3;
   border-radius: 8px;

@@ -21,6 +21,7 @@ const signupFields = document.getElementById("signup-fields");
 const signupConfirmWrap = document.getElementById("signup-confirm-wrap");
 const signupFullNameInput = document.getElementById("signup-full-name");
 const signupPhoneInput = document.getElementById("signup-phone");
+const signupAddressInput = document.getElementById("signup-address");
 const signupConfirmPasswordInput = document.getElementById("signup-confirm-password");
 const resetBtn = document.getElementById("reset-btn");
 const toggleAuthModeBtn = document.getElementById("toggle-auth-mode-btn");
@@ -28,6 +29,9 @@ const logoutBtn = document.getElementById("logout-btn");
 const refreshBtn = document.getElementById("refresh-btn");
 const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
+const clientContactEmailEl = document.getElementById("client-contact-email");
+const clientContactPhoneEl = document.getElementById("client-contact-phone");
+const clientContactAddressEl = document.getElementById("client-contact-address");
 const previewBannerEl = document.getElementById("portal-preview-banner");
 const previewMetaEl = document.getElementById("portal-preview-meta");
 const portalTabButtons = Array.from(document.querySelectorAll("[data-portal-tab-button]"));
@@ -50,7 +54,9 @@ const messageForm = document.getElementById("message-form");
 const messageInput = document.getElementById("message-input");
 const messageStatus = document.getElementById("message-status");
 const clientUploadForm = document.getElementById("client-upload-form");
+const clientFileCategoryInput = document.getElementById("client-file-category");
 const uploadStatus = document.getElementById("upload-status");
+const requiredDocsListEl = document.getElementById("required-docs-list");
 const authLandingState = getAuthLandingState();
 let authEmailCooldownUntil = 0;
 
@@ -67,6 +73,11 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
 const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
 const ACTIVITY_PREFIX = "[Activity] ";
 const PORTAL_TAB_STORAGE_KEY = "portal_active_tab";
+const REQUIRED_UPLOAD_DOCS = [
+  { key: "id", category: "Government ID" },
+  { key: "ssn", category: "Social Security Card" },
+  { key: "address", category: "Proof of Address" },
+];
 
 const requiredConfig = ["supabaseUrl", "supabaseAnonKey"];
 const missingConfig = requiredConfig.filter((k) => !config[k]);
@@ -185,6 +196,15 @@ function setMessageStatus(message, isError = false) {
   if (!messageStatus) return;
   messageStatus.textContent = message;
   messageStatus.classList.toggle("error", isError);
+}
+
+function setContactValue(element, value, fallback = "Not added yet") {
+  if (!element) return;
+  element.textContent = String(value || "").trim() || fallback;
+}
+
+function normalizeUploadCategory(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function showDashboard() {
@@ -331,7 +351,43 @@ function getProfileDraftFromInputs() {
   return {
     fullName: String(signupFullNameInput?.value || "").trim(),
     phone: String(signupPhoneInput?.value || "").trim(),
+    address: String(signupAddressInput?.value || "").trim(),
   };
+}
+
+async function loadClientProfileRecord(supabase, userId) {
+  const { data, error } = await supabase
+    .from("client_profiles")
+    .select("full_name,phone,address")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!error) return data || {};
+  if (!isMissingFeatureError(error)) throw error;
+
+  const fallback = await supabase
+    .from("client_profiles")
+    .select("full_name,phone")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (fallback.error && !isMissingFeatureError(fallback.error)) throw fallback.error;
+  return fallback.data || {};
+}
+
+async function upsertClientProfileRecord(supabase, payload) {
+  const primary = await supabase.from("client_profiles").upsert(payload, { onConflict: "user_id" });
+  if (!primary.error) return;
+  if (!isMissingFeatureError(primary.error) || !Object.prototype.hasOwnProperty.call(payload, "address")) {
+    throw primary.error;
+  }
+
+  const { address, ...fallbackPayload } = payload;
+  const fallback = await supabase
+    .from("client_profiles")
+    .upsert(fallbackPayload, { onConflict: "user_id" });
+
+  if (fallback.error) throw fallback.error;
 }
 
 async function ensureOwnClientProfile(supabase, user, draft = {}) {
@@ -340,14 +396,16 @@ async function ensureOwnClientProfile(supabase, user, draft = {}) {
   const metadata = user.user_metadata || {};
   const fullName = String(draft.fullName || metadata.full_name || metadata.fullName || "").trim();
   const phone = String(draft.phone || metadata.phone || "").trim();
+  const address = String(draft.address || metadata.address || "").trim();
 
-  if (!fullName && !phone) return;
+  if (!fullName && !phone && !address) return;
 
   const payload = { user_id: user.id };
   if (fullName) payload.full_name = fullName;
   if (phone) payload.phone = phone;
+  if (address) payload.address = address;
 
-  await supabase.from("client_profiles").upsert(payload, { onConflict: "user_id" });
+  await upsertClientProfileRecord(supabase, payload);
 }
 
 function escapeHtml(value) {
@@ -1160,6 +1218,28 @@ function renderActivity(updates) {
     .join("");
 }
 
+function renderRequiredDocuments(files) {
+  if (!requiredDocsListEl) return;
+
+  const uploadedCategories = new Set(
+    (files || []).map((row) => normalizeUploadCategory(row.category))
+  );
+
+  requiredDocsListEl
+    .querySelectorAll("[data-doc-key]")
+    .forEach((item) => {
+      const key = item.getAttribute("data-doc-key") || "";
+      const config = REQUIRED_UPLOAD_DOCS.find((entry) => entry.key === key);
+      const statusEl = item.querySelector("[data-doc-status]");
+      if (!config || !statusEl) return;
+
+      const isComplete = uploadedCategories.has(normalizeUploadCategory(config.category));
+      statusEl.textContent = isComplete ? "Received" : "Needed";
+      statusEl.classList.toggle("complete", isComplete);
+      statusEl.classList.toggle("pending", !isComplete);
+    });
+}
+
 function renderFiles(files) {
   if (!filesListEl) return;
   if (!files.length) {
@@ -1289,10 +1369,14 @@ function initializePortal() {
       document.getElementById("password")?.setAttribute("autocomplete", "new-password");
       signupConfirmPasswordInput?.setAttribute("required", "required");
       signupFullNameInput?.setAttribute("required", "required");
+      signupPhoneInput?.setAttribute("required", "required");
+      signupAddressInput?.setAttribute("required", "required");
     } else {
       document.getElementById("password")?.setAttribute("autocomplete", "current-password");
       signupConfirmPasswordInput?.removeAttribute("required");
       signupFullNameInput?.removeAttribute("required");
+      signupPhoneInput?.removeAttribute("required");
+      signupAddressInput?.removeAttribute("required");
     }
 
     if (options.syncUrl !== false) {
@@ -1330,7 +1414,7 @@ function initializePortal() {
     }
 
     const [
-      { data: profile },
+      profile,
       { data: snapshots },
       reports,
       billingProfile,
@@ -1341,7 +1425,7 @@ function initializePortal() {
       { data: files },
       { data: messages },
     ] = await Promise.all([
-      supabase.from("client_profiles").select("full_name").eq("user_id", currentPortalUserId).maybeSingle(),
+      loadClientProfileRecord(supabase, currentPortalUserId),
       supabase.from("credit_snapshots").select("bureau,score,reported_at").eq("user_id", currentPortalUserId).order("reported_at", { ascending: false }),
       safeTableQuery(
         supabase
@@ -1383,7 +1467,23 @@ function initializePortal() {
       supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: true }),
     ]);
 
-    if (clientNameEl) clientNameEl.textContent = profile?.full_name || (isPreviewMode ? "Client Preview" : "Client");
+    const metadata = user.user_metadata || {};
+    const displayName =
+      profile?.full_name ||
+      metadata.full_name ||
+      metadata.fullName ||
+      (isPreviewMode ? "Client Preview" : "Client");
+    const phone = profile?.phone || metadata.phone || "";
+    const address = profile?.address || metadata.address || "";
+
+    if (clientNameEl) clientNameEl.textContent = displayName;
+    setContactValue(
+      clientContactEmailEl,
+      isPreviewMode ? "" : user.email || "",
+      isPreviewMode ? "Not available in preview" : "Not added yet"
+    );
+    setContactValue(clientContactPhoneEl, phone);
+    setContactValue(clientContactAddressEl, address);
 
     const filesWithSignedUrls = await Promise.all(
       (files || []).map(async (row) => {
@@ -1408,6 +1508,7 @@ function initializePortal() {
     renderLetters(letters || []);
     renderUpdates(updates || []);
     renderActivity(updates || []);
+    renderRequiredDocuments(filesWithSignedUrls);
     renderFiles(filesWithSignedUrls);
     renderMessages(messages || [], currentPortalUserId, { preview: isPreviewMode });
   }
@@ -1540,6 +1641,12 @@ function initializePortal() {
     const fileInput = document.getElementById("client-file-input");
     const file = fileInput?.files?.[0];
     const title = String(document.getElementById("client-file-title")?.value || "").trim();
+    const category = String(clientFileCategoryInput?.value || "").trim();
+
+    if (!category) {
+      setUploadStatus("Choose the type of document you are uploading.", true);
+      return;
+    }
 
     if (!file) { setUploadStatus("Please choose a file.", true); return; }
 
@@ -1555,7 +1662,8 @@ function initializePortal() {
     setUploadStatus("Uploading...");
     const bucket = "client-docs";
     const safeName = sanitizeFileName(file.name);
-    const objectPath = `${currentPortalUserId}/client-uploads/${Date.now()}-${safeName}`;
+    const categoryFolder = sanitizeFileName(category);
+    const objectPath = `${currentPortalUserId}/client-uploads/${categoryFolder}/${Date.now()}-${safeName}`;
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(objectPath, file, {
       upsert: false,
@@ -1574,8 +1682,8 @@ function initializePortal() {
       file_name: file.name,
       content_type: getUploadContentType(file),
       file_size: file.size,
-      category: "Incoming Mail",
-      title: title || file.name,
+      category,
+      title: title || category,
       uploaded_by: "client",
     });
 
@@ -1585,7 +1693,7 @@ function initializePortal() {
     }
 
     clientUploadForm.reset();
-    setUploadStatus("Document uploaded successfully.");
+    setUploadStatus(`${category} uploaded successfully.`);
     await loadDashboard(currentSessionUser, {
       targetUserId: currentPortalUserId,
       preview: false,
@@ -1599,7 +1707,7 @@ function initializePortal() {
     if (!email || !password) {
       setAuthStatus(
         authMode === "signup"
-          ? "Please enter your name, email, and password."
+          ? "Please enter your name, phone, address, email, and password."
           : "Please enter email and password.",
         true
       );
@@ -1612,6 +1720,14 @@ function initializePortal() {
 
       if (!draft.fullName) {
         setAuthStatus("Please enter your full name.", true);
+        return;
+      }
+      if (!draft.phone) {
+        setAuthStatus("Please enter your phone number.", true);
+        return;
+      }
+      if (!draft.address) {
+        setAuthStatus("Please enter your address.", true);
         return;
       }
       if (password.length < 8) {
@@ -1636,6 +1752,7 @@ function initializePortal() {
             data: {
               full_name: draft.fullName,
               phone: draft.phone,
+              address: draft.address,
             },
           },
         });

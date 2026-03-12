@@ -14,7 +14,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260312g" />
+    <link rel="stylesheet" href="portal.css?v=20260312h" />
   </head>
   <body>
     <header class="portal-nav">
@@ -52,6 +52,15 @@
 
               <label for="signup-phone">Phone</label>
               <input id="signup-phone" name="signup-phone" type="tel" autocomplete="tel" />
+
+              <label for="signup-address">Address</label>
+              <textarea
+                id="signup-address"
+                name="signup-address"
+                rows="3"
+                autocomplete="street-address"
+                placeholder="Street, city, state, ZIP"
+              ></textarea>
             </div>
 
             <label for="email">Email</label>
@@ -112,6 +121,27 @@
             <strong>Admin Preview</strong>
             <span id="portal-preview-meta">Read-only preview of the selected client portal.</span>
           </div>
+
+          <section class="dashboard-section" data-portal-panel="overview">
+            <div class="section-head">
+              <h3>Contact Information</h3>
+              <p class="section-sub">The contact details currently on file for this portal account.</p>
+            </div>
+            <div class="contact-grid">
+              <article class="contact-card">
+                <span class="contact-label">Email</span>
+                <strong class="contact-value" id="client-contact-email">Not set</strong>
+              </article>
+              <article class="contact-card">
+                <span class="contact-label">Phone</span>
+                <strong class="contact-value" id="client-contact-phone">Not added yet</strong>
+              </article>
+              <article class="contact-card contact-card-wide">
+                <span class="contact-label">Address</span>
+                <strong class="contact-value" id="client-contact-address">Not added yet</strong>
+              </article>
+            </div>
+          </section>
 
           <nav class="portal-dashboard-tabs" aria-label="Client portal sections">
             <button type="button" class="portal-tab-btn active" data-portal-tab-button="overview">Overview</button>
@@ -335,7 +365,7 @@
             <ol class="reports-steps">
               <li><strong>Visit AnnualCreditReport.com</strong> — the only federally authorized source for your free reports.</li>
               <li><strong>Request all 3 reports</strong> — Experian, Equifax, and TransUnion. Download or save each one as a PDF.</li>
-              <li><strong>Upload them below</strong> — use the "Upload Incoming Mail" form to send each report to us so we can begin your review.</li>
+              <li><strong>Upload them below</strong> — use the "Upload Documents" form to send each report to us so we can begin your review.</li>
             </ol>
             <a
               href="https://www.annualcreditreport.com"
@@ -346,14 +376,57 @@
             <p class="reports-note">Opens in a new tab · This is the official, federally mandated free credit report site (no credit card required).</p>
           </section>
 
+          <section class="reports-callout onboarding-callout hidden" data-portal-panel="upload">
+            <div class="reports-header">
+              <span class="reports-icon">🪪</span>
+              <div>
+                <h3>Required Verification Documents</h3>
+                <p class="section-sub">Please upload these onboarding documents so we can verify your identity and mailing address before we begin your file review.</p>
+              </div>
+            </div>
+            <div class="doc-checklist" id="required-docs-list">
+              <article class="doc-status-card" data-doc-key="id">
+                <div>
+                  <p class="doc-title">Government-issued ID</p>
+                  <p class="doc-note">Driver license, state ID, or passport.</p>
+                </div>
+                <span class="doc-badge pending" data-doc-status>Needed</span>
+              </article>
+              <article class="doc-status-card" data-doc-key="ssn">
+                <div>
+                  <p class="doc-title">Social Security card</p>
+                  <p class="doc-note">Upload a clear photo or PDF copy.</p>
+                </div>
+                <span class="doc-badge pending" data-doc-status>Needed</span>
+              </article>
+              <article class="doc-status-card" data-doc-key="address">
+                <div>
+                  <p class="doc-title">Proof of address</p>
+                  <p class="doc-note">Utility bill, bank statement, lease, or mortgage statement.</p>
+                </div>
+                <span class="doc-badge pending" data-doc-status>Needed</span>
+              </article>
+            </div>
+          </section>
+
           <section class="dashboard-section hidden" data-portal-panel="upload">
             <div class="section-head">
-              <h3>Upload Incoming Mail</h3>
-              <p class="section-sub">Received something from a bureau or creditor, or downloaded your reports? Upload here so we can review and track everything manually.</p>
+              <h3>Upload Documents</h3>
+              <p class="section-sub">Upload each required verification document separately, along with any bureau mail, creditor letters, or downloaded credit reports you want us to review.</p>
             </div>
             <form id="client-upload-form" class="upload-form">
-              <label for="client-file-title">Description</label>
-              <input id="client-file-title" type="text" placeholder="e.g. Experian response letter — March 2026" required />
+              <label for="client-file-category">Document Type</label>
+              <select id="client-file-category" required>
+                <option value="">Choose document type</option>
+                <option value="Government ID">Government ID</option>
+                <option value="Social Security Card">Social Security Card</option>
+                <option value="Proof of Address">Proof of Address</option>
+                <option value="Credit Report">Credit Report</option>
+                <option value="Incoming Mail">Bureau / Creditor Letter</option>
+                <option value="Other Supporting Document">Other Supporting Document</option>
+              </select>
+              <label for="client-file-title">Description (optional)</label>
+              <input id="client-file-title" type="text" placeholder="e.g. Driver license front, March utility bill, or Experian response letter" />
               <label for="client-file-input">Attachment (PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</label>
               <input id="client-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
               <button type="submit" class="btn primary">Upload Document</button>
@@ -379,6 +452,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260312k"></script>
+    <script type="module" src="portal.js?v=20260312l"></script>
   </body>
 </html>

@@ -674,14 +674,6 @@ async function autofillCreditReportForm(file) {
   }
 }
 
-function prefillProfileUserId(userId) {
-  const input = document.getElementById("profile-user-id");
-  if (!input || !isUuid(userId)) return;
-  if (!String(input.value || "").trim()) {
-    input.value = userId;
-  }
-}
-
 async function checkAdmin(userId) {
   const { data, error } = await supabase
     .from("admin_users")
@@ -702,15 +694,31 @@ async function checkAdmin(userId) {
 }
 
 async function loadClients() {
-  const { data, error } = await supabase
-    .from("client_profiles")
-    .select("user_id,full_name,phone")
-    .order("full_name", { ascending: true });
+  const [
+    { data: profileRows, error: profileError },
+    { data: adminRows, error: adminError },
+  ] = await Promise.all([
+    supabase
+      .from("client_profiles")
+      .select("user_id,full_name,phone")
+      .order("full_name", { ascending: true }),
+    supabase
+      .from("admin_users")
+      .select("user_id"),
+  ]);
 
-  if (error) {
-    setAdminStatus("Could not load clients: " + error.message, true);
+  if (profileError) {
+    setAdminStatus("Could not load clients: " + profileError.message, true);
     return;
   }
+
+  if (adminError) {
+    setAdminStatus("Could not verify admin accounts while loading clients: " + adminError.message, true);
+    return;
+  }
+
+  const adminIds = new Set((adminRows || []).map((row) => row.user_id));
+  const data = (profileRows || []).filter((row) => row.user_id && !adminIds.has(row.user_id));
 
   clientSelect.innerHTML = "";
   if (!data || data.length === 0) {
@@ -1304,6 +1312,22 @@ async function safeTableQuery(queryPromise, fallback = []) {
   if (!error) return data || fallback;
   if (isMissingFeatureError(error)) return fallback;
   throw error;
+}
+
+async function upsertClientProfileRecord(payload) {
+  const primary = await supabase.from("client_profiles").upsert(payload, { onConflict: "user_id" });
+  if (!primary.error) return { missingAddressSupport: false };
+  if (!isMissingFeatureError(primary.error) || !Object.prototype.hasOwnProperty.call(payload, "address")) {
+    throw primary.error;
+  }
+
+  const { address, ...fallbackPayload } = payload;
+  const fallback = await supabase
+    .from("client_profiles")
+    .upsert(fallbackPayload, { onConflict: "user_id" });
+
+  if (fallback.error) throw fallback.error;
+  return { missingAddressSupport: true };
 }
 
 async function getSignedFileUrl(fileRow) {
@@ -1988,7 +2012,6 @@ function initialize() {
 
       currentAdmin = data.user;
       adminIdentity.textContent = `Signed in as ${data.user.email}`;
-      prefillProfileUserId(data.user.id);
       showAdmin();
       initTabs();
       setAuthStatus("");
@@ -2195,10 +2218,15 @@ function initialize() {
 
   profileForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const rawUserId = String(document.getElementById("profile-user-id")?.value || "").trim();
-    const userId = rawUserId || String(currentAdmin?.id || "");
+    const userId = String(document.getElementById("profile-user-id")?.value || "").trim();
     const fullName = String(document.getElementById("profile-full-name")?.value || "").trim();
     const phone = String(document.getElementById("profile-phone")?.value || "").trim();
+    const address = String(document.getElementById("profile-address")?.value || "").trim();
+
+    if (!userId) {
+      setAdminStatus("Enter the client user ID you want to update.", true);
+      return;
+    }
 
     if (!isUuid(userId)) {
       setAdminStatus(
@@ -2210,22 +2238,31 @@ function initialize() {
     const userIdInput = document.getElementById("profile-user-id");
     if (userIdInput) userIdInput.value = userId;
 
-    const { error } = await supabase.from("client_profiles").upsert(
-      {
+    const adminCheck = await checkAdmin(userId);
+    if (adminCheck.allowed) {
+      setAdminStatus("Admin accounts cannot be added to the active client list.", true);
+      return;
+    }
+
+    let result;
+    try {
+      result = await upsertClientProfileRecord({
         user_id: userId,
         full_name: fullName || null,
         phone: phone || null,
-      },
-      { onConflict: "user_id" }
-    );
-
-    if (error) {
+        address: address || null,
+      });
+    } catch (error) {
       setAdminStatus("Could not save profile: " + error.message, true);
       return;
     }
 
     activeClientId = userId;
-    setAdminStatus("Profile saved.");
+    setAdminStatus(
+      result?.missingAddressSupport
+        ? "Profile saved. Run the latest Supabase schema SQL to store addresses in client_profiles."
+        : "Profile saved."
+    );
     await loadClients();
   });
 
@@ -2876,7 +2913,6 @@ function initialize() {
     }
     currentAdmin = user;
     adminIdentity.textContent = `Signed in as ${user.email}`;
-    prefillProfileUserId(user.id);
     showAdmin();
     initTabs();
     await loadClients();

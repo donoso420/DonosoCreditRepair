@@ -9,6 +9,9 @@ create table if not exists public.client_profiles (
   created_at timestamptz not null default now()
 );
 
+alter table public.client_profiles
+  add column if not exists address text;
+
 -- Admin role mapping (who can manage all client tracker data)
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
