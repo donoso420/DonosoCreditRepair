@@ -266,9 +266,15 @@
                   </div>
 
                   <div class="card">
-                    <h3 class="card-title">Add New Letter</h3>
+                    <h3 class="card-title">Add or Update Letter</h3>
+                    <p class="muted sm">Add a new letter or choose an existing one to update its details and status.</p>
                     <form id="letter-form">
                       <input id="letter-edit-id" type="hidden" />
+                      <label for="letter-update-id">Existing Letter</label>
+                      <select id="letter-update-id">
+                        <option value="">Add a new letter...</option>
+                      </select>
+                      <p class="muted sm" id="letter-update-selected-meta">Choose a letter to edit, or leave blank to add a new one.</p>
                       <div class="form-row">
                         <div>
                           <label for="letter-date">Sent Date <span class="req">*</span></label>
@@ -295,35 +301,6 @@
                         <button class="btn primary full" id="letter-submit-btn" type="submit">Add Letter Record</button>
                         <button class="btn secondary full hidden" id="letter-cancel-btn" type="button">Cancel Edit</button>
                       </div>
-                    </form>
-                  </div>
-
-                  <div class="card">
-                    <h3 class="card-title">Update Existing Letter Status</h3>
-                    <p class="muted sm">Choose any letter from the active client's records below.</p>
-                    <form id="letter-update-form">
-                      <div class="form-row">
-                        <div>
-                          <label for="letter-update-id">Letter Record <span class="req">*</span></label>
-                          <select id="letter-update-id" required>
-                            <option value="">Select a letter...</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label for="letter-update-status">New Status</label>
-                          <select id="letter-update-status" required>
-                            <option>In Transit</option>
-                            <option>Delivered</option>
-                            <option>Response Received</option>
-                            <option>Returned Mail</option>
-                            <option>Mail not delivered</option>
-                          </select>
-                        </div>
-                      </div>
-                      <p class="muted sm" id="letter-update-selected-meta">No letter selected yet.</p>
-                      <label for="letter-update-notes">Notes</label>
-                      <textarea id="letter-update-notes" rows="2" placeholder="Optional note about the update"></textarea>
-                      <button class="btn secondary full mt" type="submit">Update Letter</button>
                     </form>
                   </div>
                 </div>
@@ -810,6 +787,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260312c"></script>
+    <script type="module" src="admin.js?v=20260312d"></script>
   </body>
 </html>

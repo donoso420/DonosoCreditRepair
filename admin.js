@@ -33,7 +33,6 @@ const letterForm = document.getElementById("letter-form");
 const letterEditIdInput = document.getElementById("letter-edit-id");
 const letterSubmitBtn = document.getElementById("letter-submit-btn");
 const letterCancelBtn = document.getElementById("letter-cancel-btn");
-const letterUpdateForm = document.getElementById("letter-update-form");
 const letterUpdateIdSelect = document.getElementById("letter-update-id");
 const letterUpdateSelectedMeta = document.getElementById("letter-update-selected-meta");
 const timelineForm = document.getElementById("timeline-form");
@@ -347,7 +346,6 @@ function resetActiveClientCollections() {
 function resetActiveClientForms() {
   resetNegativeItemForm();
   resetLetterForm();
-  resetLetterStatusForm();
   resetTimelineForm();
   resetScoreForm();
   resetInvoiceForm();
@@ -578,15 +576,11 @@ function applyNegativeOutcomePreset(outcome) {
 function resetLetterForm() {
   letterForm?.reset();
   if (letterEditIdInput) letterEditIdInput.value = "";
-  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, false, "Add Letter Record", "Save Letter");
-}
-
-function resetLetterStatusForm() {
-  letterUpdateForm?.reset();
   if (letterUpdateIdSelect) {
     letterUpdateIdSelect.value = "";
   }
   syncLetterUpdateMeta();
+  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, false, "Add Letter Record", "Save Changes");
 }
 
 function syncLetterUpdateMeta() {
@@ -594,7 +588,7 @@ function syncLetterUpdateMeta() {
   const selectedId = Number(letterUpdateIdSelect?.value || 0);
   const row = findActiveRow(activeLetterRows, selectedId);
   if (!row) {
-    letterUpdateSelectedMeta.textContent = "No letter selected yet.";
+    letterUpdateSelectedMeta.textContent = "Choose a letter to edit, or leave blank to add a new one.";
     return;
   }
   const recipient = row.recipient || row.bureau || "Unknown recipient";
@@ -606,7 +600,7 @@ function syncLetterUpdateMeta() {
 function syncLetterUpdateChoices() {
   if (!letterUpdateIdSelect) return;
   const previousValue = String(letterUpdateIdSelect.value || "");
-  letterUpdateIdSelect.innerHTML = '<option value="">Select a letter...</option>';
+  letterUpdateIdSelect.innerHTML = '<option value="">Add a new letter...</option>';
 
   activeLetterRows.forEach((row) => {
     const option = document.createElement("option");
@@ -622,20 +616,10 @@ function syncLetterUpdateChoices() {
   syncLetterUpdateMeta();
 }
 
-function populateLetterStatusForm(row) {
-  if (!row) return;
-  if (letterUpdateIdSelect) letterUpdateIdSelect.value = String(row.id || "");
-  const statusInput = document.getElementById("letter-update-status");
-  const notesInput = document.getElementById("letter-update-notes");
-  if (statusInput) statusInput.value = row.status || "In Transit";
-  if (notesInput) notesInput.value = row.notes || "";
-  syncLetterUpdateMeta();
-  letterUpdateForm?.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
 function populateLetterForm(row) {
   if (!row) return;
   if (letterEditIdInput) letterEditIdInput.value = String(row.id || "");
+  if (letterUpdateIdSelect) letterUpdateIdSelect.value = String(row.id || "");
   const sentDateInput = document.getElementById("letter-date");
   const statusInput = document.getElementById("letter-status");
   const recipientInput = document.getElementById("letter-recipient");
@@ -646,7 +630,8 @@ function populateLetterForm(row) {
   if (recipientInput) recipientInput.value = row.recipient || row.bureau || "";
   if (trackingInput) trackingInput.value = row.tracking_number || "";
   if (notesInput) notesInput.value = row.notes || "";
-  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, true, "Add Letter Record", "Save Letter");
+  syncLetterUpdateMeta();
+  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, true, "Add Letter Record", "Save Changes");
   letterForm?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
@@ -1463,9 +1448,6 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
           <button class="btn secondary sm" type="button" data-action="edit-letter" data-row-id="${safeText(
             row.id
           )}">Edit</button>
-          <button class="btn secondary sm" type="button" data-action="update-letter-status" data-row-id="${safeText(
-            row.id
-          )}">Status</button>
           <button class="btn danger sm" type="button" data-action="delete-letter" data-row-id="${safeText(
             row.id
           )}">Delete</button>
@@ -2103,7 +2085,7 @@ async function handlePreviewRecordAction(action, rowId) {
         return;
       }
       activateWorkspaceTab("letters");
-      populateLetterStatusForm(row);
+      populateLetterForm(row);
       return;
     }
     case "delete-letter": {
@@ -2344,12 +2326,10 @@ function initialize() {
   letterUpdateIdSelect?.addEventListener("change", () => {
     const row = findActiveRow(activeLetterRows, letterUpdateIdSelect.value);
     if (row) {
-      const statusInput = document.getElementById("letter-update-status");
-      const notesInput = document.getElementById("letter-update-notes");
-      if (statusInput) statusInput.value = row.status || "In Transit";
-      if (notesInput) notesInput.value = row.notes || "";
+      populateLetterForm(row);
+      return;
     }
-    syncLetterUpdateMeta();
+    resetLetterForm();
   });
   timelineCancelBtn?.addEventListener("click", resetTimelineForm);
   invoiceCancelBtn?.addEventListener("click", resetInvoiceForm);
@@ -2813,34 +2793,6 @@ function initialize() {
     resetLetterForm();
     setAdminStatus(editId ? "Letter record updated." : "Letter record added.");
     await loadClientPreview(activeClientId);
-  });
-
-  letterUpdateForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const letterId = Number(letterUpdateIdSelect?.value || 0);
-    const status = String(document.getElementById("letter-update-status")?.value || "").trim();
-    const notes = String(document.getElementById("letter-update-notes")?.value || "").trim();
-
-    if (!letterId) {
-      setAdminStatus("Letter ID is required.", true);
-      return;
-    }
-
-    const { error } = await supabase
-      .from("client_letters")
-      .update({ status, notes: notes || null })
-      .eq("user_id", activeClientId)
-      .eq("id", letterId);
-
-    if (error) {
-      setAdminStatus("Could not update letter: " + error.message, true);
-      return;
-    }
-
-    await logClientActivity(`Letter status updated: #${letterId} → ${status}.`);
-    resetLetterStatusForm();
-    setAdminStatus("Letter status updated.");
-    if (activeClientId) await loadClientPreview(activeClientId);
   });
 
   timelineForm?.addEventListener("submit", async (event) => {
