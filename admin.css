@@ -1085,6 +1085,84 @@ textarea { resize: vertical; }
 
 .invite-status.error { color: #f08080; }
 
+.clients-tab-wrap {
+  padding-top: 1.25rem;
+}
+
+.clients-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.clients-overview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.clients-overview-meta {
+  margin: 0.2rem 0 0;
+  color: #4f4269;
+  line-height: 1.55;
+}
+
+.clients-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.clients-stat-card {
+  border: 1px solid #e1d7ef;
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: linear-gradient(180deg, #ffffff 0%, #faf7ff 100%);
+}
+
+.clients-stat-card span {
+  display: block;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.28rem;
+}
+
+.clients-stat-card strong {
+  font-size: 1.15rem;
+  color: #24193c;
+}
+
+.clients-overview-notes {
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid #e8dcf7;
+  border-radius: 14px;
+  background: #faf7ff;
+}
+
+.clients-overview-notes p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.clients-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.clients-quick-actions .btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .billing-tab-wrap {
   padding-top: 1.25rem;
 }
@@ -1270,6 +1348,10 @@ textarea { resize: vertical; }
     grid-template-columns: 1fr;
   }
 
+  .clients-layout {
+    grid-template-columns: 1fr;
+  }
+
   .invite-fields {
     grid-template-columns: 1fr;
   }
@@ -1337,6 +1419,14 @@ textarea { resize: vertical; }
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .clients-overview-head {
+    flex-direction: column;
+  }
+
+  .clients-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .negative-admin-head,

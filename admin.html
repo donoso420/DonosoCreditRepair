@@ -10,7 +10,9 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="admin.css?v=20260312f" />
+    <link rel="icon" type="image/jpeg" href="images/SCR-20260306-loyx.jpeg" />
+    <link rel="apple-touch-icon" href="images/SCR-20260306-loyx.jpeg" />
+    <link rel="stylesheet" href="admin.css?v=20260315a" />
   </head>
   <body>
 
@@ -72,9 +74,9 @@
         <div class="container tab-nav-wrap">
           <nav class="tab-nav">
             <button class="tab-btn active" data-tab="dashboard" onclick="adminTab('dashboard',this)">📋 Client Dashboard</button>
+            <button class="tab-btn" data-tab="clients" onclick="adminTab('clients',this)">👥 Clients</button>
             <button class="tab-btn" data-tab="billing" onclick="adminTab('billing',this)">💳 Billing</button>
             <button class="tab-btn" data-tab="invite" onclick="adminTab('invite',this)">✉ Invite Client</button>
-            <button class="tab-btn" data-tab="profiles" onclick="adminTab('profiles',this)">⚙ Manage Profiles</button>
           </nav>
         </div>
 
@@ -87,7 +89,7 @@
                   <div>
                     <p class="eyebrow">Client Switcher</p>
                     <h3 class="card-title client-picker-title" id="client-picker-title">Choose a client</h3>
-                    <p class="muted sm">Search by name, phone, address, or client ID.</p>
+                    <p class="muted sm">Search by name, email, phone, address, or client ID.</p>
                   </div>
                   <div class="client-picker-tools">
                     <label class="sr-only" for="client-search">Search clients</label>
@@ -109,6 +111,7 @@
               <aside class="client-active-card" aria-live="polite">
                 <p class="eyebrow">Active Client</p>
                 <h3 class="client-active-name" id="active-client-name">Select a client</h3>
+                <p class="client-active-detail" id="active-client-email">Email will show here.</p>
                 <p class="client-active-detail" id="active-client-phone">Phone will show here.</p>
                 <p class="client-active-detail" id="active-client-address">Address will show here.</p>
                 <p class="active-client-id" id="active-client-id"></p>
@@ -132,6 +135,9 @@
               <nav class="workspace-nav" aria-label="Client dashboard sections">
                 <button class="workspace-tab-btn active" type="button" onclick="adminWorkspaceTab('updates',this)">
                   📅 Updates
+                </button>
+                <button class="workspace-tab-btn" type="button" onclick="adminWorkspaceTab('contact-info',this)">
+                  👤 Contact Info
                 </button>
                 <button class="workspace-tab-btn" type="button" onclick="adminWorkspaceTab('negative-items',this)">
                   ⚠️ Negative Items
@@ -168,6 +174,43 @@
                         <button class="btn primary full" id="timeline-submit-btn" type="submit">Post Update</button>
                         <button class="btn secondary full hidden" id="timeline-cancel-btn" type="button">Cancel Edit</button>
                       </div>
+                    </form>
+                  </div>
+                </div>
+              </section>
+
+              <section class="workspace-panel" id="workspace-panel-contact-info" style="display:none">
+                <div class="section-group">
+                  <div class="section-label">
+                    <h2>👤 Contact Information</h2>
+                    <p class="muted sm">Save the selected client's name, email, phone number, and address in one place.</p>
+                  </div>
+                  <div class="card">
+                    <h3 class="card-title">Edit Selected Client Contact Info</h3>
+                    <p class="muted sm">
+                      This updates the client profile record for the active client. The email below is a profile contact email and does not change the client's Supabase sign-in automatically.
+                    </p>
+                    <form id="client-contact-form">
+                      <div class="form-row">
+                        <div>
+                          <label for="client-contact-name-input">Full Name</label>
+                          <input id="client-contact-name-input" type="text" placeholder="Jane Smith" />
+                        </div>
+                        <div>
+                          <label for="client-contact-email-input">Email</label>
+                          <input id="client-contact-email-input" type="email" placeholder="client@email.com" />
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <div>
+                          <label for="client-contact-phone-input">Phone</label>
+                          <input id="client-contact-phone-input" type="tel" placeholder="(305) 000-0000" />
+                        </div>
+                        <div></div>
+                      </div>
+                      <label for="client-contact-address-input">Address</label>
+                      <textarea id="client-contact-address-input" rows="3" placeholder="Street, city, state, ZIP"></textarea>
+                      <button class="btn primary full mt" type="submit">Save Contact Info</button>
                     </form>
                   </div>
                 </div>
@@ -726,27 +769,74 @@
         </div>
         <!-- end tab-invite -->
 
-        <!-- ── TAB: Manage Profiles ───────────────────────── -->
-        <div class="tab-panel" id="tab-profiles" style="display:none">
-          <div class="container" style="max-width:560px; padding-top:1.5rem;">
-            <div class="card">
-              <h3 class="card-title">Create / Update Client Profile</h3>
-              <p class="muted sm">Use this if you need to manually create or edit a profile using a Supabase user UUID.</p>
-              <form id="profile-form">
-                <label for="profile-user-id">Client User ID <span class="req">*</span></label>
-                <input id="profile-user-id" name="profile-user-id" type="text" placeholder="UUID from Supabase Auth" required />
-                <label for="profile-full-name">Full Name</label>
-                <input id="profile-full-name" name="profile-full-name" type="text" placeholder="Jane Smith" />
-                <label for="profile-phone">Phone</label>
-                <input id="profile-phone" name="profile-phone" type="tel" placeholder="(305) 000-0000" />
-                <label for="profile-address">Address</label>
-                <textarea id="profile-address" name="profile-address" rows="3" placeholder="Street, city, state, ZIP"></textarea>
-                <button class="btn primary full mt" type="submit">Save Profile</button>
-              </form>
+        <!-- ── TAB: Clients ───────────────────────────────── -->
+        <div class="tab-panel" id="tab-clients" style="display:none">
+          <div class="container clients-tab-wrap">
+            <div class="section-label">
+              <h2>👥 Clients</h2>
+              <p class="muted sm">Browse your client list, review the selected account at a glance, and update profile details from one place.</p>
+            </div>
+            <div class="clients-layout">
+              <div class="card">
+                <div class="clients-overview-head">
+                  <div>
+                    <p class="eyebrow">Selected Client</p>
+                    <h3 class="card-title" id="clients-overview-name">Select a client</h3>
+                    <p class="clients-overview-meta" id="clients-overview-meta">Choose a client above to load their profile summary.</p>
+                  </div>
+                  <span class="status-chip draft" id="clients-overview-status">No client</span>
+                </div>
+                <div class="clients-stat-grid">
+                  <article class="clients-stat-card">
+                    <span>Total Clients</span>
+                    <strong id="clients-stat-total">0</strong>
+                  </article>
+                  <article class="clients-stat-card">
+                    <span>Negative Items</span>
+                    <strong id="clients-stat-negative">0</strong>
+                  </article>
+                  <article class="clients-stat-card">
+                    <span>Letters</span>
+                    <strong id="clients-stat-letters">0</strong>
+                  </article>
+                  <article class="clients-stat-card">
+                    <span>Portal Updates</span>
+                    <strong id="clients-stat-updates">0</strong>
+                  </article>
+                </div>
+                <div class="clients-overview-notes">
+                  <p class="muted sm" id="clients-overview-details">Profile details, email, phone, and address will appear here when a client is selected.</p>
+                </div>
+                <div class="clients-quick-actions">
+                  <button class="btn secondary sm" id="clients-open-dashboard-btn" type="button">Open Dashboard</button>
+                  <button class="btn secondary sm" id="clients-open-billing-btn" type="button">Open Billing</button>
+                  <button class="btn secondary sm" id="clients-open-portal-preview-btn" type="button">Portal Preview</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Create / Update Client Profile</h3>
+                <p class="muted sm">
+                  The selected client's UUID and profile details auto-fill here. You can still replace the UUID below if you need to create a brand new profile manually.
+                </p>
+                <form id="profile-form">
+                  <label for="profile-user-id">Client User ID <span class="req">*</span></label>
+                  <input id="profile-user-id" name="profile-user-id" type="text" placeholder="UUID from Supabase Auth" required />
+                  <label for="profile-full-name">Full Name</label>
+                  <input id="profile-full-name" name="profile-full-name" type="text" placeholder="Jane Smith" />
+                  <label for="profile-email">Email</label>
+                  <input id="profile-email" name="profile-email" type="email" placeholder="client@email.com" />
+                  <label for="profile-phone">Phone</label>
+                  <input id="profile-phone" name="profile-phone" type="tel" placeholder="(305) 000-0000" />
+                  <label for="profile-address">Address</label>
+                  <textarea id="profile-address" name="profile-address" rows="3" placeholder="Street, city, state, ZIP"></textarea>
+                  <button class="btn primary full mt" type="submit">Save Profile</button>
+                </form>
+              </div>
             </div>
           </div>
         </div>
-        <!-- end tab-profiles -->
+        <!-- end tab-clients -->
 
       </div>
       <!-- end admin-app -->
@@ -764,7 +854,7 @@
         var panel = document.getElementById('tab-' + target);
         if (panel) panel.style.display = 'block';
         if (btn) btn.classList.add('active');
-        if (clientBar) clientBar.style.display = (target === 'dashboard' || target === 'billing') ? 'block' : 'none';
+        if (clientBar) clientBar.style.display = (target === 'dashboard' || target === 'billing' || target === 'clients') ? 'block' : 'none';
       }
 
       function adminWorkspaceTab(target, btn) {
@@ -787,6 +877,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260312d"></script>
+    <script type="module" src="admin.js?v=20260315a"></script>
   </body>
 </html>

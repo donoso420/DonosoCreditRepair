@@ -16,11 +16,13 @@ const adminStatus = document.getElementById("admin-status");
 const adminIdentity = document.getElementById("admin-identity");
 
 const profileForm = document.getElementById("profile-form");
+const clientContactForm = document.getElementById("client-contact-form");
 const clientSelect = document.getElementById("client-select");
 const clientSearchInput = document.getElementById("client-search");
 const clientSearchCount = document.getElementById("client-search-count");
 const clientList = document.getElementById("client-list");
 const activeClientNameEl = document.getElementById("active-client-name");
+const activeClientEmailEl = document.getElementById("active-client-email");
 const activeClientPhoneEl = document.getElementById("active-client-phone");
 const activeClientAddressEl = document.getElementById("active-client-address");
 const activeClientIdEl = document.getElementById("active-client-id");
@@ -54,6 +56,17 @@ const inviteStatus = document.getElementById("invite-status");
 const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
 const openPortalPreviewBtn = document.getElementById("open-portal-preview-btn");
+const clientsOverviewNameEl = document.getElementById("clients-overview-name");
+const clientsOverviewMetaEl = document.getElementById("clients-overview-meta");
+const clientsOverviewStatusEl = document.getElementById("clients-overview-status");
+const clientsOverviewDetailsEl = document.getElementById("clients-overview-details");
+const clientsStatTotalEl = document.getElementById("clients-stat-total");
+const clientsStatNegativeEl = document.getElementById("clients-stat-negative");
+const clientsStatLettersEl = document.getElementById("clients-stat-letters");
+const clientsStatUpdatesEl = document.getElementById("clients-stat-updates");
+const clientsOpenDashboardBtn = document.getElementById("clients-open-dashboard-btn");
+const clientsOpenBillingBtn = document.getElementById("clients-open-billing-btn");
+const clientsOpenPortalPreviewBtn = document.getElementById("clients-open-portal-preview-btn");
 
 const previewScoreSnapshots = document.getElementById("preview-score-snapshots");
 const previewReports = document.getElementById("preview-reports");
@@ -94,6 +107,7 @@ let supabase = null;
 let currentAdmin = null;
 let activeClientId = null;
 let clientDirectory = [];
+let activeClientProfile = null;
 let activeClientFiles = [];
 let activeScoreSnapshotRows = [];
 let activeReportRows = [];
@@ -236,6 +250,13 @@ function safeText(value) {
     .replaceAll(">", "&gt;");
 }
 
+function getMissingClientProfileColumn(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (message.includes("contact_email")) return "contact_email";
+  if (message.includes("address")) return "address";
+  return null;
+}
+
 function getClientDisplayName(row = {}) {
   return String(row.full_name || "").trim() || "Unnamed Client";
 }
@@ -252,6 +273,7 @@ function getClientInitials(name = "") {
 
 function getClientListMeta(row = {}) {
   const details = [];
+  if (row.contact_email) details.push(row.contact_email);
   if (row.phone) details.push(row.phone);
   if (row.address) details.push(String(row.address).split(",")[0].trim());
   if (row.user_id) details.push(row.user_id.slice(0, 8));
@@ -259,7 +281,7 @@ function getClientListMeta(row = {}) {
 }
 
 function getClientSearchValue(row = {}) {
-  return [row.user_id, row.full_name, row.phone, row.address]
+  return [row.user_id, row.full_name, row.contact_email, row.phone, row.address]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -273,6 +295,9 @@ function updateActiveClientSummary(row) {
   if (activeClientNameEl) {
     activeClientNameEl.textContent = row ? getClientDisplayName(row) : "Select a client";
   }
+  if (activeClientEmailEl) {
+    activeClientEmailEl.textContent = row?.contact_email ? `Email: ${row.contact_email}` : "Email not added yet.";
+  }
   if (activeClientPhoneEl) {
     activeClientPhoneEl.textContent = row?.phone ? `Phone: ${row.phone}` : "Phone not added yet.";
   }
@@ -285,6 +310,97 @@ function updateActiveClientSummary(row) {
   if (openPortalPreviewBtn) {
     openPortalPreviewBtn.disabled = !row?.user_id;
   }
+}
+
+function populateProfileForm(profile = {}) {
+  setFieldValue("profile-user-id", profile?.user_id || "");
+  setFieldValue("profile-full-name", profile?.full_name || "");
+  setFieldValue("profile-email", profile?.contact_email || "");
+  setFieldValue("profile-phone", profile?.phone || "");
+  setFieldValue("profile-address", profile?.address || "");
+}
+
+function getClientsOverviewState(row = {}) {
+  if (!row?.user_id) {
+    return { label: "No client", className: "draft" };
+  }
+
+  const missingFields = [row.full_name, row.contact_email, row.phone, row.address].filter(
+    (value) => !String(value || "").trim()
+  );
+
+  if (!missingFields.length) {
+    return { label: "Ready", className: "active" };
+  }
+
+  return { label: "Needs info", className: "overdue" };
+}
+
+function renderClientsOverview(row = null) {
+  const selectedRow = row?.user_id ? row : null;
+  const manualUpdateCount = activeUpdateRows.filter((entry) => !isActivityUpdateRow(entry)).length;
+  const detailParts = [];
+
+  if (clientsStatTotalEl) {
+    clientsStatTotalEl.textContent = String(clientDirectory.length || 0);
+  }
+  if (clientsStatNegativeEl) {
+    clientsStatNegativeEl.textContent = String(activeNegativeItemRows.length || 0);
+  }
+  if (clientsStatLettersEl) {
+    clientsStatLettersEl.textContent = String(activeLetterRows.length || 0);
+  }
+  if (clientsStatUpdatesEl) {
+    clientsStatUpdatesEl.textContent = String(manualUpdateCount || 0);
+  }
+
+  if (!selectedRow) {
+    if (clientsOverviewNameEl) clientsOverviewNameEl.textContent = "Select a client";
+    if (clientsOverviewMetaEl) clientsOverviewMetaEl.textContent = "Choose a client above to load their profile summary.";
+    if (clientsOverviewDetailsEl) {
+      clientsOverviewDetailsEl.textContent =
+        "Profile details, email, phone, and address will appear here when a client is selected.";
+    }
+    if (clientsOverviewStatusEl) {
+      clientsOverviewStatusEl.textContent = "No client";
+      clientsOverviewStatusEl.className = "status-chip draft";
+    }
+  } else {
+    if (clientsOverviewNameEl) clientsOverviewNameEl.textContent = getClientDisplayName(selectedRow);
+    if (clientsOverviewMetaEl) {
+      const meta = [
+        selectedRow.contact_email || "No email on file",
+        selectedRow.phone || "No phone on file",
+        selectedRow.created_at ? `Client since ${formatDate(selectedRow.created_at)}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      clientsOverviewMetaEl.textContent = meta;
+    }
+
+    detailParts.push(selectedRow.address ? `Address: ${selectedRow.address}` : "Address not added yet.");
+    detailParts.push(`Client ID: ${selectedRow.user_id}`);
+    detailParts.push(
+      `${activeNegativeItemRows.length} negative item${activeNegativeItemRows.length === 1 ? "" : "s"}, ` +
+        `${activeLetterRows.length} letter${activeLetterRows.length === 1 ? "" : "s"}, ` +
+        `${manualUpdateCount} portal update${manualUpdateCount === 1 ? "" : "s"}, ` +
+        `${activeClientFiles.length} file${activeClientFiles.length === 1 ? "" : "s"} on record.`
+    );
+
+    if (clientsOverviewDetailsEl) {
+      clientsOverviewDetailsEl.textContent = detailParts.join(" ");
+    }
+
+    if (clientsOverviewStatusEl) {
+      const state = getClientsOverviewState(selectedRow);
+      clientsOverviewStatusEl.textContent = state.label;
+      clientsOverviewStatusEl.className = `status-chip ${state.className}`;
+    }
+  }
+
+  [clientsOpenDashboardBtn, clientsOpenBillingBtn, clientsOpenPortalPreviewBtn].forEach((button) => {
+    if (button) button.disabled = !selectedRow?.user_id;
+  });
 }
 
 function findWorkspaceTabButton(target) {
@@ -302,12 +418,16 @@ function activateAdminTab(target) {
     return;
   }
 
+  const clientBar = document.getElementById("shared-client-bar");
   document.querySelectorAll(".tab-panel").forEach((panel) => {
     panel.style.display = panel.id === `tab-${target}` ? "block" : "none";
   });
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.classList.toggle("active", btn === button);
   });
+  if (clientBar) {
+    clientBar.style.display = ["dashboard", "billing", "clients"].includes(target) ? "block" : "none";
+  }
 }
 
 function activateWorkspaceTab(target) {
@@ -339,7 +459,9 @@ function renderClientSelectOptions() {
   clientDirectory.forEach((row) => {
     const option = document.createElement("option");
     option.value = row.user_id;
-    option.textContent = `${getClientDisplayName(row)}${row.phone ? ` · ${row.phone}` : ""}`;
+    option.textContent = `${getClientDisplayName(row)}${
+      row.contact_email ? ` · ${row.contact_email}` : row.phone ? ` · ${row.phone}` : ""
+    }`;
     clientSelect.appendChild(option);
   });
 }
@@ -394,6 +516,7 @@ function renderClientList() {
 }
 
 function resetActiveClientCollections() {
+  activeClientProfile = null;
   activeClientFiles = [];
   activeScoreSnapshotRows = [];
   activeReportRows = [];
@@ -405,6 +528,7 @@ function resetActiveClientCollections() {
 }
 
 function resetActiveClientForms() {
+  clientContactForm?.reset();
   resetNegativeItemForm();
   resetLetterForm();
   resetTimelineForm();
@@ -417,6 +541,14 @@ function clearRenderedClientState() {
   renderBillingManager(null, []);
   renderAdminMessages([]);
   renderClientUploads([]);
+  renderClientsOverview(null);
+}
+
+function populateClientContactForm(profile = {}) {
+  setFieldValue("client-contact-name-input", profile?.full_name || "");
+  setFieldValue("client-contact-email-input", profile?.contact_email || "");
+  setFieldValue("client-contact-phone-input", profile?.phone || "");
+  setFieldValue("client-contact-address-input", profile?.address || "");
 }
 
 async function setActiveClient(userId) {
@@ -428,6 +560,8 @@ async function setActiveClient(userId) {
   resetActiveClientCollections();
   resetActiveClientForms();
   updateActiveClientSummary(getClientRow(activeClientId));
+  populateProfileForm(getClientRow(activeClientId) || {});
+  renderClientsOverview(getClientRow(activeClientId));
   renderClientList();
 
   if (!activeClientId) {
@@ -950,17 +1084,31 @@ async function checkAdmin(userId) {
 }
 
 async function loadClientDirectoryRows() {
-  const primary = await supabase
-    .from("client_profiles")
-    .select("user_id,full_name,phone,address,created_at")
-    .order("full_name", { ascending: true });
+  let columns = ["user_id", "full_name", "phone", "contact_email", "address", "created_at"];
 
-  if (!primary.error) {
-    return primary.data || [];
-  }
+  while (columns.length >= 4) {
+    const result = await supabase
+      .from("client_profiles")
+      .select(columns.join(","))
+      .order("full_name", { ascending: true });
 
-  if (!isMissingFeatureError(primary.error)) {
-    throw primary.error;
+    if (!result.error) {
+      return (result.data || []).map((row) => ({
+        ...row,
+        contact_email: row.contact_email || null,
+        address: row.address || null,
+      }));
+    }
+
+    if (!isMissingFeatureError(result.error)) {
+      throw result.error;
+    }
+
+    const missingColumn = getMissingClientProfileColumn(result.error);
+    if (!missingColumn || !columns.includes(missingColumn)) {
+      break;
+    }
+    columns = columns.filter((column) => column !== missingColumn);
   }
 
   const fallback = await supabase
@@ -974,8 +1122,57 @@ async function loadClientDirectoryRows() {
 
   return (fallback.data || []).map((row) => ({
     ...row,
+    contact_email: null,
     address: null,
   }));
+}
+
+async function loadClientProfileRecord(userId) {
+  let columns = ["full_name", "phone", "contact_email", "address"];
+
+  while (columns.length >= 2) {
+    const result = await supabase
+      .from("client_profiles")
+      .select(columns.join(","))
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!result.error) {
+      return {
+        full_name: result.data?.full_name || null,
+        phone: result.data?.phone || null,
+        contact_email: result.data?.contact_email || null,
+        address: result.data?.address || null,
+      };
+    }
+
+    if (!isMissingFeatureError(result.error)) {
+      throw result.error;
+    }
+
+    const missingColumn = getMissingClientProfileColumn(result.error);
+    if (!missingColumn || !columns.includes(missingColumn)) {
+      break;
+    }
+    columns = columns.filter((column) => column !== missingColumn);
+  }
+
+  const fallback = await supabase
+    .from("client_profiles")
+    .select("full_name,phone")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (fallback.error && !isMissingFeatureError(fallback.error)) {
+    throw fallback.error;
+  }
+
+  return {
+    full_name: fallback.data?.full_name || null,
+    phone: fallback.data?.phone || null,
+    contact_email: null,
+    address: null,
+  };
 }
 
 async function loadClients() {
@@ -1011,6 +1208,7 @@ async function loadClients() {
     resetActiveClientCollections();
     resetActiveClientForms();
     updateActiveClientSummary(null);
+    populateProfileForm({});
     clearRenderedClientState();
     return;
   }
@@ -1575,19 +1773,35 @@ async function safeTableQuery(queryPromise, fallback = []) {
 }
 
 async function upsertClientProfileRecord(payload) {
-  const primary = await supabase.from("client_profiles").upsert(payload, { onConflict: "user_id" });
-  if (!primary.error) return { missingAddressSupport: false };
-  if (!isMissingFeatureError(primary.error) || !Object.prototype.hasOwnProperty.call(payload, "address")) {
-    throw primary.error;
+  const missingSupport = {
+    missingAddressSupport: false,
+    missingContactEmailSupport: false,
+  };
+  const attemptPayload = { ...payload };
+
+  while (true) {
+    const result = await supabase
+      .from("client_profiles")
+      .upsert(attemptPayload, { onConflict: "user_id" });
+
+    if (!result.error) return missingSupport;
+    if (!isMissingFeatureError(result.error)) throw result.error;
+
+    const missingColumn = getMissingClientProfileColumn(result.error);
+    if (missingColumn === "contact_email" && Object.prototype.hasOwnProperty.call(attemptPayload, "contact_email")) {
+      delete attemptPayload.contact_email;
+      missingSupport.missingContactEmailSupport = true;
+      continue;
+    }
+
+    if (missingColumn === "address" && Object.prototype.hasOwnProperty.call(attemptPayload, "address")) {
+      delete attemptPayload.address;
+      missingSupport.missingAddressSupport = true;
+      continue;
+    }
+
+    throw result.error;
   }
-
-  const { address, ...fallbackPayload } = payload;
-  const fallback = await supabase
-    .from("client_profiles")
-    .upsert(fallbackPayload, { onConflict: "user_id" });
-
-  if (fallback.error) throw fallback.error;
-  return { missingAddressSupport: true };
 }
 
 async function getSignedFileUrl(fileRow) {
@@ -1758,6 +1972,7 @@ async function importNegativeItemsFromUploadedFile(file, fileRow, category) {
 async function loadClientPreview(userId) {
   if (!userId) return;
   const [
+    profile,
     scoreSnapshots,
     { data: letters },
     { data: updates },
@@ -1769,6 +1984,7 @@ async function loadClientPreview(userId) {
     invoices,
   ] =
     await Promise.all([
+      loadClientProfileRecord(userId),
       safeTableQuery(
         supabase
           .from("credit_snapshots")
@@ -1819,6 +2035,7 @@ async function loadClientPreview(userId) {
     ]);
 
   const filesWithUrls = files || [];
+  activeClientProfile = profile || null;
   activeClientFiles = filesWithUrls;
   activeScoreSnapshotRows = scoreSnapshots || [];
   activeReportRows = reports || [];
@@ -1828,6 +2045,14 @@ async function loadClientPreview(userId) {
   activeNegativeItemRows = negativeItems || [];
   activeBillingProfile = billingProfile || null;
   activeInvoiceRows = invoices || [];
+  const mergedClientProfile = {
+    ...(getClientRow(userId) || {}),
+    ...(profile || {}),
+    user_id: userId,
+  };
+  updateActiveClientSummary(mergedClientProfile);
+  populateClientContactForm(mergedClientProfile);
+  populateProfileForm(mergedClientProfile);
   const reportFileMap = new Map(filesWithUrls.map((row) => [row.id, row.signed_url || ""]));
   const reportsWithUrls = (reports || []).map((row) => ({
     ...row,
@@ -1845,6 +2070,7 @@ async function loadClientPreview(userId) {
   renderBillingManager(activeBillingProfile, activeInvoiceRows);
   renderAdminMessages(messages || []);
   renderClientUploads(filesWithUrls);
+  renderClientsOverview(mergedClientProfile);
 }
 
 async function safeDeleteQuery(queryPromise) {
@@ -2417,12 +2643,63 @@ function initialize() {
     }
   });
 
-  openPortalPreviewBtn?.addEventListener("click", () => {
+  const openActiveClientPortalPreview = () => {
     if (!activeClientId) {
       setAdminStatus("Select a client first.", true);
       return;
     }
     window.open(`portal.html?preview_user_id=${encodeURIComponent(activeClientId)}`, "_blank", "noopener,noreferrer");
+  };
+
+  openPortalPreviewBtn?.addEventListener("click", openActiveClientPortalPreview);
+  clientsOpenPortalPreviewBtn?.addEventListener("click", openActiveClientPortalPreview);
+  clientsOpenDashboardBtn?.addEventListener("click", () => {
+    if (!activeClientId) {
+      setAdminStatus("Select a client first.", true);
+      return;
+    }
+    activateAdminTab("dashboard");
+  });
+  clientsOpenBillingBtn?.addEventListener("click", () => {
+    if (!activeClientId) {
+      setAdminStatus("Select a client first.", true);
+      return;
+    }
+    activateAdminTab("billing");
+  });
+
+  clientContactForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await requireActiveClient())) return;
+
+    const fullName = String(document.getElementById("client-contact-name-input")?.value || "").trim();
+    const contactEmail = String(document.getElementById("client-contact-email-input")?.value || "").trim();
+    const phone = String(document.getElementById("client-contact-phone-input")?.value || "").trim();
+    const address = String(document.getElementById("client-contact-address-input")?.value || "").trim();
+
+    let result;
+    try {
+      result = await upsertClientProfileRecord({
+        user_id: activeClientId,
+        full_name: fullName || null,
+        contact_email: contactEmail || null,
+        phone: phone || null,
+        address: address || null,
+      });
+    } catch (error) {
+      setAdminStatus("Could not save client contact info: " + (error?.message || error), true);
+      return;
+    }
+
+    const warnings = [];
+    if (result?.missingContactEmailSupport) warnings.push("email");
+    if (result?.missingAddressSupport) warnings.push("address");
+    setAdminStatus(
+      warnings.length
+        ? `Contact info saved, but ${warnings.join(" and ")} will not persist until you run the latest Supabase schema SQL.`
+        : "Client contact info saved."
+    );
+    await loadClients();
   });
 
   logoutBtn?.addEventListener("click", async () => {
@@ -2475,10 +2752,12 @@ function initialize() {
 
     // Auto-create client profile so they appear in the dropdown immediately
     if (userId) {
-      await supabase.from("client_profiles").upsert(
-        { user_id: userId, full_name: fullName || null, phone: phone || null },
-        { onConflict: "user_id" }
-      );
+      await upsertClientProfileRecord({
+        user_id: userId,
+        full_name: fullName || null,
+        contact_email: email || null,
+        phone: phone || null,
+      });
       activeClientId = userId;
     }
 
@@ -2494,6 +2773,7 @@ function initialize() {
     event.preventDefault();
     const userId = String(document.getElementById("profile-user-id")?.value || "").trim();
     const fullName = String(document.getElementById("profile-full-name")?.value || "").trim();
+    const contactEmail = String(document.getElementById("profile-email")?.value || "").trim();
     const phone = String(document.getElementById("profile-phone")?.value || "").trim();
     const address = String(document.getElementById("profile-address")?.value || "").trim();
 
@@ -2523,6 +2803,7 @@ function initialize() {
       result = await upsertClientProfileRecord({
         user_id: userId,
         full_name: fullName || null,
+        contact_email: contactEmail || null,
         phone: phone || null,
         address: address || null,
       });
@@ -2533,8 +2814,15 @@ function initialize() {
 
     activeClientId = userId;
     setAdminStatus(
-      result?.missingAddressSupport
-        ? "Profile saved. Run the latest Supabase schema SQL to store addresses in client_profiles."
+      result?.missingAddressSupport || result?.missingContactEmailSupport
+        ? `Profile saved. Run the latest Supabase schema SQL to store ${
+            [
+              result?.missingContactEmailSupport ? "emails" : "",
+              result?.missingAddressSupport ? "addresses" : "",
+            ]
+              .filter(Boolean)
+              .join(" and ")
+          } in client_profiles.`
         : "Profile saved."
     );
     await loadClients();
