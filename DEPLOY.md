@@ -29,6 +29,7 @@ Set these environment variables in your hosting platform:
 - `SUPABASE_SERVICE_ROLE_KEY`: your Supabase service role key (server-side only; never expose in frontend).
 - `PORTAL_LOGIN_URL`: your live client portal page URL (example: `https://yourdomain.com/portal.html`).
 - `PORTAL_REDIRECT_URL` (optional): URL used in the password setup email redirect.
+- `ADMIN_ALERTS_TO_EMAIL` (optional): inbox for portal upload/message alerts. If omitted, falls back to `LEADS_TO_EMAIL`.
 - `AUTO_CREATE_PORTAL_USERS` (optional): `true`/`false` toggle. Defaults to enabled when Supabase env vars exist.
 
 Important:
@@ -98,5 +99,7 @@ The backend will POST this JSON payload:
 - `disclosures.html`
 - `cancellation.html`
 - `api/lead.js`
+- `api/portal-notify.js`
 - `netlify/functions/lead.js`
+- `netlify/functions/portal-notify.js`
 - `netlify.toml`

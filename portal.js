@@ -1345,6 +1345,71 @@ function initializePortal() {
   let isPreviewMode = false;
   let pendingPasswordSetupFlow = authLandingState.needsPasswordSetup ? authLandingState.type : "";
 
+  async function postPortalNotification(payload) {
+    const { data, error } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (error || !accessToken) {
+      throw new Error(error?.message || "No active portal session.");
+    }
+
+    const response = await fetch("/api/portal-notify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.error || "Could not send portal notification.");
+    }
+
+    return result;
+  }
+
+  function getCurrentClientNotificationProfile() {
+    const metadata = currentSessionUser?.user_metadata || {};
+    const fallbackName = String(
+      clientNameEl?.textContent || metadata.full_name || metadata.fullName || "Client"
+    ).trim();
+
+    return {
+      userId: currentPortalUserId || currentSessionUser?.id || "",
+      name: fallbackName || "Client",
+      email: String(currentSessionUser?.email || "").trim().toLowerCase(),
+    };
+  }
+
+  async function notifyAdminPortalAlert({
+    eventType = "client_message",
+    summary = "",
+    details = "",
+    fileTitle = "",
+    category = "",
+  } = {}) {
+    const client = getCurrentClientNotificationProfile();
+    if (!client.userId || !summary) return false;
+
+    try {
+      await postPortalNotification({
+        eventType,
+        clientUserId: client.userId,
+        clientName: client.name,
+        clientEmail: client.email,
+        summary,
+        details,
+        fileTitle,
+        category,
+      });
+      return true;
+    } catch (error) {
+      console.warn("Could not send admin portal alert:", error?.message || error);
+      return false;
+    }
+  }
+
   if (pendingPasswordSetupFlow) {
     configureSetPasswordFlow(pendingPasswordSetupFlow);
   }
@@ -1618,6 +1683,11 @@ function initializePortal() {
     }
 
     if (messageInput) messageInput.value = "";
+    await notifyAdminPortalAlert({
+      eventType: "client_message",
+      summary: "A client sent a new portal message.",
+      details: content,
+    });
     setMessageStatus("");
 
     const { data: messages } = await supabase
@@ -1693,6 +1763,13 @@ function initializePortal() {
     }
 
     clientUploadForm.reset();
+    await notifyAdminPortalAlert({
+      eventType: "client_upload",
+      summary: "A client uploaded a new portal document.",
+      details: title || file.name,
+      fileTitle: title || file.name,
+      category,
+    });
     setUploadStatus(`${category} uploaded successfully.`);
     await loadDashboard(currentSessionUser, {
       targetUserId: currentPortalUserId,

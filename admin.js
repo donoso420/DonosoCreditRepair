@@ -121,6 +121,67 @@ function setReportAutofillStatus(message, isError = false) {
   reportAutofillStatus.classList.toggle("error", isError);
 }
 
+async function postPortalNotification(payload) {
+  if (!supabase) {
+    throw new Error("Supabase is not ready.");
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (error || !accessToken) {
+    throw new Error(error?.message || "No active admin session.");
+  }
+
+  const response = await fetch("/api/portal-notify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || "Could not send portal notification.");
+  }
+
+  return result;
+}
+
+function getActiveClientNotificationTarget() {
+  const row = {
+    ...(getClientRow(activeClientId) || {}),
+    user_id: activeClientId || "",
+  };
+
+  return {
+    userId: row.user_id || "",
+    name: getClientDisplayName(row),
+    email: String(row.contact_email || "").trim().toLowerCase(),
+  };
+}
+
+async function notifyClientPortalAlert({ eventType = "admin_activity", summary = "", details = "" } = {}) {
+  const target = getActiveClientNotificationTarget();
+  if (!target.userId || !summary) return false;
+
+  try {
+    await postPortalNotification({
+      eventType,
+      recipientUserId: target.userId,
+      recipientEmail: target.email || "",
+      recipientName: target.name || "Client",
+      summary,
+      details,
+    });
+    return true;
+  } catch (error) {
+    console.warn("Could not send client portal alert:", error?.message || error);
+    return false;
+  }
+}
+
 function isCreditReportCategory(value = fileCategorySelect?.value) {
   return String(value || "").trim() === "Credit Report";
 }
@@ -1637,7 +1698,7 @@ async function upsertNegativeItemRow(item) {
   if (error) throw error;
 }
 
-async function logClientActivity(message) {
+async function logClientActivity(message, options = {}) {
   if (!activeClientId || !message) return;
 
   const { error } = await supabase.from("client_updates").insert({
@@ -1648,6 +1709,14 @@ async function logClientActivity(message) {
   if (error) {
     console.warn("Could not log client activity:", error.message || error);
   }
+
+  if (options.notifyClient === false) return;
+
+  await notifyClientPortalAlert({
+    eventType: "admin_activity",
+    summary: options.summary || message,
+    details: options.details || "",
+  });
 }
 
 async function importNegativeItemsFromUploadedFile(file, fileRow, category) {
@@ -2825,7 +2894,18 @@ function initialize() {
     }
 
     if (editId) {
-      await logClientActivity("Timeline update edited.");
+      await logClientActivity("Timeline update edited.", { notifyClient: false });
+      await notifyClientPortalAlert({
+        eventType: "admin_activity",
+        summary: "A portal update was edited.",
+        details,
+      });
+    } else {
+      await notifyClientPortalAlert({
+        eventType: "admin_activity",
+        summary: "A new portal update was posted.",
+        details,
+      });
     }
     resetTimelineForm();
     setAdminStatus(editId ? "Timeline update saved." : "Timeline update added.");
@@ -3065,6 +3145,11 @@ function initialize() {
 
     if (error) { setAdminStatus("Could not send message: " + error.message, true); return; }
     if (adminMessageInput) adminMessageInput.value = "";
+    await notifyClientPortalAlert({
+      eventType: "admin_message",
+      summary: "You have a new message from Donoso Credit Repair.",
+      details: content,
+    });
     setAdminStatus("Message sent.");
     await loadClientPreview(activeClientId);
   });

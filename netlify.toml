@@ -11,3 +11,8 @@ status = 200
 from = "/api/report-opened"
 to = "/.netlify/functions/report-opened"
 status = 200
+
+[[redirects]]
+from = "/api/portal-notify"
+to = "/.netlify/functions/portal-notify"
+status = 200
