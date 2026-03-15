@@ -56,6 +56,7 @@ const inviteStatus = document.getElementById("invite-status");
 const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
 const openPortalPreviewBtn = document.getElementById("open-portal-preview-btn");
+const adminThemeToggleBtn = document.getElementById("admin-theme-toggle");
 const clientsOverviewNameEl = document.getElementById("clients-overview-name");
 const clientsOverviewMetaEl = document.getElementById("clients-overview-meta");
 const clientsOverviewStatusEl = document.getElementById("clients-overview-status");
@@ -101,6 +102,7 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
 const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
 const ACTIVITY_PREFIX = "[Activity] ";
 const ALL_CREDIT_BUREAUS = ["Experian", "Equifax", "TransUnion"];
+const THEME_STORAGE_KEY = "donoso_theme_preference";
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -116,6 +118,43 @@ let activeLetterRows = [];
 let activeUpdateRows = [];
 let activeBillingProfile = null;
 let activeInvoiceRows = [];
+
+function getStoredThemePreference() {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch (_) {}
+
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
+function applyThemePreference(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = nextTheme;
+  document.documentElement.style.colorScheme = nextTheme;
+
+  if (adminThemeToggleBtn) {
+    const switchToDark = nextTheme !== "dark";
+    adminThemeToggleBtn.textContent = switchToDark ? "Dark mode" : "Light mode";
+    adminThemeToggleBtn.setAttribute(
+      "aria-label",
+      switchToDark ? "Switch to dark mode" : "Switch to light mode"
+    );
+    adminThemeToggleBtn.setAttribute("aria-pressed", String(nextTheme === "dark"));
+  }
+}
+
+function initializeThemeToggle() {
+  applyThemePreference(getStoredThemePreference());
+
+  adminThemeToggleBtn?.addEventListener("click", () => {
+    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (_) {}
+    applyThemePreference(nextTheme);
+  });
+}
 
 function setAuthStatus(message, isError = false) {
   if (!authStatus) return;
@@ -2462,6 +2501,8 @@ async function requireActiveClient() {
 }
 
 function initialize() {
+  initializeThemeToggle();
+
   if (missingConfig.length > 0) {
     setAuthStatus(
       "Admin portal is not configured yet. Add Supabase values in portal-config.js.",

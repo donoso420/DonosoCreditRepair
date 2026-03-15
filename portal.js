@@ -27,6 +27,7 @@ const resetBtn = document.getElementById("reset-btn");
 const toggleAuthModeBtn = document.getElementById("toggle-auth-mode-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const refreshBtn = document.getElementById("refresh-btn");
+const portalThemeToggleBtn = document.getElementById("portal-theme-toggle");
 const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
 const clientContactEmailEl = document.getElementById("client-contact-email");
@@ -73,6 +74,7 @@ const ALLOWED_UPLOAD_MIME_TYPES = new Set([
 const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx"];
 const ACTIVITY_PREFIX = "[Activity] ";
 const PORTAL_TAB_STORAGE_KEY = "portal_active_tab";
+const THEME_STORAGE_KEY = "donoso_theme_preference";
 const REQUIRED_UPLOAD_DOCS = [
   { key: "id", category: "Government ID" },
   { key: "ssn", category: "Social Security Card" },
@@ -81,6 +83,45 @@ const REQUIRED_UPLOAD_DOCS = [
 
 const requiredConfig = ["supabaseUrl", "supabaseAnonKey"];
 const missingConfig = requiredConfig.filter((k) => !config[k]);
+
+function getStoredThemePreference() {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch (_) {}
+
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
+function applyThemePreference(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = nextTheme;
+  document.documentElement.style.colorScheme = nextTheme;
+
+  if (portalThemeToggleBtn) {
+    const switchToDark = nextTheme !== "dark";
+    portalThemeToggleBtn.textContent = switchToDark ? "Dark mode" : "Light mode";
+    portalThemeToggleBtn.setAttribute(
+      "aria-label",
+      switchToDark ? "Switch to dark mode" : "Switch to light mode"
+    );
+    portalThemeToggleBtn.setAttribute("aria-pressed", String(nextTheme === "dark"));
+  }
+}
+
+function initializeThemeToggle() {
+  applyThemePreference(getStoredThemePreference());
+
+  portalThemeToggleBtn?.addEventListener("click", () => {
+    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (_) {}
+    applyThemePreference(nextTheme);
+  });
+}
+
+initializeThemeToggle();
 
 if (missingConfig.length > 0) {
   setAuthStatus(

@@ -10,9 +10,24 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("donoso_theme_preference");
+          var theme =
+            stored === "dark" || stored === "light"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+        } catch (_) {}
+      })();
+    </script>
     <link rel="icon" type="image/jpeg" href="images/SCR-20260306-loyx.jpeg" />
     <link rel="apple-touch-icon" href="images/SCR-20260306-loyx.jpeg" />
-    <link rel="stylesheet" href="admin.css?v=20260315a" />
+    <link rel="stylesheet" href="admin.css?v=20260315b" />
   </head>
   <body>
 
@@ -23,6 +38,9 @@
           <span class="nav-badge">Admin</span>
           <a href="portal.html">Client Portal</a>
           <a href="index.html">Main Site</a>
+          <button class="theme-toggle" id="admin-theme-toggle" type="button" aria-label="Switch to dark mode">
+            Dark mode
+          </button>
         </div>
       </div>
     </header>
@@ -877,6 +895,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260315a"></script>
+    <script type="module" src="admin.js?v=20260315b"></script>
   </body>
 </html>

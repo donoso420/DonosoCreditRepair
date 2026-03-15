@@ -9,6 +9,13 @@
   --accent: #f7b2dd;
   --accent-strong: #e480c7;
   --gold: #e8c97a;
+  --theme-toggle-bg: rgba(255, 255, 255, 0.08);
+  --theme-toggle-border: rgba(255, 255, 255, 0.2);
+  --theme-toggle-text: #f7f1ff;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -73,6 +80,24 @@ a { color: var(--accent-strong); text-decoration: none; }
 .nav-right a {
   color: #d7c8ea;
   font-size: 0.88rem;
+}
+
+.theme-toggle {
+  border: 1px solid var(--theme-toggle-border);
+  border-radius: 999px;
+  background: var(--theme-toggle-bg);
+  color: var(--theme-toggle-text);
+  padding: 0.48rem 0.82rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .nav-badge {
@@ -1447,4 +1472,196 @@ textarea { resize: vertical; }
   .billing-invoice-side {
     align-items: flex-start;
   }
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 6% 0%, rgba(247, 178, 221, 0.12) 0, transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(124, 92, 191, 0.18) 0, transparent 26%),
+    #120f1c;
+  color: #f4ecff;
+}
+
+[data-theme="dark"] .admin-nav {
+  background: rgba(12, 9, 19, 0.96);
+  border-bottom-color: #45315e;
+}
+
+[data-theme="dark"] .topbar {
+  background: #171221;
+  border-bottom-color: #3b2d52;
+}
+
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .card,
+[data-theme="dark"] .client-list-item,
+[data-theme="dark"] .workspace-tab-btn,
+[data-theme="dark"] .preview-nav-btn,
+[data-theme="dark"] .file-record,
+[data-theme="dark"] .admin-message-thread,
+[data-theme="dark"] .billing-invoice-row,
+[data-theme="dark"] .clients-stat-card,
+[data-theme="dark"] .clients-overview-notes,
+[data-theme="dark"] .preview-progress-card {
+  border-color: #3a2d52;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.26);
+}
+
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .card,
+[data-theme="dark"] .preview-nav-btn,
+[data-theme="dark"] .workspace-tab-btn,
+[data-theme="dark"] .file-record,
+[data-theme="dark"] .admin-message-thread,
+[data-theme="dark"] .billing-invoice-row,
+[data-theme="dark"] .clients-stat-card,
+[data-theme="dark"] .clients-overview-notes {
+  background: #1d1729;
+}
+
+[data-theme="dark"] .client-list-item,
+[data-theme="dark"] .preview-progress-card {
+  background: linear-gradient(180deg, #201930 0%, #181320 100%);
+}
+
+[data-theme="dark"] .client-list-item.active,
+[data-theme="dark"] .workspace-tab-btn.active,
+[data-theme="dark"] .preview-nav-btn.active,
+[data-theme="dark"] .client-active-card {
+  background:
+    radial-gradient(circle at top right, rgba(247, 178, 221, 0.08), transparent 32%),
+    linear-gradient(180deg, #231b35 0%, #191322 100%);
+  border-color: #8f6bd4;
+}
+
+[data-theme="dark"] .client-list-item:hover,
+[data-theme="dark"] .workspace-tab-btn:hover,
+[data-theme="dark"] .preview-nav-btn:hover {
+  border-color: #a785df;
+}
+
+[data-theme="dark"] .tab-nav {
+  border-bottom-color: #3b2d52;
+}
+
+[data-theme="dark"] .tab-btn {
+  color: #b8a9ce;
+}
+
+[data-theme="dark"] .tab-btn:hover {
+  color: #f3ebff;
+  background: #241b34;
+}
+
+[data-theme="dark"] .tab-btn.active {
+  color: #f8f2ff;
+  background: #2b2040;
+  border-bottom-color: #a785df;
+}
+
+[data-theme="dark"] .active-client-id {
+  background: rgba(23, 17, 32, 0.92);
+  border-color: #4a3764;
+  color: #cabbe0;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #15111e;
+  border-color: #43315f;
+  color: #f4ecff;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #9687af;
+}
+
+[data-theme="dark"] .btn.secondary {
+  background: #191322;
+  border-color: #8f6bd4;
+  color: #f0e7ff;
+}
+
+[data-theme="dark"] .btn.secondary:hover {
+  background: #241b34;
+}
+
+[data-theme="dark"] .client-list-name,
+[data-theme="dark"] .client-active-name,
+[data-theme="dark"] .workspace-title,
+[data-theme="dark"] .section-label h2,
+[data-theme="dark"] .card-title,
+[data-theme="dark"] .preview-title,
+[data-theme="dark"] .file-record-title,
+[data-theme="dark"] .billing-summary-name,
+[data-theme="dark"] .billing-invoice-title,
+[data-theme="dark"] .clients-stat-card strong {
+  color: #f4ecff;
+}
+
+[data-theme="dark"] .muted,
+[data-theme="dark"] .statusbar,
+[data-theme="dark"] .client-list-meta,
+[data-theme="dark"] .client-active-detail,
+[data-theme="dark"] .preview-subgroup-title,
+[data-theme="dark"] .preview-subtitle,
+[data-theme="dark"] .file-record-meta,
+[data-theme="dark"] .billing-summary-meta,
+[data-theme="dark"] .billing-invoice-meta,
+[data-theme="dark"] .billing-invoice-submeta,
+[data-theme="dark"] .billing-summary-note,
+[data-theme="dark"] .billing-invoice-note,
+[data-theme="dark"] .clients-overview-meta,
+[data-theme="dark"] .client-search-count,
+[data-theme="dark"] .topbar-label,
+[data-theme="dark"] .topbar-identity,
+[data-theme="dark"] .list li,
+[data-theme="dark"] .negative-admin-note {
+  color: #b9aacd;
+}
+
+[data-theme="dark"] .list li,
+[data-theme="dark"] .negative-admin-note,
+[data-theme="dark"] .preview-title,
+[data-theme="dark"] .card-title {
+  border-color: #312540;
+}
+
+[data-theme="dark"] .preview-count,
+[data-theme="dark"] .client-list-state {
+  background: #302247;
+  color: #ebddff;
+}
+
+[data-theme="dark"] .client-list-item.active .client-list-state {
+  background: #8f6bd4;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .preview-progress-card {
+  background: linear-gradient(180deg, #1f182c 0%, #171220 100%);
+  border-color: #314a43;
+}
+
+[data-theme="dark"] .preview-progress-card span {
+  color: #b2a5c7;
+}
+
+[data-theme="dark"] .preview-progress-card strong {
+  color: #8fe3c8;
+}
+
+[data-theme="dark"] .admin-message-thread {
+  background: #161120;
+}
+
+[data-theme="dark"] .msg-from-client {
+  background: #31234a;
+}
+
+[data-theme="dark"] .msg-from-admin {
+  background: #1f172d;
+  border-color: #443260;
 }

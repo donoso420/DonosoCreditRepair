@@ -14,13 +14,33 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="portal.css?v=20260312h" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("donoso_theme_preference");
+          var theme =
+            stored === "dark" || stored === "light"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+        } catch (_) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="portal.css?v=20260315a" />
   </head>
   <body>
     <header class="portal-nav">
       <div class="container nav-row">
         <a class="brand" href="index.html">Donoso Credit Repair</a>
-        <a class="ghost-link" href="index.html">Back to Website</a>
+        <div class="portal-nav-actions">
+          <a class="ghost-link" href="index.html">Back to Website</a>
+          <button class="theme-toggle" id="portal-theme-toggle" type="button" aria-label="Switch to dark mode">
+            Dark mode
+          </button>
+        </div>
       </div>
     </header>
 
@@ -452,6 +472,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260312l"></script>
+    <script type="module" src="portal.js?v=20260312m"></script>
   </body>
 </html>
