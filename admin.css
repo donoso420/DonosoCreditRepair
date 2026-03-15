@@ -1678,3 +1678,488 @@ textarea { resize: vertical; }
   background: #1f172d;
   border-color: #443260;
 }
+
+/* ── Gold Palette Refresh ───────────────────────── */
+:root {
+  --bg: #f7f2e7;
+  --surface: #fffdf8;
+  --ink: #241b11;
+  --muted: #79684d;
+  --line: #e7dbc5;
+  --dark: #18120c;
+  --dark-line: #5b4725;
+  --accent: #d4ad5c;
+  --accent-strong: #8d6725;
+  --gold: #d4ad5c;
+  --theme-toggle-text: #fbf2dd;
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(212, 173, 92, 0.12) 0, transparent 24%),
+    radial-gradient(circle at 100% 0%, rgba(141, 103, 37, 0.08) 0, transparent 30%),
+    var(--bg);
+}
+
+.topbar {
+  background: #241b12;
+  border-bottom-color: #4e3b1e;
+}
+
+.topbar-label {
+  color: #c8ad73;
+}
+
+.topbar-identity,
+.nav-right a {
+  color: #f1e3c3;
+}
+
+.nav-badge {
+  background: #433118;
+  color: #f4dfae;
+  border-color: #735628;
+}
+
+.statusbar {
+  color: #8c6924;
+}
+
+#client-search,
+.btn.secondary,
+.client-list-item,
+.workspace-tab-btn,
+.preview-nav-btn,
+.clients-overview-notes,
+.clients-stat-card,
+.billing-invoice-row,
+.admin-message-thread {
+  background: #fffdf8;
+}
+
+#client-search {
+  background: #fcf7ec;
+}
+
+.btn.primary {
+  color: #241b11;
+}
+
+.btn.secondary {
+  border-color: #b38733;
+  color: #8d6725;
+}
+
+.btn.secondary:hover {
+  background: #f8f0dc;
+}
+
+.client-list-item,
+.workspace-tab-btn,
+.preview-nav-btn,
+.clients-stat-card,
+.clients-overview-notes,
+.billing-invoice-row,
+.admin-message-thread {
+  border-color: #e9dec8;
+}
+
+.client-list-item:hover,
+.workspace-tab-btn:hover,
+.preview-nav-btn:hover {
+  border-color: #c79d4d;
+  box-shadow: 0 10px 24px rgba(127, 92, 32, 0.08);
+}
+
+.client-list-item.active,
+.workspace-tab-btn.active,
+.preview-nav-btn.active {
+  border-color: #b38733;
+  background: linear-gradient(135deg, #fbf4e2 0%, #fffdf8 100%);
+  color: #3b2a14;
+  box-shadow: 0 12px 28px rgba(127, 92, 32, 0.12);
+}
+
+.client-list-avatar {
+  background: linear-gradient(135deg, #513816, #b2852f);
+  color: #fff8e8;
+}
+
+.client-list-state,
+.preview-count,
+.status-chip.active,
+.status-chip.sent {
+  background: #f3ead4;
+  color: #8d6725;
+  border-color: #e0c78f;
+}
+
+.client-list-item.active .client-list-state {
+  background: #b38733;
+  color: #fffdf8;
+}
+
+.client-active-card {
+  border-color: #eadfc4;
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.18), transparent 34%),
+    linear-gradient(180deg, #fffdf8 0%, #f7f0e1 100%);
+}
+
+.client-list-name,
+.client-active-name,
+.workspace-title,
+.preview-title,
+.file-record-title,
+.billing-summary-name,
+.billing-invoice-title,
+.clients-stat-card strong {
+  color: #2e2112;
+}
+
+.active-client-id {
+  border-color: #d9c7a5;
+  background: rgba(255, 252, 247, 0.78);
+  color: #836734;
+}
+
+.client-search-count,
+.client-list-empty,
+.client-list-meta,
+.client-active-detail,
+.clients-overview-meta,
+.muted,
+.preview-subgroup-title,
+.preview-item-meta-row,
+.preview-empty,
+.negative-admin-note,
+.billing-summary-meta,
+.billing-invoice-meta,
+.billing-invoice-submeta,
+.billing-summary-note,
+.billing-invoice-note,
+.list li {
+  color: #7e6b4f;
+}
+
+.preview-progress-card {
+  border-color: #e6dcc8;
+  background: linear-gradient(180deg, #fffdf8 0%, #f7f4eb 100%);
+}
+
+.preview-progress-card span {
+  color: #8b7755;
+}
+
+.preview-progress-card strong {
+  color: #8d6725;
+}
+
+.negative-admin-pill.stage-logged,
+.status-chip.paused,
+.status-chip.draft {
+  background: #f2ede4;
+  color: #776750;
+  border-color: #ddd1bd;
+}
+
+.negative-admin-note,
+.preview-title,
+.card-title {
+  border-color: #eadfc9;
+}
+
+.negative-admin-row {
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.12), transparent 35%),
+    linear-gradient(180deg, #fffdf8 0%, #fbf5e8 100%);
+}
+
+.tab-nav {
+  border-bottom-color: #e7dcc6;
+}
+
+.tab-btn:hover {
+  color: #2f2416;
+  background: #f2ead7;
+}
+
+.tab-btn.active {
+  color: #3b2a12;
+  background: #f1e4c7;
+  border-bottom-color: #b38733;
+}
+
+input,
+select,
+textarea {
+  border-color: #dcc9aa;
+  color: #2e2213;
+  background: #fffdf8;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #b38733;
+  box-shadow: 0 0 0 3px rgba(179, 135, 51, 0.12);
+}
+
+.admin-message-thread {
+  background: #faf6ed;
+}
+
+.msg-from-client {
+  background: #f2e8d0;
+}
+
+.msg-from-admin {
+  background: #fffdf8;
+  border-color: #dfceb1;
+}
+
+.invite-inner {
+  background: linear-gradient(135deg, #2e2315, #18110b);
+  border-color: #675027;
+}
+
+.invite-text h2 {
+  color: #f6ebcf;
+}
+
+.invite-icon {
+  background: #4c391a;
+  color: #e1bc67;
+}
+
+.invite-fields label,
+.invite-status {
+  color: #d9c28c;
+}
+
+.invite-fields input {
+  background: #20170f;
+  border-color: #5f4a26;
+  color: #f7edd4;
+}
+
+.invite-fields input::placeholder {
+  color: #a88b55;
+}
+
+.clients-stat-card {
+  background: linear-gradient(180deg, #fffdf8 0%, #faf4e6 100%);
+}
+
+.clients-overview-notes,
+.billing-invoice-row {
+  background: #fbf7ef;
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 6% 0%, rgba(212, 173, 92, 0.12) 0, transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(120, 88, 34, 0.18) 0, transparent 26%),
+    #120f0a;
+  color: #f3ead6;
+}
+
+[data-theme="dark"] a {
+  color: #f0cd83;
+}
+
+[data-theme="dark"] .admin-nav {
+  background: rgba(15, 11, 7, 0.96);
+  border-bottom-color: #5a4524;
+}
+
+[data-theme="dark"] .topbar {
+  background: #1b140d;
+  border-bottom-color: #4b381d;
+}
+
+[data-theme="dark"] .nav-badge {
+  background: #4a3618;
+  color: #f4dfad;
+  border-color: #82622e;
+}
+
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .card,
+[data-theme="dark"] .workspace-tab-btn,
+[data-theme="dark"] .preview-nav-btn,
+[data-theme="dark"] .file-record,
+[data-theme="dark"] .billing-invoice-row,
+[data-theme="dark"] .clients-stat-card,
+[data-theme="dark"] .clients-overview-notes,
+[data-theme="dark"] .admin-message-thread {
+  background: #1d1710;
+  border-color: #4b381d;
+}
+
+[data-theme="dark"] .client-list-item,
+[data-theme="dark"] .preview-progress-card {
+  background: linear-gradient(180deg, #241c13 0%, #17110c 100%);
+  border-color: #4b381d;
+}
+
+[data-theme="dark"] .client-list-item.active,
+[data-theme="dark"] .workspace-tab-btn.active,
+[data-theme="dark"] .preview-nav-btn.active,
+[data-theme="dark"] .client-active-card {
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.1), transparent 32%),
+    linear-gradient(180deg, #2c2216 0%, #19130d 100%);
+  border-color: #c69a43;
+}
+
+[data-theme="dark"] .client-list-item:hover,
+[data-theme="dark"] .workspace-tab-btn:hover,
+[data-theme="dark"] .preview-nav-btn:hover {
+  border-color: #d8b15b;
+}
+
+[data-theme="dark"] .tab-nav {
+  border-bottom-color: #4b381d;
+}
+
+[data-theme="dark"] .tab-btn {
+  color: #cbb990;
+}
+
+[data-theme="dark"] .tab-btn:hover {
+  color: #f6e7c3;
+  background: #241c13;
+}
+
+[data-theme="dark"] .tab-btn.active {
+  color: #fbefcd;
+  background: #2d2215;
+  border-bottom-color: #c69a43;
+}
+
+[data-theme="dark"] .active-client-id {
+  background: rgba(24, 18, 12, 0.92);
+  border-color: #5d4725;
+  color: #d8c6a0;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #17120d;
+  border-color: #4f3c20;
+  color: #f5ebd3;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #9f8b65;
+}
+
+[data-theme="dark"] .btn.secondary {
+  background: #1b150f;
+  border-color: #c69a43;
+  color: #f2e0b4;
+}
+
+[data-theme="dark"] .btn.secondary:hover {
+  background: #241c13;
+}
+
+[data-theme="dark"] .client-list-name,
+[data-theme="dark"] .client-active-name,
+[data-theme="dark"] .workspace-title,
+[data-theme="dark"] .section-label h2,
+[data-theme="dark"] .card-title,
+[data-theme="dark"] .preview-title,
+[data-theme="dark"] .file-record-title,
+[data-theme="dark"] .billing-summary-name,
+[data-theme="dark"] .billing-invoice-title,
+[data-theme="dark"] .clients-stat-card strong {
+  color: #f5ebd3;
+}
+
+[data-theme="dark"] .muted,
+[data-theme="dark"] .statusbar,
+[data-theme="dark"] .client-list-meta,
+[data-theme="dark"] .client-active-detail,
+[data-theme="dark"] .preview-subgroup-title,
+[data-theme="dark"] .preview-subtitle,
+[data-theme="dark"] .file-record-meta,
+[data-theme="dark"] .billing-summary-meta,
+[data-theme="dark"] .billing-invoice-meta,
+[data-theme="dark"] .billing-invoice-submeta,
+[data-theme="dark"] .billing-summary-note,
+[data-theme="dark"] .billing-invoice-note,
+[data-theme="dark"] .clients-overview-meta,
+[data-theme="dark"] .client-search-count,
+[data-theme="dark"] .topbar-label,
+[data-theme="dark"] .topbar-identity,
+[data-theme="dark"] .list li,
+[data-theme="dark"] .negative-admin-note {
+  color: #beaf91;
+}
+
+[data-theme="dark"] .preview-count,
+[data-theme="dark"] .client-list-state,
+[data-theme="dark"] .status-chip.active,
+[data-theme="dark"] .status-chip.sent {
+  background: #3a2b17;
+  color: #efd9a0;
+}
+
+[data-theme="dark"] .client-list-item.active .client-list-state {
+  background: #c69a43;
+  color: #24170b;
+}
+
+[data-theme="dark"] .preview-progress-card {
+  background: linear-gradient(180deg, #241b12 0%, #17110c 100%);
+  border-color: #5a4726;
+}
+
+[data-theme="dark"] .preview-progress-card span {
+  color: #c0b091;
+}
+
+[data-theme="dark"] .preview-progress-card strong {
+  color: #f0c977;
+}
+
+[data-theme="dark"] .admin-message-thread {
+  background: #16110c;
+}
+
+[data-theme="dark"] .msg-from-client {
+  background: #3b2b17;
+}
+
+[data-theme="dark"] .msg-from-admin {
+  background: #21180f;
+  border-color: #57411f;
+}
+
+[data-theme="dark"] .invite-inner {
+  background: linear-gradient(135deg, #20170f, #130d08);
+  border-color: #5b4724;
+}
+
+[data-theme="dark"] .invite-text h2 {
+  color: #f5e8c4;
+}
+
+[data-theme="dark"] .invite-fields label,
+[data-theme="dark"] .invite-status {
+  color: #d7c08b;
+}
+
+[data-theme="dark"] .invite-fields input {
+  background: #130e09;
+  border-color: #5a4726;
+  color: #f5ebd3;
+}
+
+[data-theme="dark"] .invite-fields input::placeholder {
+  color: #988458;
+}

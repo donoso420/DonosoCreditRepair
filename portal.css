@@ -1681,3 +1681,518 @@ tbody tr:last-child td {
   background: #a785df;
   border-color: #a785df;
 }
+
+/* ── Gold Palette Refresh ───────────────────────── */
+:root {
+  --bg: #f8f4ea;
+  --surface: #fffdf8;
+  --ink: #241b11;
+  --muted: #78674d;
+  --line: #e7dcc6;
+  --dark: #18120c;
+  --dark-line: #5c4825;
+  --accent: #d4ad5c;
+  --accent-strong: #8d6725;
+  --warn: #8d6725;
+  --theme-toggle-text: #faf2de;
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% -10%, rgba(212, 173, 92, 0.15) 0, transparent 35%),
+    radial-gradient(circle at 95% 0%, rgba(170, 133, 58, 0.1) 0, transparent 30%),
+    var(--bg);
+}
+
+.portal-nav {
+  background: rgba(24, 18, 12, 0.94);
+  border-bottom-color: #5c4825;
+}
+
+.brand {
+  background: linear-gradient(90deg, #e9cb7b, #f3e1b0, #c8942f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.ghost-link {
+  color: #e6d2a3;
+}
+
+.intro .eyebrow,
+.contact-label,
+.bureau,
+.negative-stat-card span,
+.timeline-date,
+.file-meta,
+.billing-plan-eyebrow,
+.billing-invoice-number,
+.reports-note {
+  color: #8b7754;
+}
+
+.auth-notice,
+.preview-banner {
+  border-color: #e7d7b2;
+  border-left-color: #b38733;
+  background: #faf3e2;
+  color: #60461c;
+}
+
+.auth-notice strong,
+.preview-banner strong {
+  color: #3f2d10;
+}
+
+.btn.primary,
+.portal-tab-btn.active,
+.negative-bureau-tab.active,
+.reports-btn,
+.upload-form input[type="file"]::file-selector-button {
+  background: #b38733;
+  border-color: #b38733;
+  color: #fffdf8;
+}
+
+.btn.primary:hover,
+.reports-btn:hover,
+.upload-form input[type="file"]::file-selector-button:hover {
+  background: #8d6725;
+  border-color: #8d6725;
+  color: #fffdf8;
+}
+
+.btn.secondary {
+  background: #fffdf8;
+  color: #8d6725;
+  border-color: #b38733;
+}
+
+.inline-btn,
+a,
+.report-link {
+  color: #8d6725;
+}
+
+.card,
+.contact-card,
+.score-card {
+  background: var(--surface);
+  border-color: #e7dcc6;
+}
+
+.dashboard-section,
+.report-card,
+.negative-bureau-panel,
+.negative-track-card,
+.billing-plan-card,
+.billing-invoices-card,
+.reports-callout,
+.onboarding-callout {
+  border-color: #eadfc9;
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.1), transparent 30%),
+    linear-gradient(180deg, #fffdf8 0%, #faf4e7 100%);
+}
+
+.portal-dashboard-tabs {
+  border-color: #e7dcc8;
+  background: linear-gradient(180deg, #fdf8ee 0%, #f7efde 100%);
+}
+
+.portal-tab-btn,
+.negative-bureau-tab {
+  border-color: #ddcaa7;
+  color: #785f34;
+}
+
+.portal-tab-btn:hover,
+.negative-bureau-tab:hover {
+  border-color: #b38733;
+  color: #65491a;
+}
+
+.negative-bureau-tab strong,
+.negative-track-details span,
+.billing-invoice-zelle {
+  background: #f6edd8;
+  border-color: #e2d1ac;
+  color: #6f5523;
+}
+
+.report-summary,
+.report-review,
+.report-review-note,
+.negative-bureau-count,
+.negative-bureau-note,
+.negative-track-meta,
+.negative-track-note,
+th,
+.timeline-text,
+.file-title,
+.file-note,
+.billing-plan-terms,
+.billing-plan-note,
+.billing-invoice-meta,
+.billing-invoice-note,
+.msg-label,
+.doc-note,
+.section-sub,
+.subtle,
+.stamp,
+.sub {
+  color: #75654b;
+}
+
+.negative-bureau-head,
+.negative-track-note,
+.table-wrap,
+.timeline,
+.file-list,
+.message-thread,
+.message-compose textarea {
+  border-color: #e7dcc6;
+}
+
+.negative-bureau-head {
+  background: rgba(255, 253, 248, 0.85);
+}
+
+.negative-bureau-scroll::-webkit-scrollbar-thumb {
+  background: #d7be8a;
+  border-color: #f7f1e4;
+}
+
+.negative-stage-badge.stage-logged,
+.badge.reviewed,
+.badge.response-received,
+.badge.needs-review,
+.badge.active,
+.badge.sent,
+.badge.draft,
+.badge.paused {
+  background: #f3ead4;
+  color: #7d5f24;
+}
+
+.negative-track-card h4,
+.contact-value,
+.negative-stat-card strong,
+.billing-plan-card h4,
+.billing-invoice-item h4,
+.billing-invoice-amount strong,
+.billing-plan-grid strong,
+.reports-header h3,
+.tracker-label strong,
+.msg-content,
+.doc-title {
+  color: #2d2112;
+}
+
+.message-thread {
+  background: #faf6ed;
+}
+
+.msg-client {
+  background: #f2e8d0;
+}
+
+.msg-admin {
+  background: #fffdf8;
+  border-color: #dfcfb1;
+}
+
+.tracker-step.complete::after,
+.tracker-step.complete .tracker-dot,
+.tracker-step.complete .tracker-label strong {
+  background: #b38733;
+  border-color: #b38733;
+  color: #8d6725;
+}
+
+.tracker-step.active .tracker-dot {
+  border-color: #b38733;
+  box-shadow: 0 0 0 3px rgba(179, 135, 51, 0.18);
+}
+
+.tracker-step.active .tracker-label strong {
+  color: #b38733;
+}
+
+.reports-callout {
+  background: linear-gradient(135deg, #f6eed9 0%, #efe2be 100%);
+  border-left-color: #b38733;
+}
+
+.reports-steps li,
+.billing-invoice-zelle p {
+  color: #6d5935;
+}
+
+.onboarding-callout {
+  background: linear-gradient(135deg, #fff8eb 0%, #f5ead0 100%);
+  border-color: #ead7b0;
+}
+
+.doc-status-card {
+  border-color: #e0d2b2;
+  background: rgba(255, 253, 248, 0.82);
+}
+
+.upload-form input[type="text"],
+.upload-form select,
+.upload-form textarea,
+.upload-form input[type="file"],
+input,
+select,
+textarea {
+  border-color: #dcc9aa;
+  background: #fffdf8;
+  color: #2e2213;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.message-compose textarea:focus,
+.upload-form input[type="text"]:focus,
+.upload-form select:focus,
+.upload-form textarea:focus,
+.upload-form input[type="file"]:focus {
+  border-color: #b38733;
+  box-shadow: 0 0 0 3px rgba(179, 135, 51, 0.12);
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 8% -10%, rgba(212, 173, 92, 0.12) 0, transparent 35%),
+    radial-gradient(circle at 95% 0%, rgba(120, 88, 34, 0.18) 0, transparent 30%),
+    #120f0a;
+  color: #f4ead2;
+}
+
+[data-theme="dark"] .portal-nav {
+  background: rgba(15, 11, 7, 0.96);
+  border-bottom-color: #5a4524;
+}
+
+[data-theme="dark"] .ghost-link {
+  color: #e4cea0;
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .dashboard-section,
+[data-theme="dark"] .contact-card,
+[data-theme="dark"] .score-card,
+[data-theme="dark"] .report-card,
+[data-theme="dark"] .negative-stat-card,
+[data-theme="dark"] .deleted-progress-item,
+[data-theme="dark"] .deleted-progress-empty,
+[data-theme="dark"] .negative-bureau-panel,
+[data-theme="dark"] .negative-track-card,
+[data-theme="dark"] .billing-plan-card,
+[data-theme="dark"] .billing-invoices-card,
+[data-theme="dark"] .billing-invoice-item,
+[data-theme="dark"] .message-thread,
+[data-theme="dark"] .doc-status-card,
+[data-theme="dark"] .reports-callout,
+[data-theme="dark"] .onboarding-callout {
+  border-color: #4b381d;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] .contact-card,
+[data-theme="dark"] .score-card,
+[data-theme="dark"] .billing-invoice-item,
+[data-theme="dark"] .doc-status-card {
+  background: #1d1710;
+}
+
+[data-theme="dark"] .dashboard-section,
+[data-theme="dark"] .report-card,
+[data-theme="dark"] .negative-track-card,
+[data-theme="dark"] .negative-bureau-panel,
+[data-theme="dark"] .billing-plan-card,
+[data-theme="dark"] .billing-invoices-card {
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.08), transparent 30%),
+    linear-gradient(180deg, #21190f 0%, #17120c 100%);
+}
+
+[data-theme="dark"] .reports-callout,
+[data-theme="dark"] .onboarding-callout {
+  background: linear-gradient(135deg, rgba(139, 103, 37, 0.2) 0%, rgba(212, 173, 92, 0.08) 100%);
+}
+
+[data-theme="dark"] .auth-notice,
+[data-theme="dark"] .preview-banner,
+[data-theme="dark"] .portal-dashboard-tabs,
+[data-theme="dark"] .negative-bureau-head,
+[data-theme="dark"] .billing-invoice-zelle {
+  background: #231a10;
+  border-color: #4b381d;
+  color: #d9c8a3;
+}
+
+[data-theme="dark"] .portal-tab-btn,
+[data-theme="dark"] .negative-bureau-tab {
+  background: #1b150d;
+  border-color: #4d3a1f;
+  color: #d9c69c;
+}
+
+[data-theme="dark"] .portal-tab-btn:hover,
+[data-theme="dark"] .negative-bureau-tab:hover {
+  border-color: #d0ab58;
+  color: #f3e3bd;
+}
+
+[data-theme="dark"] .portal-tab-btn.active,
+[data-theme="dark"] .negative-bureau-tab.active,
+[data-theme="dark"] .upload-form input[type="file"]::file-selector-button {
+  background: #c69a43;
+  border-color: #c69a43;
+  color: #211509;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .message-compose textarea,
+[data-theme="dark"] .upload-form input[type="text"],
+[data-theme="dark"] .upload-form select,
+[data-theme="dark"] .upload-form textarea,
+[data-theme="dark"] .upload-form input[type="file"] {
+  background: #17120d;
+  border-color: #4f3c20;
+  color: #f4ead2;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #9d8963;
+}
+
+[data-theme="dark"] .btn.secondary {
+  background: #1b150d;
+  border-color: #c69a43;
+  color: #f1ddb0;
+}
+
+[data-theme="dark"] .btn.secondary:hover {
+  background: #241c12;
+}
+
+[data-theme="dark"] .inline-btn,
+[data-theme="dark"] a,
+[data-theme="dark"] .report-link {
+  color: #f0cd83;
+}
+
+[data-theme="dark"] label,
+[data-theme="dark"] .contact-value,
+[data-theme="dark"] .score,
+[data-theme="dark"] .report-score,
+[data-theme="dark"] .negative-stat-card strong,
+[data-theme="dark"] .billing-plan-card h4,
+[data-theme="dark"] .billing-invoice-item h4,
+[data-theme="dark"] .billing-invoice-amount strong,
+[data-theme="dark"] .billing-plan-grid strong,
+[data-theme="dark"] .reports-header h3,
+[data-theme="dark"] .tracker-label strong,
+[data-theme="dark"] .msg-content,
+[data-theme="dark"] .doc-title,
+[data-theme="dark"] .negative-track-card h4 {
+  color: #f4ead2;
+}
+
+[data-theme="dark"] .sub,
+[data-theme="dark"] .stamp,
+[data-theme="dark"] .subtle,
+[data-theme="dark"] .section-sub,
+[data-theme="dark"] .contact-label,
+[data-theme="dark"] .bureau,
+[data-theme="dark"] .report-summary,
+[data-theme="dark"] .report-review,
+[data-theme="dark"] .report-review-note,
+[data-theme="dark"] .negative-bureau-count,
+[data-theme="dark"] .negative-bureau-note,
+[data-theme="dark"] .negative-track-meta,
+[data-theme="dark"] .negative-track-note,
+[data-theme="dark"] th,
+[data-theme="dark"] .timeline-date,
+[data-theme="dark"] .timeline-text,
+[data-theme="dark"] .file-meta,
+[data-theme="dark"] .file-title,
+[data-theme="dark"] .file-note,
+[data-theme="dark"] .billing-plan-eyebrow,
+[data-theme="dark"] .billing-invoice-number,
+[data-theme="dark"] .billing-plan-grid span,
+[data-theme="dark"] .billing-plan-terms,
+[data-theme="dark"] .billing-plan-note,
+[data-theme="dark"] .billing-invoice-meta,
+[data-theme="dark"] .billing-invoice-note,
+[data-theme="dark"] .msg-label,
+[data-theme="dark"] .doc-note,
+[data-theme="dark"] .reports-note,
+[data-theme="dark"] .reports-steps li,
+[data-theme="dark"] .billing-invoice-zelle p,
+[data-theme="dark"] .tracker-label span,
+[data-theme="dark"] .empty {
+  color: #c1b08f;
+}
+
+[data-theme="dark"] .negative-track-details span,
+[data-theme="dark"] .table-wrap,
+[data-theme="dark"] .timeline,
+[data-theme="dark"] .file-list,
+[data-theme="dark"] .tracker-step:not(:last-child)::after {
+  border-color: #4b381d;
+}
+
+[data-theme="dark"] .table-wrap,
+[data-theme="dark"] .timeline,
+[data-theme="dark"] .file-list {
+  background: #18120d;
+}
+
+[data-theme="dark"] .negative-track-details span {
+  background: #2a1f11;
+  color: #dcc999;
+}
+
+[data-theme="dark"] .message-thread {
+  background: #16110c;
+}
+
+[data-theme="dark"] .msg-client {
+  background: #3b2b17;
+}
+
+[data-theme="dark"] .msg-admin {
+  background: #21180f;
+  border-color: #57411f;
+}
+
+[data-theme="dark"] .tracker-step:not(:last-child)::after {
+  background: #56401f;
+}
+
+[data-theme="dark"] .tracker-dot {
+  background: #241b11;
+  border-color: #4f3c20;
+}
+
+[data-theme="dark"] .tracker-step.active .tracker-dot {
+  background: #17120d;
+  border-color: #c69a43;
+  box-shadow: 0 0 0 3px rgba(198, 154, 67, 0.2);
+}
+
+[data-theme="dark"] .upload-form input[type="file"]::file-selector-button:hover {
+  background: #d7b560;
+  border-color: #d7b560;
+}
