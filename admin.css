@@ -273,6 +273,18 @@ a { color: var(--accent-strong); text-decoration: none; }
   margin: 1.25rem auto 0;
 }
 
+.client-bar.client-bar-compact .client-picker-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.client-bar.client-bar-compact .client-picker-panel {
+  display: none;
+}
+
+.client-bar:not(.client-bar-compact) #choose-client-btn {
+  display: none;
+}
+
 .client-bar-inner {
   padding: 1.25rem 1.4rem;
 }
@@ -442,6 +454,7 @@ a { color: var(--accent-strong); text-decoration: none; }
 
 .client-active-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 1rem;
 }

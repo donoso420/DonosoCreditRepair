@@ -91,8 +91,8 @@
         <!-- ── Tab Nav ───────────────────────────────────── -->
         <div class="container tab-nav-wrap">
           <nav class="tab-nav">
-            <button class="tab-btn active" data-tab="dashboard" onclick="adminTab('dashboard',this)">📋 Client Dashboard</button>
-            <button class="tab-btn" data-tab="clients" onclick="adminTab('clients',this)">👥 Clients</button>
+            <button class="tab-btn active" data-tab="clients" onclick="adminTab('clients',this)">👥 Clients</button>
+            <button class="tab-btn" data-tab="dashboard" onclick="adminTab('dashboard',this)">📋 Client Dashboard</button>
             <button class="tab-btn" data-tab="billing" onclick="adminTab('billing',this)">💳 Billing</button>
             <button class="tab-btn" data-tab="invite" onclick="adminTab('invite',this)">✉ Invite Client</button>
           </nav>
@@ -134,6 +134,9 @@
                 <p class="client-active-detail" id="active-client-address">Address will show here.</p>
                 <p class="active-client-id" id="active-client-id"></p>
                 <div class="client-active-actions">
+                  <button class="btn secondary sm" id="choose-client-btn" type="button">
+                    Choose Another Client
+                  </button>
                   <button class="btn secondary sm" id="open-portal-preview-btn" type="button" disabled>
                     Open Portal Preview
                   </button>
@@ -144,7 +147,7 @@
         </div>
 
         <!-- ── TAB: Client Dashboard ─────────────────────── -->
-        <div class="tab-panel active" id="tab-dashboard">
+        <div class="tab-panel" id="tab-dashboard" style="display:none">
           <div class="container dashboard-shell">
             <aside class="workspace-nav-card card">
               <p class="eyebrow">Client Workspace</p>
@@ -788,11 +791,11 @@
         <!-- end tab-invite -->
 
         <!-- ── TAB: Clients ───────────────────────────────── -->
-        <div class="tab-panel" id="tab-clients" style="display:none">
+        <div class="tab-panel active" id="tab-clients">
           <div class="container clients-tab-wrap">
             <div class="section-label">
               <h2>👥 Clients</h2>
-              <p class="muted sm">Browse your client list, review the selected account at a glance, and update profile details from one place.</p>
+              <p class="muted sm">Choose a client here first, then jump straight into that client's dashboard, billing, or portal preview.</p>
             </div>
             <div class="clients-layout">
               <div class="card">
@@ -826,7 +829,6 @@
                   <p class="muted sm" id="clients-overview-details">Profile details, email, phone, and address will appear here when a client is selected.</p>
                 </div>
                 <div class="clients-quick-actions">
-                  <button class="btn secondary sm" id="clients-open-dashboard-btn" type="button">Open Dashboard</button>
                   <button class="btn secondary sm" id="clients-open-billing-btn" type="button">Open Billing</button>
                   <button class="btn secondary sm" id="clients-open-portal-preview-btn" type="button">Portal Preview</button>
                 </div>
@@ -872,7 +874,11 @@
         var panel = document.getElementById('tab-' + target);
         if (panel) panel.style.display = 'block';
         if (btn) btn.classList.add('active');
-        if (clientBar) clientBar.style.display = (target === 'dashboard' || target === 'billing' || target === 'clients') ? 'block' : 'none';
+        if (clientBar) {
+          var showBar = (target === 'dashboard' || target === 'billing' || target === 'clients');
+          clientBar.style.display = showBar ? 'block' : 'none';
+          clientBar.classList.toggle('client-bar-compact', target === 'dashboard' || target === 'billing');
+        }
       }
 
       function adminWorkspaceTab(target, btn) {

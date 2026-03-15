@@ -56,6 +56,7 @@ const inviteStatus = document.getElementById("invite-status");
 const refreshAllBtn = document.getElementById("refresh-all-btn");
 const logoutBtn = document.getElementById("admin-logout-btn");
 const openPortalPreviewBtn = document.getElementById("open-portal-preview-btn");
+const chooseClientBtn = document.getElementById("choose-client-btn");
 const adminThemeToggleBtn = document.getElementById("admin-theme-toggle");
 const clientsOverviewNameEl = document.getElementById("clients-overview-name");
 const clientsOverviewMetaEl = document.getElementById("clients-overview-meta");
@@ -65,7 +66,6 @@ const clientsStatTotalEl = document.getElementById("clients-stat-total");
 const clientsStatNegativeEl = document.getElementById("clients-stat-negative");
 const clientsStatLettersEl = document.getElementById("clients-stat-letters");
 const clientsStatUpdatesEl = document.getElementById("clients-stat-updates");
-const clientsOpenDashboardBtn = document.getElementById("clients-open-dashboard-btn");
 const clientsOpenBillingBtn = document.getElementById("clients-open-billing-btn");
 const clientsOpenPortalPreviewBtn = document.getElementById("clients-open-portal-preview-btn");
 
@@ -268,6 +268,7 @@ function showAuth() {
 function showAdmin() {
   authCard?.classList.add("hidden");
   adminApp?.classList.remove("hidden");
+  activateAdminTab("clients");
 }
 
 function isUuid(value) {
@@ -437,7 +438,7 @@ function renderClientsOverview(row = null) {
     }
   }
 
-  [clientsOpenDashboardBtn, clientsOpenBillingBtn, clientsOpenPortalPreviewBtn].forEach((button) => {
+  [clientsOpenBillingBtn, clientsOpenPortalPreviewBtn].forEach((button) => {
     if (button) button.disabled = !selectedRow?.user_id;
   });
 }
@@ -448,6 +449,10 @@ function findWorkspaceTabButton(target) {
 
 function findAdminTabButton(target) {
   return document.querySelector(`.tab-btn[data-tab="${target}"]`);
+}
+
+function getActiveAdminTab() {
+  return document.querySelector(".tab-btn.active")?.dataset.tab || "clients";
 }
 
 function activateAdminTab(target) {
@@ -466,6 +471,7 @@ function activateAdminTab(target) {
   });
   if (clientBar) {
     clientBar.style.display = ["dashboard", "billing", "clients"].includes(target) ? "block" : "none";
+    clientBar.classList.toggle("client-bar-compact", ["dashboard", "billing"].includes(target));
   }
 }
 
@@ -547,7 +553,7 @@ function renderClientList() {
             <span class="client-list-name">${safeText(name)}</span>
             <span class="client-list-meta">${safeText(getClientListMeta(row))}</span>
           </span>
-          <span class="client-list-state">${isActive ? "Active" : "Open"}</span>
+          <span class="client-list-state">${isActive ? "Selected" : "Dashboard"}</span>
         </button>
       `;
     })
@@ -2575,14 +2581,23 @@ function initialize() {
     if (!firstMatch) return;
     event.preventDefault();
     await setActiveClient(firstMatch.getAttribute("data-client-id") || null);
+    activateAdminTab("dashboard");
   });
 
   clientList?.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-client-id]");
     if (!button) return;
     const nextClientId = button.getAttribute("data-client-id") || "";
-    if (!nextClientId || nextClientId === activeClientId) return;
-    await setActiveClient(nextClientId);
+    if (!nextClientId) return;
+
+    const selectedFromClientsTab = getActiveAdminTab() === "clients";
+    if (nextClientId !== activeClientId) {
+      await setActiveClient(nextClientId);
+    }
+
+    if (selectedFromClientsTab) {
+      activateAdminTab("dashboard");
+    }
   });
 
   const handleFileActionClick = async (event) => {
@@ -2694,12 +2709,10 @@ function initialize() {
 
   openPortalPreviewBtn?.addEventListener("click", openActiveClientPortalPreview);
   clientsOpenPortalPreviewBtn?.addEventListener("click", openActiveClientPortalPreview);
-  clientsOpenDashboardBtn?.addEventListener("click", () => {
-    if (!activeClientId) {
-      setAdminStatus("Select a client first.", true);
-      return;
-    }
-    activateAdminTab("dashboard");
+  chooseClientBtn?.addEventListener("click", () => {
+    activateAdminTab("clients");
+    clientSearchInput?.focus();
+    clientSearchInput?.select?.();
   });
   clientsOpenBillingBtn?.addEventListener("click", () => {
     if (!activeClientId) {
