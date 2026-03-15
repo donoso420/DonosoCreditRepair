@@ -2630,6 +2630,44 @@ textarea:focus {
   color: #8f7ba9;
 }
 
+/* ── Sidebar Readability Fix ────────────────────── */
+[data-theme="dark"] .workspace-nav-card {
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.06), transparent 30%),
+    linear-gradient(180deg, #241b35 0%, #191322 100%);
+  border-color: #4a3764;
+}
+
+[data-theme="dark"] .workspace-nav-card .eyebrow {
+  color: #bca8dd;
+}
+
+[data-theme="dark"] .workspace-nav-card .muted {
+  color: #d8caee;
+}
+
+[data-theme="dark"] .workspace-tab-btn {
+  color: #e6dbf8;
+  background: linear-gradient(180deg, #261d38 0%, #1c1528 100%);
+  border-color: #5a4478;
+  font-weight: 800;
+}
+
+[data-theme="dark"] .workspace-tab-btn:hover {
+  color: #f7f1ff;
+  border-color: #b18be7;
+  box-shadow: 0 10px 22px rgba(106, 76, 164, 0.18);
+}
+
+[data-theme="dark"] .workspace-tab-btn.active {
+  color: #fff8e8;
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.16), transparent 35%),
+    linear-gradient(180deg, #322347 0%, #211730 100%);
+  border-color: #d4ad5c;
+  box-shadow: 0 12px 26px rgba(212, 173, 92, 0.16);
+}
+
 /* ── Plum + Gold Rebalance ──────────────────────── */
 :root {
   --bg: #f5f0fb;
