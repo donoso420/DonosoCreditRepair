@@ -1168,6 +1168,7 @@ tbody tr:last-child td {
   flex-direction: column;
   gap: 0;
   padding: 0.5rem 0;
+  max-width: 40rem;
 }
 
 .tracker-step {
@@ -1212,16 +1213,26 @@ tbody tr:last-child td {
   box-shadow: 0 0 0 3px rgba(124, 92, 191, 0.2);
 }
 
+.tracker-label {
+  flex: 1;
+  min-width: 0;
+}
+
 .tracker-label strong {
   display: block;
+  margin: 0 0 0.2rem;
   font-size: 0.95rem;
   color: #1a1a2e;
+  background: transparent;
+  border: 0;
 }
 
 .tracker-step.complete .tracker-label strong { color: #a58dbf; }
 .tracker-step.active .tracker-label strong { color: #7c5cbf; font-weight: 800; }
 
 .tracker-label span {
+  display: block;
+  max-width: 32rem;
   font-size: 0.82rem;
   color: #888;
 }
@@ -2415,11 +2426,15 @@ th,
 }
 
 .tracker-step.complete::after,
-.tracker-step.complete .tracker-dot,
-.tracker-step.complete .tracker-label strong {
+.tracker-step.complete .tracker-dot {
   background: #b38733;
   border-color: #b38733;
+}
+
+.tracker-step.complete .tracker-label strong {
   color: #8d6725;
+  background: transparent;
+  border-color: transparent;
 }
 
 .tracker-step.active .tracker-dot {
