@@ -358,6 +358,116 @@
         border-color: #3a2d52;
         color: #d8caee;
       }
+
+      #deleted-progress-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-width: 42rem;
+      }
+
+      #deleted-progress-summary .negative-stat-card {
+        border-color: #d5e8df;
+        background: linear-gradient(180deg, #f8fcfa 0%, #eef7f2 100%);
+        box-shadow: 0 12px 26px rgba(45, 94, 76, 0.1);
+      }
+
+      #deleted-progress-summary .negative-stat-card span {
+        color: #5f8977;
+      }
+
+      #deleted-progress-summary .negative-stat-card strong {
+        color: #24745e;
+      }
+
+      #deleted-progress-list {
+        gap: 0.95rem;
+        max-height: 420px;
+        padding-right: 0.25rem;
+      }
+
+      #deleted-progress-list .deleted-progress-item,
+      #deleted-progress-list .deleted-progress-empty {
+        border-color: #d5e8df;
+        background:
+          radial-gradient(circle at top right, rgba(122, 210, 183, 0.12), transparent 28%),
+          linear-gradient(180deg, #f9fdfb 0%, #eff7f3 100%);
+        box-shadow: 0 12px 24px rgba(45, 94, 76, 0.08);
+      }
+
+      #deleted-progress-list .deleted-progress-item h4 {
+        color: #1f3a31;
+      }
+
+      #deleted-progress-list .deleted-progress-meta,
+      #deleted-progress-list .deleted-progress-status,
+      #deleted-progress-list .deleted-progress-note {
+        color: #4e6b60;
+      }
+
+      #deleted-progress-list .deleted-progress-note {
+        border-top-color: #d7e9e1;
+      }
+
+      #deleted-progress-list .deleted-progress-pill {
+        background: #dff4ec;
+        color: #24745e;
+      }
+
+      #deleted-progress-list::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      #deleted-progress-list::-webkit-scrollbar-thumb {
+        background: #bedfd2;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.7);
+      }
+
+      [data-theme="dark"] #deleted-progress-summary .negative-stat-card {
+        border-color: #365248;
+        background: linear-gradient(180deg, #1b2b27 0%, #16211f 100%);
+        box-shadow: none;
+      }
+
+      [data-theme="dark"] #deleted-progress-summary .negative-stat-card span {
+        color: #8fc8b2;
+      }
+
+      [data-theme="dark"] #deleted-progress-summary .negative-stat-card strong {
+        color: #dff6ec;
+      }
+
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-item,
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-empty {
+        border-color: #365248;
+        background:
+          radial-gradient(circle at top right, rgba(122, 210, 183, 0.1), transparent 28%),
+          linear-gradient(180deg, #1b2b27 0%, #15201d 100%);
+        box-shadow: none;
+      }
+
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-item h4 {
+        color: #e4f6ef;
+      }
+
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-meta,
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-status,
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-note {
+        color: #a8c9bd;
+      }
+
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-note {
+        border-top-color: #30463f;
+      }
+
+      [data-theme="dark"] #deleted-progress-list .deleted-progress-pill {
+        background: rgba(122, 210, 183, 0.16);
+        color: #9de3c8;
+      }
+
+      [data-theme="dark"] #deleted-progress-list::-webkit-scrollbar-thumb {
+        background: #44665b;
+        border-color: rgba(19, 28, 25, 0.9);
+      }
     </style>
   </head>
   <body>
