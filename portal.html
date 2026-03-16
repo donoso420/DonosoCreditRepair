@@ -190,6 +190,174 @@
         border-color: #d4ad5c;
         box-shadow: 0 0 0 4px rgba(212, 173, 92, 0.24);
       }
+
+      #negative-tracker-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-width: 42rem;
+      }
+
+      #negative-tracker-stats .negative-stat-card {
+        border-color: #eadff5;
+        background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
+        box-shadow: 0 12px 26px rgba(74, 59, 107, 0.08);
+      }
+
+      #negative-tracker-stats .negative-stat-card span {
+        color: #8a74ab;
+      }
+
+      #negative-tracker-stats .negative-stat-card strong {
+        color: #2c2140;
+      }
+
+      #negative-tracker-grid {
+        gap: 1rem;
+      }
+
+      #negative-tracker-grid .negative-bureau-tabs {
+        gap: 0.75rem;
+      }
+
+      #negative-tracker-grid .negative-bureau-tab {
+        background: rgba(255, 255, 255, 0.94);
+        border-color: #d8c7ee;
+        color: #5f4b86;
+        box-shadow: 0 8px 18px rgba(74, 59, 107, 0.06);
+      }
+
+      #negative-tracker-grid .negative-bureau-tab strong {
+        background: #f1eafe;
+        border-color: #e2d7f4;
+        color: #50357e;
+      }
+
+      #negative-tracker-grid .negative-bureau-tab.active,
+      #negative-tracker-grid .negative-bureau-tab[aria-selected="true"] {
+        background: linear-gradient(135deg, #8f6bd4 0%, #6d4fbc 100%);
+        border-color: #8f6bd4;
+        color: #ffffff;
+        box-shadow: 0 14px 28px rgba(111, 79, 188, 0.28);
+      }
+
+      #negative-tracker-grid .negative-bureau-tab.active strong,
+      #negative-tracker-grid .negative-bureau-tab[aria-selected="true"] strong {
+        background: rgba(36, 24, 68, 0.35);
+        border-color: transparent;
+        color: #ffffff;
+      }
+
+      #negative-tracker-grid .negative-bureau-panel {
+        border-color: #e7ddf2;
+        background:
+          radial-gradient(circle at top right, rgba(212, 173, 92, 0.08), transparent 30%),
+          linear-gradient(180deg, #ffffff 0%, #fcf9ff 100%);
+        box-shadow: 0 14px 30px rgba(74, 59, 107, 0.08);
+      }
+
+      #negative-tracker-grid .negative-bureau-head {
+        background: rgba(255, 255, 255, 0.84);
+        border-bottom-color: #e7ddf2;
+      }
+
+      #negative-tracker-grid .negative-bureau-count,
+      #negative-tracker-grid .negative-bureau-note,
+      #negative-tracker-grid .negative-track-meta,
+      #negative-tracker-grid .negative-track-note {
+        color: #695c83;
+      }
+
+      #negative-tracker-grid .negative-bureau-scroll {
+        max-height: 460px;
+      }
+
+      #negative-tracker-grid .negative-track-card {
+        border-color: #e7ddf2;
+        background:
+          radial-gradient(circle at top right, rgba(247, 178, 221, 0.12), transparent 28%),
+          linear-gradient(180deg, #ffffff 0%, #faf7ff 100%);
+        box-shadow: 0 12px 24px rgba(74, 59, 107, 0.07);
+      }
+
+      #negative-tracker-grid .negative-track-card h4 {
+        color: #281d3b;
+      }
+
+      #negative-tracker-grid .negative-track-details span {
+        background: #f6f1fb;
+        border-color: #eadff3;
+        color: #5a4b74;
+      }
+
+      [data-theme="dark"] #negative-tracker-stats .negative-stat-card {
+        border-color: #43315f;
+        background: linear-gradient(180deg, #231b35 0%, #1a1427 100%);
+        box-shadow: none;
+      }
+
+      [data-theme="dark"] #negative-tracker-stats .negative-stat-card span {
+        color: #bda8df;
+      }
+
+      [data-theme="dark"] #negative-tracker-stats .negative-stat-card strong {
+        color: #f4ecff;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-tab {
+        background: #1b1528;
+        border-color: #483662;
+        color: #d7c8ea;
+        box-shadow: none;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-tab strong {
+        background: #2f2544;
+        border-color: transparent;
+        color: #e7dcff;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-tab.active,
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-tab[aria-selected="true"] {
+        background: linear-gradient(135deg, #a07af0 0%, #7f5fd5 100%);
+        border-color: #a07af0;
+        color: #ffffff;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-tab.active strong,
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-tab[aria-selected="true"] strong {
+        background: rgba(22, 16, 34, 0.45);
+        color: #ffffff;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-panel,
+      [data-theme="dark"] #negative-tracker-grid .negative-track-card {
+        border-color: #3a2d52;
+        background:
+          radial-gradient(circle at top right, rgba(212, 173, 92, 0.08), transparent 30%),
+          linear-gradient(180deg, #211a31 0%, #171222 100%);
+        box-shadow: none;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-head {
+        background: #231b35;
+        border-bottom-color: #43315f;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-count,
+      [data-theme="dark"] #negative-tracker-grid .negative-bureau-note,
+      [data-theme="dark"] #negative-tracker-grid .negative-track-meta,
+      [data-theme="dark"] #negative-tracker-grid .negative-track-note {
+        color: #b9aacd;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-track-card h4 {
+        color: #f4ecff;
+      }
+
+      [data-theme="dark"] #negative-tracker-grid .negative-track-details span {
+        background: #261d35;
+        border-color: #3a2d52;
+        color: #d8caee;
+      }
     </style>
   </head>
   <body>
@@ -633,6 +801,6 @@
     </main>
 
     <script src="portal-config.js?v=20260306e"></script>
-    <script type="module" src="portal.js?v=20260312m"></script>
+    <script type="module" src="portal.js?v=20260316a"></script>
   </body>
 </html>
