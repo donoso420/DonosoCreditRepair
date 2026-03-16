@@ -294,6 +294,12 @@
                       <label for="negative-status">Status</label>
                       <input id="negative-status" type="text" placeholder="e.g. Open collection, 90 days late" />
                       <div class="negative-status-actions" aria-label="Negative item outcome helpers">
+                        <button class="btn secondary sm negative-status-chip" data-negative-outcome="logged" type="button">
+                          Mark Logged
+                        </button>
+                        <button class="btn secondary sm negative-status-chip" data-negative-outcome="disputed" type="button">
+                          Mark Disputed
+                        </button>
                         <button class="btn secondary sm negative-status-chip" data-negative-outcome="deleted" type="button">
                           Mark Deleted
                         </button>
@@ -305,7 +311,7 @@
                         </button>
                       </div>
                       <p class="negative-status-hint">
-                        Use <strong>Deleted</strong> or <strong>Removed</strong> when the bureau has taken the item off the report.
+                        Use <strong>Logged</strong> or <strong>Disputed</strong> to reopen an item. Use <strong>Deleted</strong> or <strong>Removed</strong> when the bureau has taken it off the report.
                       </p>
                       <label for="negative-notes">Notes</label>
                       <textarea id="negative-notes" rows="3" placeholder="Optional details, dates, or dispute notes"></textarea>

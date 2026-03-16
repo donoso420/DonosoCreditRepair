@@ -795,6 +795,18 @@ function applyNegativeOutcomePreset(outcome) {
   const activeCheckbox = document.getElementById("negative-active");
   if (!statusInput || !activeCheckbox) return;
 
+  if (normalizedOutcome === "logged") {
+    statusInput.value = "Logged";
+    activeCheckbox.checked = true;
+    return;
+  }
+
+  if (normalizedOutcome === "disputed") {
+    statusInput.value = "Disputed";
+    activeCheckbox.checked = true;
+    return;
+  }
+
   if (normalizedOutcome === "deleted") {
     statusInput.value = "Deleted";
     activeCheckbox.checked = false;
@@ -1694,6 +1706,7 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
             </div>
             <p class="file-record-meta">${safeText(status)}</p>
             ${note ? `<p class="negative-admin-note">${safeText(note)}</p>` : ""}
+            ${renderRecordActionButtons(row.id, "edit-negative-item", "delete-negative-item")}
           `;
           previewNegativeDeleted.appendChild(li);
         }
@@ -2650,6 +2663,7 @@ function initialize() {
 
   previewReports?.addEventListener("click", handlePreviewRecordClick);
   previewNegativeItems?.addEventListener("click", handlePreviewRecordClick);
+  previewNegativeDeleted?.addEventListener("click", handlePreviewRecordClick);
   previewLetters?.addEventListener("click", handlePreviewRecordClick);
   previewUpdates?.addEventListener("click", handlePreviewRecordClick);
   billingInvoiceList?.addEventListener("click", handlePreviewRecordClick);
