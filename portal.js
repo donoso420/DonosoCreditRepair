@@ -600,6 +600,30 @@ function formatVerificationMethod(value) {
   }
 }
 
+function normalizeNegativeItemText(value) {
+  return String(value || "").toLowerCase();
+}
+
+function isNegativeItemExplicitlyLogged(row = {}) {
+  return /\b(logged?|active|re-?opened?)\b/.test(normalizeNegativeItemText(row.status));
+}
+
+function isNegativeItemExplicitlyWorking(row = {}) {
+  return /\b(disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif|updated?)\w*\b/.test(
+    normalizeNegativeItemText(row.status)
+  );
+}
+
+function isNegativeItemExplicitlyResolved(row = {}) {
+  const combined = [row.status, row.evidence_excerpt, row.verification_notes]
+    .map(normalizeNegativeItemText)
+    .join(" ");
+
+  return /\b(resolved|removed|deleted|cleared|off report|removed from report|deleted from report)\b/.test(
+    combined
+  );
+}
+
 function verificationBadgeClass(value) {
   switch (String(value || "").toLowerCase()) {
     case "reviewed":
@@ -659,14 +683,19 @@ async function markClientReportReviewed(supabase, reportId) {
 }
 
 function getNegativeItemStage(row = {}) {
-  const status = String(row.status || "").toLowerCase();
-  const notes = String(row.notes || "").toLowerCase();
+  const status = normalizeNegativeItemText(row.status);
+  const notes = normalizeNegativeItemText(row.notes);
   const combined = `${status} ${notes}`;
 
-  if (
-    row.is_active === false ||
-    /\b(resolved|removed|deleted|cleared)\b/.test(combined)
-  ) {
+  if (isNegativeItemExplicitlyLogged(row)) {
+    return { key: "logged", label: "Logged", step: 1, badgeClass: "stage-logged" };
+  }
+
+  if (isNegativeItemExplicitlyWorking(row)) {
+    return { key: "working", label: "In progress", step: 2, badgeClass: "stage-working" };
+  }
+
+  if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
     return { key: "resolved", label: "Resolved", step: 3, badgeClass: "stage-resolved" };
   }
 
@@ -682,22 +711,27 @@ function getNegativeItemStage(row = {}) {
 }
 
 function isDeletedNegativeItem(row = {}) {
-  const combined = [
-    row.status,
-    row.notes,
-    row.evidence_excerpt,
-    row.verification_notes,
-  ]
-    .map((value) => String(value || "").toLowerCase())
-    .join(" ");
+  if (isNegativeItemExplicitlyLogged(row) || isNegativeItemExplicitlyWorking(row)) {
+    return false;
+  }
 
-  if (/\b(deleted?|removed?|off report|removed from report|deleted from report)\b/.test(combined)) {
+  const status = normalizeNegativeItemText(row.status);
+  const notes = normalizeNegativeItemText(row.notes);
+  const evidence = [row.evidence_excerpt, row.verification_notes]
+    .map(normalizeNegativeItemText)
+    .join(" ");
+  const combined = `${status} ${notes} ${evidence}`;
+
+  if (isNegativeItemExplicitlyResolved(row)) {
     return true;
   }
 
   if (
     row.is_active === false &&
-    !/\b(updated?|verified|paid|settled|closed)\b/.test(combined)
+    (/\b(deleted?|removed?|off report|removed from report|deleted from report)\b/.test(notes) ||
+      !/\b(updated?|verified|paid|settled|closed|logged?|active|re-?opened?|disput|pending|investigat|challeng|review|processing|verif|mailed|sent|respond)\w*\b/.test(
+        combined
+      ))
   ) {
     return true;
   }
