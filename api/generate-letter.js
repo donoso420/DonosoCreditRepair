@@ -42,27 +42,33 @@ export default async function handler(req, res) {
     Authorization: `Bearer ${serviceRoleKey}`,
   };
 
-  // Fetch client profile — required for name/address on letter
+  // Fetch client profile — try with all columns, fall back if some columns missing
   let profile = {};
-  try {
-    const profileRes = await fetch(
-      `${supabaseUrl}/rest/v1/client_profiles?user_id=eq.${userId}&select=full_name,phone,address,contact_email&limit=1`,
-      { headers }
-    );
-    if (profileRes.ok) {
-      const profiles = await profileRes.json();
-      profile = profiles[0] || {};
-    } else {
-      const errText = await profileRes.text();
-      console.error("Profile fetch failed:", profileRes.status, errText);
+  const profileColumnSets = [
+    "full_name,phone,address,contact_email",
+    "full_name,phone,contact_email",
+    "full_name,phone",
+    "full_name",
+  ];
+  for (const cols of profileColumnSets) {
+    try {
+      const profileRes = await fetch(
+        `${supabaseUrl}/rest/v1/client_profiles?user_id=eq.${userId}&select=${cols}&limit=1`,
+        { headers }
+      );
+      if (profileRes.ok) {
+        const profiles = await profileRes.json();
+        const row = profiles[0] || {};
+        if (row.full_name) { profile = row; break; }
+      }
+    } catch (e) {
+      console.error("Profile fetch error:", e.message);
     }
-  } catch (e) {
-    console.error("Profile fetch error:", e.message);
   }
 
-  // If profile is still missing critical info, return a clear error
+  // If profile still missing name, return a clear error
   if (!profile.full_name) {
-    res.status(400).json({ error: "Client profile not found. Make sure the client has a name saved in Contact Info." });
+    res.status(400).json({ error: "Client profile not found. Open this client in the admin panel, go to Contact Info, and make sure their full name is saved." });
     return;
   }
 
