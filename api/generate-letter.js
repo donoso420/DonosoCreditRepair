@@ -166,7 +166,7 @@ DEMANDS SECTION: After addressing all items, include a bold demands section that
 
 CLOSING: Professional but firm. No apologies, no hedging. The tone should make clear this client knows their rights and will enforce them.
 
-FORMAT: Use clean letter format with proper spacing. Real name and address at top. Bold section headers. No placeholders for client info — use the actual data provided. Leave [INSERT CREDITOR MAILING ADDRESS] as a placeholder only.`;
+FORMAT: Use clean professional business letter format. Real name and address at top. No markdown — do NOT use asterisks, pound signs, double stars, or any markdown symbols. Use ALL CAPS for section headers instead of bold markdown. No placeholders for client info — use the actual data provided. Leave [INSERT CREDITOR MAILING ADDRESS] as a placeholder only.`;
 
   } else if (bureauResponseText) {
     // Follow-up letter responding to bureau's response
@@ -204,7 +204,7 @@ ESCALATION SECTION: Include a section stating:
 - Complaints will be filed with the CFPB and the FTC if not resolved within 15 days
 - The client reserves the right to pursue willful noncompliance damages under FCRA §1681n
 
-FORMAT: Clean letter format, bold headers for each section, real client info at top, no generic filler. Every paragraph must reference something specific — the bureau's actual response, the specific account name, the specific law. No boilerplate.`;
+FORMAT: Clean professional business letter format. Real client info at top. No markdown — do NOT use asterisks, pound signs, double stars, or any markdown symbols whatsoever. Use ALL CAPS for section headers. Every paragraph must reference something specific — the bureau's actual response, the specific account name, the specific law. No boilerplate.`;
 
   } else {
     // Initial bureau dispute letter
@@ -243,7 +243,7 @@ DEMAND SECTION: After all items, include a bold section that:
 
 CLOSING: Firm and professional. No apologies. The client knows their rights.
 
-FORMAT: Use proper business letter format. Client's full name and address at the top left. Bold headers for each disputed item. Clean spacing between sections. Every sentence must serve a purpose — no filler, no generic language, no placeholders for client info. Use the actual data provided above.`;
+FORMAT: Use proper business letter format. Client's full name and address at the top left. No markdown — do NOT use asterisks, pound signs, double stars, or any markdown symbols. Use ALL CAPS for section headers and item labels. Clean spacing between sections. Every sentence must serve a purpose — no filler, no generic language, no placeholders for client info. Use the actual data provided above.`;
   }
 
   // Call Claude API
