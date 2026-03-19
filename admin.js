@@ -612,6 +612,7 @@ function populateClientContactForm(profile = {}) {
   setFieldValue("client-contact-email-input", profile?.contact_email || "");
   setFieldValue("client-contact-phone-input", profile?.phone || "");
   setFieldValue("client-contact-address-input", profile?.address || "");
+  setFieldValue("client-contact-ssn-last4-input", profile?.ssn_last4 || "");
 }
 
 async function setActiveClient(userId) {
@@ -2877,6 +2878,7 @@ function initialize() {
     const contactEmail = String(document.getElementById("client-contact-email-input")?.value || "").trim();
     const phone = String(document.getElementById("client-contact-phone-input")?.value || "").trim();
     const address = String(document.getElementById("client-contact-address-input")?.value || "").trim();
+    const ssnLast4 = String(document.getElementById("client-contact-ssn-last4-input")?.value || "").trim().replace(/\D/g, "").slice(0, 4);
 
     let result;
     try {
@@ -2886,6 +2888,7 @@ function initialize() {
         contact_email: contactEmail || null,
         phone: phone || null,
         address: address || null,
+        ssn_last4: ssnLast4 || null,
       });
     } catch (error) {
       setAdminStatus("Could not save client contact info: " + (error?.message || error), true);

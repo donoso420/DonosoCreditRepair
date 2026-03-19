@@ -45,9 +45,8 @@ export default async function handler(req, res) {
   // Fetch client profile — try with all columns, fall back if some columns missing
   let profile = {};
   const profileColumnSets = [
-    "full_name,phone,address,contact_email",
-    "full_name,phone,contact_email",
-    "full_name,phone",
+    "full_name,address,ssn_last4",
+    "full_name,address",
     "full_name",
   ];
   for (const cols of profileColumnSets) {
@@ -97,8 +96,7 @@ export default async function handler(req, res) {
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const clientName = profile.full_name || "Client";
   const clientAddress = profile.address || "[Address on file]";
-  const clientEmail = profile.contact_email || "";
-  const clientPhone = profile.phone || "";
+  const clientSsnLast4 = profile.ssn_last4 ? `SSN: XXX-XX-${profile.ssn_last4}` : "";
 
   const bureauAddresses = {
     Equifax: "Equifax Credit Information Services, Inc.\nP.O. Box 740256\nAtlanta, GA 30374",
@@ -136,8 +134,7 @@ export default async function handler(req, res) {
 
 ${clientName.toUpperCase()}
 ${clientAddress}
-${clientPhone ? clientPhone : ""}
-${clientEmail ? clientEmail : ""}
+${clientSsnLast4}
 
 ${today}
 
@@ -177,8 +174,7 @@ FORMAT: Use clean letter format with proper spacing. Real name and address at to
 
 ${clientName.toUpperCase()}
 ${clientAddress}
-${clientPhone ? clientPhone : ""}
-${clientEmail ? clientEmail : ""}
+${clientSsnLast4}
 
 ${today}
 
@@ -216,8 +212,7 @@ FORMAT: Clean letter format, bold headers for each section, real client info at 
 
 ${clientName.toUpperCase()}
 ${clientAddress}
-${clientPhone ? clientPhone : ""}
-${clientEmail ? clientEmail : ""}
+${clientSsnLast4}
 
 ${today}
 
