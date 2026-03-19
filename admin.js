@@ -1783,6 +1783,9 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
         const review = formatVerificationMethod(row.verification_method);
         const accountRef = row.account_reference ? ` • Acct ${safeText(row.account_reference)}` : "";
         const note = row.notes || "";
+        const fcraLaws = row.fcra_laws || "";
+        const disputeIssue = row.dispute_issue || "";
+        const recommendedAction = row.recommended_action || "";
         li.innerHTML = `
           <div class="negative-admin-head">
             <div class="preview-item-main">
@@ -1798,6 +1801,9 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
           <p class="file-record-meta">${safeText(
             row.status || "Under review"
           )} · ${safeText(balance)} · ${safeText(review)}</p>
+          ${fcraLaws ? `<p class="negative-admin-note"><strong>FCRA:</strong> ${safeText(fcraLaws)}</p>` : ""}
+          ${disputeIssue ? `<p class="negative-admin-note"><strong>Issue:</strong> ${safeText(disputeIssue)}</p>` : ""}
+          ${recommendedAction ? `<p class="negative-admin-note"><strong>Action:</strong> ${safeText(recommendedAction)}</p>` : ""}
           ${note ? `<p class="negative-admin-note">${safeText(note)}</p>` : ""}
           ${renderRecordActionButtons(row.id, "edit-negative-item", "delete-negative-item")}
         `;
