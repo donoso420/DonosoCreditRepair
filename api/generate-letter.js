@@ -57,19 +57,24 @@ export default async function handler(req, res) {
     // proceed with empty profile
   }
 
-  // Fetch selected negative items
+  // Fetch selected negative items — try with new columns first, fall back if not migrated
   const idsParam = negativeItemIds.map((id) => `id=eq.${id}`).join(",");
-  const itemsRes = await fetch(
-    `${supabaseUrl}/rest/v1/negative_items?user_id=eq.${userId}&or=(${idsParam})&select=id,creditor,item_type,bureau,balance,account_reference,status,notes,fcra_laws,dispute_issue,recommended_action`,
-    { headers }
-  );
-  if (!itemsRes.ok) {
-    res.status(500).json({ error: "Could not fetch negative items." });
-    return;
+  let negativeItems = [];
+  for (const selectCols of [
+    "id,creditor,item_type,bureau,balance,account_reference,status,notes,fcra_laws,dispute_issue,recommended_action",
+    "id,creditor,item_type,bureau,balance,account_reference,status,notes",
+  ]) {
+    const itemsRes = await fetch(
+      `${supabaseUrl}/rest/v1/negative_items?user_id=eq.${userId}&or=(${idsParam})&select=${selectCols}`,
+      { headers }
+    );
+    if (itemsRes.ok) {
+      negativeItems = await itemsRes.json();
+      break;
+    }
   }
-  const negativeItems = await itemsRes.json();
   if (!negativeItems.length) {
-    res.status(404).json({ error: "No matching negative items found." });
+    res.status(404).json({ error: "No matching negative items found. Make sure items are selected and saved." });
     return;
   }
 
