@@ -32,26 +32,29 @@ export default async function handler(req, res) {
     return;
   }
 
-  const prompt = `You are a credit repair data extraction assistant. I am uploading a Credit Dispute Master Summary PDF.
+  const prompt = `You are a credit repair data extraction assistant. I am uploading a credit dispute document — it may be a Credit Dispute Master Summary, a credit report analysis, or a similar document.
 
-Extract ALL negative items from the Priority Dispute Action List (Section 3) AND the Hard Inquiry Disputes (Section 4).
+Extract EVERY dispute item found in this document. This includes ALL of the following:
+- Collections, Charge-Offs, Late Payments, Repossessions, Bankruptcies, Foreclosures, Judgments, Liens
+- Hard Inquiries
+- Name discrepancies, address errors, personal information errors (use creditor = "EQUIFAX" / "EXPERIAN" / "TRANSUNION" for bureau-level personal info disputes)
+- Any other negative or disputed item mentioned
 
 Return ONLY a valid JSON array. No explanation, no markdown, no code fences — just the raw JSON array.
 
-Each item should have these exact fields:
-- creditor: string (creditor/furnisher name, e.g. "MERCEDES-BENZ FINANCIAL")
-- item_type: string — must be one of: "Collection", "Charge Off", "Late Payment", "Hard Inquiry", "Repossession", "Bankruptcy", "Foreclosure", "Judgment", "Lien", "Derogatory", "Negative Item"
-- bureau: string — one of: "ALL_BUREAUS", "Experian", "Equifax", "TransUnion", "Equifax,TransUnion", "Experian,Equifax"
-- account_reference: string (account number, e.g. "500113XXXXXXXX") or null
-- balance: number or null (numeric value only, no $ sign)
-- status: string (brief status like "Involuntary Repossession" or "Charge-Off")
-- fcra_laws: string (all FCRA/FDCPA sections cited, e.g. "FCRA §1681i, §1681e(b), §1681s-2")
-- dispute_issue: string (brief description of the dispute issue)
-- recommended_action: string (brief recommended action)
-- notes: string (any additional context worth noting) or null
+Each item must have these exact fields:
+- creditor: string (creditor, furnisher, or bureau name — never null)
+- item_type: string — must be one of: "Collection", "Charge Off", "Late Payment", "Hard Inquiry", "Repossession", "Bankruptcy", "Foreclosure", "Judgment", "Lien", "Name Discrepancy", "Address Error", "Personal Info Error", "Derogatory", "Negative Item"
+- bureau: string — one of: "ALL_BUREAUS", "Experian", "Equifax", "TransUnion", "Equifax,TransUnion", "Experian,TransUnion", "Experian,Equifax"
+- account_reference: string (account number if available) or null
+- balance: number or null (numeric only, no $ sign)
+- status: string (e.g. "Charge-Off", "Legal Name Mismatch", "Involuntary Repossession")
+- fcra_laws: string (all FCRA/FDCPA sections cited)
+- dispute_issue: string (brief description of the specific dispute issue)
+- recommended_action: string (recommended action from the document)
+- notes: string or null
 
-For items that appear on specific bureau combinations (e.g. "Equifax & TransUnion ONLY"), set bureau to the comma-separated value like "Equifax,TransUnion".
-For items on all 3 bureaus, set bureau to "ALL_BUREAUS".
+For items on all 3 bureaus set bureau to "ALL_BUREAUS". For specific bureau combinations use comma-separated values.
 
 Return only the JSON array, nothing else.`;
 
@@ -65,7 +68,7 @@ Return only the JSON array, nothing else.`;
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [
         {
           role: "user",
@@ -100,11 +103,21 @@ Return only the JSON array, nothing else.`;
   let items;
   try {
     // Strip any accidental markdown fences
-    const cleaned = rawText.replace(/```json|```/g, "").trim();
-    items = JSON.parse(cleaned);
+    let cleaned = rawText.replace(/```json|```/g, "").trim();
+    // Try to extract just the JSON array if there's surrounding text
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (arrayMatch) cleaned = arrayMatch[0];
+    // If JSON is truncated, attempt to close it gracefully
+    try {
+      items = JSON.parse(cleaned);
+    } catch {
+      // Try closing incomplete JSON arrays
+      const partial = cleaned.replace(/,\s*\{[^}]*$/, "").replace(/,?\s*$/, "") + "]";
+      items = JSON.parse(partial);
+    }
     if (!Array.isArray(items)) throw new Error("Not an array");
   } catch {
-    res.status(500).json({ error: "Could not parse items from PDF. Raw: " + rawText.slice(0, 200) });
+    res.status(500).json({ error: "Could not parse items from PDF. Raw: " + rawText.slice(0, 300) });
     return;
   }
 
