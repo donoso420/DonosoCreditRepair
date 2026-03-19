@@ -12,6 +12,9 @@ create table if not exists public.client_profiles (
 alter table public.client_profiles
   add column if not exists address text;
 
+alter table public.client_profiles
+  add column if not exists contact_email text;
+
 -- Admin role mapping (who can manage all client tracker data)
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -38,8 +41,15 @@ create table if not exists public.client_letters (
   tracking_number text not null,
   status text not null default 'In Transit',
   notes text,
+  letter_content text,
+  letter_type text not null default 'initial' check (letter_type in ('initial', 'follow_up')),
   created_at timestamptz not null default now()
 );
+
+-- Add letter content columns to existing deployments
+alter table public.client_letters
+  add column if not exists letter_content text,
+  add column if not exists letter_type text not null default 'initial';
 
 -- Timeline/account updates
 create table if not exists public.client_updates (

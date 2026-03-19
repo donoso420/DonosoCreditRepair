@@ -3138,3 +3138,55 @@ textarea:focus {
 [data-theme="dark"] .invite-fields input::placeholder {
   color: #988458;
 }
+
+/* ── AI Letter Generator ─────────────────────────────── */
+.ai-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.ai-item-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ai-item-check:has(input:checked) {
+  border-color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent-strong) 8%, transparent);
+}
+
+.ai-item-check input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.ai-item-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 0.2rem;
+}
+
+.ai-item-badge.collections { background: #fde8e8; color: #b91c1c; }
+.ai-item-badge.late        { background: #fef3c7; color: #92400e; }
+.ai-item-badge.inquiry     { background: #e0f2fe; color: #0369a1; }
+.ai-item-badge.other       { background: #f3f4f6; color: #374151; }
+
+[data-theme="dark"] .ai-item-check { border-color: var(--dark-line); }
+[data-theme="dark"] .ai-item-badge.collections { background: #450a0a; color: #fca5a5; }
+[data-theme="dark"] .ai-item-badge.late        { background: #451a03; color: #fcd34d; }
+[data-theme="dark"] .ai-item-badge.inquiry     { background: #0c1a2e; color: #7dd3fc; }
+[data-theme="dark"] .ai-item-badge.other       { background: #1f2937; color: #d1d5db; }

@@ -396,15 +396,38 @@ function getProfileDraftFromInputs() {
   };
 }
 
-async function loadClientProfileRecord(supabase, userId) {
-  const { data, error } = await supabase
-    .from("client_profiles")
-    .select("full_name,phone,address")
-    .eq("user_id", userId)
-    .maybeSingle();
+function getMissingClientProfileColumn(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (message.includes("contact_email")) return "contact_email";
+  if (message.includes("address")) return "address";
+  return null;
+}
 
-  if (!error) return data || {};
-  if (!isMissingFeatureError(error)) throw error;
+async function loadClientProfileRecord(supabase, userId) {
+  let columns = ["full_name", "phone", "contact_email", "address"];
+
+  while (columns.length >= 2) {
+    const result = await supabase
+      .from("client_profiles")
+      .select(columns.join(","))
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!result.error) {
+      return {
+        full_name: result.data?.full_name || null,
+        phone: result.data?.phone || null,
+        contact_email: result.data?.contact_email || null,
+        address: result.data?.address || null,
+      };
+    }
+
+    if (!isMissingFeatureError(result.error)) throw result.error;
+
+    const missingColumn = getMissingClientProfileColumn(result.error);
+    if (!missingColumn || !columns.includes(missingColumn)) break;
+    columns = columns.filter((column) => column !== missingColumn);
+  }
 
   const fallback = await supabase
     .from("client_profiles")
@@ -413,22 +436,35 @@ async function loadClientProfileRecord(supabase, userId) {
     .maybeSingle();
 
   if (fallback.error && !isMissingFeatureError(fallback.error)) throw fallback.error;
-  return fallback.data || {};
+  return {
+    full_name: fallback.data?.full_name || null,
+    phone: fallback.data?.phone || null,
+    contact_email: null,
+    address: null,
+  };
 }
 
 async function upsertClientProfileRecord(supabase, payload) {
-  const primary = await supabase.from("client_profiles").upsert(payload, { onConflict: "user_id" });
-  if (!primary.error) return;
-  if (!isMissingFeatureError(primary.error) || !Object.prototype.hasOwnProperty.call(payload, "address")) {
-    throw primary.error;
+  const attemptPayload = { ...payload };
+
+  while (true) {
+    const result = await supabase.from("client_profiles").upsert(attemptPayload, { onConflict: "user_id" });
+    if (!result.error) return;
+    if (!isMissingFeatureError(result.error)) throw result.error;
+
+    const missingColumn = getMissingClientProfileColumn(result.error);
+    if (missingColumn === "contact_email" && Object.prototype.hasOwnProperty.call(attemptPayload, "contact_email")) {
+      delete attemptPayload.contact_email;
+      continue;
+    }
+
+    if (missingColumn === "address" && Object.prototype.hasOwnProperty.call(attemptPayload, "address")) {
+      delete attemptPayload.address;
+      continue;
+    }
+
+    throw result.error;
   }
-
-  const { address, ...fallbackPayload } = payload;
-  const fallback = await supabase
-    .from("client_profiles")
-    .upsert(fallbackPayload, { onConflict: "user_id" });
-
-  if (fallback.error) throw fallback.error;
 }
 
 async function ensureOwnClientProfile(supabase, user, draft = {}) {
@@ -438,11 +474,13 @@ async function ensureOwnClientProfile(supabase, user, draft = {}) {
   const fullName = String(draft.fullName || metadata.full_name || metadata.fullName || "").trim();
   const phone = String(draft.phone || metadata.phone || "").trim();
   const address = String(draft.address || metadata.address || "").trim();
+  const contactEmail = String(user.email || "").trim();
 
-  if (!fullName && !phone && !address) return;
+  if (!fullName && !phone && !address && !contactEmail) return;
 
   const payload = { user_id: user.id };
   if (fullName) payload.full_name = fullName;
+  if (contactEmail) payload.contact_email = contactEmail;
   if (phone) payload.phone = phone;
   if (address) payload.address = address;
 
@@ -483,9 +521,26 @@ function getUploadContentType(file) {
   return "application/octet-stream";
 }
 
+function parseDisplayDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const month = Number(dateOnlyMatch[2]) - 1;
+    const day = Number(dateOnlyMatch[3]);
+    return new Date(year, month, day);
+  }
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
 function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
+  const date = parseDisplayDate(value);
+  if (!date) return "N/A";
   return date.toLocaleDateString();
 }
 
@@ -865,17 +920,73 @@ function renderLetters(letters) {
     .map((row) => {
       const status = row.status || "In Transit";
       const badgeClass = statusBadgeClass(status);
+      const viewBtn = row.letter_content
+        ? `<button class="btn sm secondary view-letter-btn" type="button" data-content="${escapeHtml(row.letter_content)}" data-label="${escapeHtml(row.recipient || row.bureau || "Letter")}">View Letter</button>`
+        : "";
       return `
         <tr>
           <td>${escapeHtml(formatDate(row.sent_date))}</td>
           <td>${escapeHtml(row.recipient || row.bureau || "N/A")}</td>
-          <td>${escapeHtml(row.tracking_number || "N/A")}</td>
+          <td>${escapeHtml(row.tracking_number && row.tracking_number !== "PENDING" ? row.tracking_number : "—")}</td>
           <td><span class="badge ${escapeHtml(badgeClass)}">${escapeHtml(status)}</span></td>
-          <td>${escapeHtml(row.notes || "")}</td>
+          <td>${viewBtn}</td>
         </tr>
       `;
     })
     .join("");
+
+  // Attach view-letter handlers
+  lettersBodyEl.querySelectorAll(".view-letter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const content = btn.dataset.content || "";
+      const label = btn.dataset.label || "Dispute Letter";
+      showLetterModal(label, content);
+    });
+  });
+}
+
+function showLetterModal(title, content) {
+  // Remove any existing modal
+  document.getElementById("letter-modal")?.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "letter-modal";
+  modal.style.cssText = `
+    position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);
+    display:flex;align-items:center;justify-content:center;padding:1rem;
+  `;
+  modal.innerHTML = `
+    <div style="background:var(--surface,#fff);border-radius:12px;max-width:700px;width:100%;
+                max-height:90vh;display:flex;flex-direction:column;overflow:hidden;
+                box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--line,#e4d9ef);
+                  display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-size:1rem;">${escapeHtml(title)}</strong>
+        <button id="letter-modal-close" style="background:none;border:none;font-size:1.3rem;
+                cursor:pointer;color:var(--muted);">✕</button>
+      </div>
+      <div style="padding:1.25rem;overflow-y:auto;flex:1;">
+        <pre style="font-family:Georgia,serif;font-size:0.875rem;line-height:1.75;
+                    white-space:pre-wrap;margin:0;color:var(--ink,#1f1830);">${escapeHtml(content)}</pre>
+      </div>
+      <div style="padding:1rem 1.25rem;border-top:1px solid var(--line,#e4d9ef);display:flex;gap:0.5rem;">
+        <button id="letter-modal-copy" class="btn secondary" style="flex:1;">📋 Copy Letter</button>
+        <button id="letter-modal-close2" class="btn primary" style="flex:1;">Close</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.querySelector("#letter-modal-close").addEventListener("click", () => modal.remove());
+  modal.querySelector("#letter-modal-close2").addEventListener("click", () => modal.remove());
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
+  modal.querySelector("#letter-modal-copy").addEventListener("click", async () => {
+    await navigator.clipboard.writeText(content).catch(() => {});
+    const copyBtn = modal.querySelector("#letter-modal-copy");
+    copyBtn.textContent = "✅ Copied!";
+    setTimeout(() => (copyBtn.textContent = "📋 Copy Letter"), 1800);
+  });
 }
 
 function renderReports(reports) {
@@ -1547,12 +1658,6 @@ function initializePortal() {
     isPreviewMode = options.preview === true;
     setPreviewModeUi(isPreviewMode, currentPortalUserId);
 
-    if (clientEmailEl) {
-      clientEmailEl.textContent = isPreviewMode
-        ? `Admin preview · ${currentPortalUserId}`
-        : user.email || "";
-    }
-
     const [
       profile,
       { data: snapshots },
@@ -1601,7 +1706,7 @@ function initializePortal() {
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
       ),
-      supabase.from("client_letters").select("sent_date,bureau,recipient,tracking_number,status,notes").eq("user_id", currentPortalUserId).order("sent_date", { ascending: false }),
+      supabase.from("client_letters").select("sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type").eq("user_id", currentPortalUserId).order("sent_date", { ascending: false }),
       supabase.from("client_updates").select("details,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
       supabase.from("client_files").select("id,title,category,notes,file_name,file_path,bucket,created_at,uploaded_by").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
       supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: true }),
@@ -1613,13 +1718,21 @@ function initializePortal() {
       metadata.full_name ||
       metadata.fullName ||
       (isPreviewMode ? "Client Preview" : "Client");
+    const displayEmail = profile?.contact_email || user.email || "";
     const phone = profile?.phone || metadata.phone || "";
     const address = profile?.address || metadata.address || "";
 
     if (clientNameEl) clientNameEl.textContent = displayName;
+    if (clientEmailEl) {
+      clientEmailEl.textContent = isPreviewMode
+        ? displayEmail
+          ? `Admin preview · ${displayEmail}`
+          : `Admin preview · ${currentPortalUserId}`
+        : displayEmail;
+    }
     setContactValue(
       clientContactEmailEl,
-      isPreviewMode ? "" : user.email || "",
+      isPreviewMode ? displayEmail : displayEmail,
       isPreviewMode ? "Not available in preview" : "Not added yet"
     );
     setContactValue(clientContactPhoneEl, phone);

@@ -277,9 +277,26 @@ function isUuid(value) {
   );
 }
 
+function parseDisplayDate(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const month = Number(dateOnlyMatch[2]) - 1;
+    const day = Number(dateOnlyMatch[3]);
+    return new Date(year, month, day);
+  }
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
 function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
+  const date = parseDisplayDate(value);
+  if (!date) return "N/A";
   return date.toLocaleDateString();
 }
 
@@ -570,6 +587,7 @@ function resetActiveClientCollections() {
   activeUpdateRows = [];
   activeBillingProfile = null;
   activeInvoiceRows = [];
+  syncAiLetterItems();
 }
 
 function resetActiveClientForms() {
@@ -2135,6 +2153,7 @@ async function loadClientPreview(userId) {
   syncLetterUpdateChoices();
   activeUpdateRows = updates || [];
   activeNegativeItemRows = negativeItems || [];
+  syncAiLetterItems();
   activeBillingProfile = billingProfile || null;
   activeInvoiceRows = invoices || [];
   const mergedClientProfile = {
@@ -3573,5 +3592,174 @@ function initialize() {
     setAuthStatus("Could not restore admin session: " + (error?.message || error), true);
   });
 }
+
+// ── AI Letter Generator ───────────────────────────────────────────────────────
+
+function getBadgeClass(itemType) {
+  const t = String(itemType || "").toLowerCase();
+  if (t.includes("collection")) return "collections";
+  if (t.includes("late") || t.includes("delinquent")) return "late";
+  if (t.includes("inquiry")) return "inquiry";
+  return "other";
+}
+
+function syncAiLetterItems() {
+  const container = document.getElementById("ai-letter-items");
+  if (!container) return;
+
+  const active = activeNegativeItemRows.filter((r) => r.is_active !== false);
+
+  if (!activeClientId) {
+    container.innerHTML = '<p class="muted sm">Select a client to see their negative items.</p>';
+    return;
+  }
+  if (!active.length) {
+    container.innerHTML = '<p class="muted sm">No active negative items on file for this client.</p>';
+    return;
+  }
+
+  container.innerHTML = active
+    .map((item) => {
+      const badgeClass = getBadgeClass(item.item_type);
+      const balance = item.balance ? ` — $${Number(item.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "";
+      const ref = item.account_reference ? ` · Acct: ${item.account_reference}` : "";
+      return `<label class="ai-item-check">
+        <input type="checkbox" value="${item.id}" checked />
+        <span>
+          <span class="ai-item-badge ${badgeClass}">${item.item_type}</span>
+          ${item.creditor}${balance}${ref}
+        </span>
+      </label>`;
+    })
+    .join("");
+}
+
+function getSelectedNegativeItemIds() {
+  const checkboxes = document.querySelectorAll('#ai-letter-items input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map((cb) => Number(cb.value));
+}
+
+function setAiLetterStatus(msg, isError = false) {
+  const el = document.getElementById("ai-letter-status");
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? "block" : "none";
+  el.style.color = isError ? "var(--danger, #b91c1c)" : "var(--muted)";
+}
+
+// Show/hide the bureau response textarea based on letter type
+document.getElementById("ai-letter-type")?.addEventListener("change", function () {
+  const wrap = document.getElementById("ai-letter-response-wrap");
+  if (wrap) wrap.style.display = this.value === "follow_up" ? "block" : "none";
+});
+
+// Generate button
+document.getElementById("ai-letter-generate-btn")?.addEventListener("click", async () => {
+  if (!activeClientId) {
+    setAiLetterStatus("Select a client first.", true);
+    return;
+  }
+
+  const bureau = document.getElementById("ai-letter-bureau")?.value;
+  const letterType = document.getElementById("ai-letter-type")?.value;
+  const negativeItemIds = getSelectedNegativeItemIds();
+  const bureauResponseText = String(document.getElementById("ai-letter-response")?.value || "").trim();
+
+  if (!negativeItemIds.length) {
+    setAiLetterStatus("Check at least one negative item to dispute.", true);
+    return;
+  }
+  if (letterType === "follow_up" && !bureauResponseText) {
+    setAiLetterStatus("Paste the bureau's response letter to generate a follow-up.", true);
+    return;
+  }
+
+  const btn = document.getElementById("ai-letter-generate-btn");
+  btn.disabled = true;
+  btn.textContent = "⏳ Generating...";
+  setAiLetterStatus("Claude is writing the letter — this takes about 10 seconds...");
+  document.getElementById("ai-letter-output-card").style.display = "none";
+
+  try {
+    const res = await fetch("/api/generate-letter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: activeClientId,
+        bureau,
+        negativeItemIds,
+        bureauResponseText: letterType === "follow_up" ? bureauResponseText : undefined,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Generation failed.");
+
+    const output = document.getElementById("ai-letter-output");
+    if (output) output.value = data.letter;
+    document.getElementById("ai-letter-output-card").style.display = "block";
+    document.getElementById("ai-letter-output-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    setAiLetterStatus("");
+  } catch (err) {
+    setAiLetterStatus("Error: " + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "✨ Generate Letter";
+  }
+});
+
+// Copy button
+document.getElementById("ai-letter-copy-btn")?.addEventListener("click", async () => {
+  const text = document.getElementById("ai-letter-output")?.value;
+  if (!text) return;
+  await navigator.clipboard.writeText(text).catch(() => {});
+  const btn = document.getElementById("ai-letter-copy-btn");
+  btn.textContent = "✅ Copied!";
+  setTimeout(() => (btn.textContent = "📋 Copy"), 1800);
+});
+
+// Save button — saves letter content into client_letters and auto-fills the log form
+document.getElementById("ai-letter-save-btn")?.addEventListener("click", async () => {
+  if (!activeClientId) return;
+
+  const letterText = document.getElementById("ai-letter-output")?.value;
+  if (!letterText) return;
+
+  const bureau = document.getElementById("ai-letter-bureau")?.value || "";
+  const letterType = document.getElementById("ai-letter-type")?.value || "initial";
+  const today = new Date().toISOString().split("T")[0];
+
+  const btn = document.getElementById("ai-letter-save-btn");
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+
+  const { error } = await supabase.from("client_letters").insert({
+    user_id: activeClientId,
+    sent_date: today,
+    recipient: bureau,
+    bureau: bureau,
+    tracking_number: "PENDING",
+    status: "In Transit",
+    letter_content: letterText,
+    letter_type: letterType,
+    notes: `AI-generated ${letterType === "follow_up" ? "follow-up" : "initial"} dispute letter`,
+  });
+
+  if (error) {
+    setAiLetterStatus("Could not save letter: " + error.message, true);
+    btn.disabled = false;
+    btn.textContent = "💾 Save to Client Record";
+    return;
+  }
+
+  await logClientActivity(`AI dispute letter generated and saved for ${bureau}.`);
+  setAiLetterStatus("✅ Letter saved! Update the tracking number in the letter log below once mailed.");
+  document.getElementById("ai-letter-output-card").style.display = "none";
+  btn.disabled = false;
+  btn.textContent = "💾 Save to Client Record";
+
+  // Reload to show in letter log
+  await loadClientPreview(activeClientId);
+});
 
 initialize();
