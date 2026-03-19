@@ -2132,7 +2132,7 @@ async function loadClientPreview(userId) {
       safeTableQuery(
         supabase
           .from("negative_items")
-          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,is_active,source,source_file_id,report_id,verification_method,verification_notes,evidence_excerpt,verified_at,ai_model,confidence,last_seen_at,created_at")
+          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,fcra_laws,dispute_issue,recommended_action,is_active,source,source_file_id,report_id,verification_method,verification_notes,evidence_excerpt,verified_at,ai_model,confidence,last_seen_at,created_at")
           .eq("user_id", userId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
