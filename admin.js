@@ -3690,14 +3690,26 @@ function syncAiLetterItems() {
   const container = document.getElementById("ai-letter-items");
   if (!container) return;
 
-  const active = activeNegativeItemRows.filter((r) => r.is_active !== false);
+  const selectedBureau = String(document.getElementById("ai-letter-bureau")?.value || "").trim();
+
+  // Filter to only items matching the selected bureau
+  const active = activeNegativeItemRows.filter((r) => {
+    if (r.is_active === false) return false;
+    if (!selectedBureau) return true;
+    const bureau = String(r.bureau || "").trim();
+    return (
+      !bureau ||
+      bureau === "Shared / Unknown" ||
+      bureau.toLowerCase() === selectedBureau.toLowerCase()
+    );
+  });
 
   if (!activeClientId) {
     container.innerHTML = '<p class="muted sm">Select a client to see their negative items.</p>';
     return;
   }
   if (!active.length) {
-    container.innerHTML = '<p class="muted sm">No active negative items on file for this client.</p>';
+    container.innerHTML = `<p class="muted sm">No active negative items on file for ${selectedBureau || "this bureau"}.</p>`;
     return;
   }
 
@@ -3729,6 +3741,9 @@ function setAiLetterStatus(msg, isError = false) {
   el.style.display = msg ? "block" : "none";
   el.style.color = isError ? "var(--danger, #b91c1c)" : "var(--muted)";
 }
+
+// Refresh negative items list when bureau changes
+document.getElementById("ai-letter-bureau")?.addEventListener("change", syncAiLetterItems);
 
 // Show/hide the bureau response textarea based on letter type
 document.getElementById("ai-letter-type")?.addEventListener("change", function () {
