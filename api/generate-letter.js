@@ -45,6 +45,7 @@ export default async function handler(req, res) {
   // Fetch client profile — try with all columns, fall back if some columns missing
   let profile = {};
   const profileColumnSets = [
+    "full_name,address,ssn_last4,date_of_birth",
     "full_name,address,ssn_last4",
     "full_name,address",
     "full_name",
@@ -96,7 +97,8 @@ export default async function handler(req, res) {
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const clientName = profile.full_name || "Client";
   const clientAddress = profile.address || "[Address on file]";
-  const clientSsnLast4 = profile.ssn_last4 ? `SSN: XXX-XX-${profile.ssn_last4}` : "";
+  const clientSsnLast4 = profile.ssn_last4 ? `Social Security No. (Last 4 Digits): ${profile.ssn_last4}` : "Social Security No. (Last 4 Digits): [LAST 4]";
+  const clientDob = profile.date_of_birth ? `Date of Birth: ${new Date(profile.date_of_birth).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}` : "";
 
   const bureauAddresses = {
     Equifax: "Equifax Credit Information Services, Inc.\nP.O. Box 740256\nAtlanta, GA 30374",
@@ -126,124 +128,177 @@ export default async function handler(req, res) {
     })
     .join("\n");
 
+  // Client header block — matches your sample letter format exactly
+  const clientHeader = `${clientName}
+${clientAddress}
+${clientDob}
+${clientSsnLast4}`;
+
   let prompt;
 
   if (isCreditorDirect) {
-    // Creditor / furnisher direct dispute letter
-    prompt = `You are an aggressive, experienced credit repair attorney's assistant. Write a powerful, legally forceful dispute letter sent DIRECTLY to the creditor/furnisher. This letter must feel personal, specific, and legally threatening — not generic.
+    prompt = `You are an experienced credit repair specialist. Write a formal dispute letter sent directly to the creditor/furnisher. Follow the EXACT format below. No markdown. No asterisks. No bold symbols. No pound signs. No special characters of any kind.
 
-${clientName.toUpperCase()}
-${clientAddress}
-${clientSsnLast4}
+Write the complete letter now using this exact structure:
+
+${clientHeader}
 
 ${today}
 
 ${primaryCreditor}
 [INSERT CREDITOR MAILING ADDRESS]
 
-RE: FORMAL NOTICE OF DISPUTE AND DEMAND FOR CORRECTION — FCRA §1681s-2(b) / FDCPA §1692g
+Re: Formal Notice of Dispute and Demand for Correction — ${primaryCreditor} Account #[Account Number]
+FCRA 15 U.S.C. § 1681s-2(b) | FDCPA 15 U.S.C. § 1692g
 
-ACCOUNTS IN DISPUTE:
-${itemsList}
+To Whom It May Concern:
 
-LETTER REQUIREMENTS — follow every one of these:
+[Opening paragraph: state you are formally disputing the accuracy and validity of the account(s) below and that as a furnisher, the recipient is legally required under FCRA § 1681s-2(b) to investigate and correct inaccurate information upon notice of dispute.]
 
-OPENING: Address the specific account(s) by name and account number. State clearly that you are disputing the accuracy and/or validity of this information and that the furnisher is legally required to investigate under FCRA §1681s-2(b).
+Account in Dispute:
 
-FOR EACH ITEM: Write a dedicated paragraph that:
-- Names the exact account, account number, and reported balance
-- Cites the specific dispute issue from the data above (don't be vague — reference the exact problem: re-aging, wrong balance, not mine, duplicate reporting, lack of verification, etc.)
-- Invokes the specific FCRA or FDCPA section that applies to that exact issue
-- If it's a collection account: demand written debt validation under FDCPA §1692g including proof of original creditor, original balance, date of first delinquency, and chain of ownership
-- If there is re-aging: demand the original Date of First Delinquency (DOFD) in writing
-- If balance is inflated: demand a full itemized account statement
+Creditor: [name]
+Account Number: [number]
+Account Type: [type]
+Reported Balance: [balance]
+Dispute Issue: [exact issue from data]
 
-DEMANDS SECTION: After addressing all items, include a bold demands section that:
-- Demands written confirmation of investigation results within 30 days
-- States that failure to respond will be treated as an admission that the information is inaccurate
-- Warns that non-compliance will result in complaints filed with the CFPB, FTC, and the state attorney general
-- States the client reserves the right to pursue statutory damages under FCRA §1681n ($100–$1,000 per violation) and FDCPA §1692k
+Basis for This Dispute:
 
-CLOSING: Professional but firm. No apologies, no hedging. The tone should make clear this client knows their rights and will enforce them.
+[One detailed paragraph per account. Cite the exact FCRA or FDCPA section that applies to the specific issue. If collection: demand written debt validation under FDCPA § 1692g including proof of original creditor, original balance, DOFD, and chain of ownership. If re-aging: demand original Date of First Delinquency in writing. If wrong balance: demand full itemized statement. Be specific — use the actual account name, number, and dispute issue from the data provided.]
 
-FORMAT: Use clean professional business letter format. Real name and address at top. No markdown — do NOT use asterisks, pound signs, double stars, or any markdown symbols. Use ALL CAPS for section headers instead of bold markdown. No placeholders for client info — use the actual data provided. Leave [INSERT CREDITOR MAILING ADDRESS] as a placeholder only.`;
+My demands are as follows:
+
+1. Investigate this dispute and provide written verification of every data element reported, including account status, payment history, balance, and all remarks.
+2. Provide written confirmation of the investigation results within 30 days of receipt of this letter, including the name of the person contacted and documentation reviewed — this is my right under FCRA § 1681s-2(b).
+3. If you cannot fully verify every element of this account within 30 days, correct or delete the inaccurate information immediately.
+4. Failure to respond will result in formal complaints filed with the Consumer Financial Protection Bureau, the Federal Trade Commission, and the applicable state attorney general. I reserve the right to pursue statutory damages under FCRA § 1681n and FDCPA § 1692k.
+
+Please treat this letter as a formal written dispute. I expect a written response within thirty (30) days of receipt.
+
+Do not contact me by telephone. All communications must be in writing.
+
+Respectfully,
+
+
+${clientName}
+Consumer — Pro Se
+
+Enclosures: Copy of Government-Issued Photo ID · Proof of Current Address
+Sent Via: USPS Certified Mail, Return Receipt Requested
+
+ACCOUNT DATA (use this to fill in the letter above — do not include this section in the letter):
+${itemsList}`;
 
   } else if (bureauResponseText) {
-    // Follow-up letter responding to bureau's response
-    prompt = `You are an aggressive, experienced credit repair attorney's assistant. Write a powerful follow-up dispute letter to ${bureau} based on their response. This is NOT a first dispute — the bureau has already responded and the client is escalating. The tone must be firm, legally precise, and make clear that inaction will have consequences.
+    prompt = `You are an experienced credit repair specialist. Write a formal escalation dispute letter to ${bureau}. Follow the EXACT format below. No markdown. No asterisks. No bold symbols. No pound signs. No special characters of any kind.
 
-${clientName.toUpperCase()}
-${clientAddress}
-${clientSsnLast4}
+Write the complete letter now using this exact structure:
+
+${clientHeader}
 
 ${today}
 
-${bureau}
 ${creditorAddress}
 
-RE: FOLLOW-UP DISPUTE — DEMAND FOR METHOD OF VERIFICATION / ESCALATED DISPUTE
+Re: Escalation of Unresolved Dispute — [Creditor name(s)] Account(s) — [Account Number(s)]
+FCRA 15 U.S.C. § 1681i(a)(6)(B)(iii) | § 1681i(a)(5) | § 1681e(b)
 
-ITEMS IN DISPUTE:
-${itemsList}
+To Whom It May Concern:
 
-BUREAU'S RESPONSE:
-${bureauResponseText}
+[Opening paragraph: reference the prior dispute and the bureau's response. State specifically what they said and why it is legally insufficient. If they said "verified" without proof, call that out. If the remark says "Dispute resolved; customer disagrees," state that is not a resolution and you are escalating.]
 
-LETTER REQUIREMENTS — follow every one:
+Account in Dispute:
 
-OPENING: Reference the prior dispute and the bureau's response. Be specific about what they said and why it is insufficient or legally inadequate.
+Creditor: [name]
+Account Number: [number]
+Bureau Response: [what the bureau said]
+Why It Is Insufficient: [specific legal reason]
 
-FOR EACH ITEM THE BUREAU RESPONDED TO:
-- If they said "verified": Invoke FCRA §1681i(a)(6)(B) and demand the FULL Method of Verification — specifically the name, address, and phone number of each person contacted, and every document reviewed. State that simply saying "verified" without providing proof is a violation of the FCRA.
-- If they deleted an item: Acknowledge it and move on to remaining items.
-- If they said they need more info: Provide exactly what they asked for and re-assert the dispute.
-- If they ignored an item entirely: Flag it as unaddressed and re-dispute it forcefully.
+Basis for This Escalation:
 
-ESCALATION SECTION: Include a section stating:
-- This is the client's final request before escalating to regulatory complaints
-- Complaints will be filed with the CFPB and the FTC if not resolved within 15 days
-- The client reserves the right to pursue willful noncompliance damages under FCRA §1681n
+[One dedicated paragraph per item. If the bureau said "verified": invoke FCRA § 1681i(a)(6)(B) and demand full Method of Verification — name of person contacted, date of contact, and documentation reviewed. If they ignored an item: re-dispute and flag it as unaddressed. Be specific — cite the exact account, account number, and applicable law.]
 
-FORMAT: Clean professional business letter format. Real client info at top. No markdown — do NOT use asterisks, pound signs, double stars, or any markdown symbols whatsoever. Use ALL CAPS for section headers. Every paragraph must reference something specific — the bureau's actual response, the specific account name, the specific law. No boilerplate.`;
+My demands are as follows:
+
+1. Conduct a new, substantive reinvestigation of each account listed above — not a repeat of the prior rubber-stamp result.
+2. Provide in writing the full Method of Verification used — including the name of the individual at the furnisher contacted, the date of contact, and every document reviewed. This is my right under FCRA § 1681i(a)(6)(B)(iii).
+3. If any account cannot be fully verified within 30 days, delete it from my credit report under § 1681i(a)(5)(A).
+4. If this dispute is not resolved in my favor, include my statement of dispute in all future credit reports furnished to third parties under § 1681i(b) and § 1681i(c).
+5. File formal complaints with the Consumer Financial Protection Bureau and the Federal Trade Commission if not resolved. I reserve the right to pursue statutory damages under FCRA § 1681n for willful noncompliance.
+
+Please treat this letter as a formal written escalation under the FCRA. I expect a written response within thirty (30) days of receipt.
+
+Do not contact me by telephone. All communications must be in writing.
+
+Respectfully,
+
+
+${clientName}
+Consumer — Pro Se
+
+Enclosures: Copy of Government-Issued Photo ID · Proof of Current Address
+Sent Via: USPS Certified Mail, Return Receipt Requested
+
+ACCOUNT DATA (use this to fill in the letter above — do not include this section in the letter):
+ITEMS: ${itemsList}
+BUREAU RESPONSE: ${bureauResponseText}`;
 
   } else {
-    // Initial bureau dispute letter
-    prompt = `You are an aggressive, experienced credit repair attorney's assistant. Write a powerful, specific, legally forceful initial dispute letter to ${bureau}. This letter must feel tailored to THIS client's exact situation — not a template. Use the client's real information and the exact dispute issues provided.
+    prompt = `You are an experienced credit repair specialist. Write a formal initial dispute letter to ${bureau}. Follow the EXACT format below. No markdown. No asterisks. No bold symbols. No pound signs. No special characters of any kind.
 
-${clientName.toUpperCase()}
-${clientAddress}
-${clientSsnLast4}
+Write the complete letter now using this exact structure:
+
+${clientHeader}
 
 ${today}
 
-${bureau}
 ${creditorAddress}
 
-RE: FORMAL DISPUTE OF INACCURATE CREDIT INFORMATION — FCRA §1681i
+Re: Formal Dispute of Inaccurate Credit Information — [List creditor names and account numbers]
+FCRA 15 U.S.C. § 1681i | § 1681e(b) | § 1681s-2
 
-ITEMS BEING DISPUTED:
-${itemsList}
+To Whom It May Concern:
 
-LETTER REQUIREMENTS — follow every one of these:
+[Opening paragraph: state that under the Fair Credit Reporting Act, 15 U.S.C. § 1681i, you are formally disputing the accuracy and completeness of the items listed below and demanding a thorough reinvestigation. State that ${bureau} has a legal obligation to investigate, correct, or delete unverifiable information within 30 days.]
 
-OPENING: Address ${bureau} directly. State that under the Fair Credit Reporting Act, 15 U.S.C. §1681i, the client is formally disputing the accuracy and completeness of the items listed below and demanding a thorough reinvestigation. Reference that ${bureau} has a legal obligation to investigate, correct, or delete unverifiable information within 30 days.
+[For each disputed item, write a section in this exact format:]
 
-FOR EACH ITEM: Write a dedicated, specific paragraph that:
-- Names the exact creditor, account number, and reported balance
-- States the specific dispute reason from the data (don't be vague — use the actual dispute issue: re-aging, incorrect balance, not the client's account, duplicate entry, unverifiable, etc.)
-- Cites the precise FCRA section that applies to that specific issue (e.g., §1681c for reporting period violations, §1681e(b) for accuracy requirements, §1681i for reinvestigation obligations, §1681s-2 for furnisher duties)
-- Demands that ${bureau} contact the furnisher and obtain actual verification — not just a rubber-stamp "verified" response
-- States what outcome is demanded: correction or deletion
+Account in Dispute:
 
-DEMAND SECTION: After all items, include a bold section that:
-- Demands written results of the investigation within 30 days (or 45 days if triggered by annual credit report)
-- Demands a free updated copy of the credit report showing the corrections
-- States that failure to investigate or respond constitutes a willful violation of the FCRA
-- Warns that the client will file a CFPB complaint and pursue statutory damages under §1681n ($100–$1,000 per violation per item) if not resolved
+Creditor: [name]
+Account Number: [number]
+Account Type: [type]
+Reported Balance: [balance]
+Dispute Issue: [exact issue from the data]
 
-CLOSING: Firm and professional. No apologies. The client knows their rights.
+[Dedicated paragraph explaining exactly why this item is being disputed. Cite the specific FCRA section that applies to this issue — § 1681c for reporting period violations, § 1681e(b) for accuracy, § 1681i for reinvestigation, § 1681s-2 for furnisher duties. Demand ${bureau} obtain actual verified documentation from the furnisher — not a rubber-stamp response. State exactly what correction or deletion is demanded. Be specific — use the actual account name, number, balance, and dispute issue from the data.]
 
-FORMAT: Use proper business letter format. Client's full name and address at the top left. No markdown — do NOT use asterisks, pound signs, double stars, or any markdown symbols. Use ALL CAPS for section headers and item labels. Clean spacing between sections. Every sentence must serve a purpose — no filler, no generic language, no placeholders for client info. Use the actual data provided above.`;
+[Repeat the Account in Dispute section for each additional account.]
+
+My demands are as follows:
+
+1. Conduct a thorough reinvestigation of each account listed above and obtain verified documentation from each furnisher — not a confirmation that they were contacted.
+2. Provide written results of the investigation within 30 days of receipt of this letter (or 45 days if this dispute was triggered by the annual free credit report).
+3. Provide a free updated copy of my credit report reflecting all corrections upon completion of the investigation.
+4. If any item cannot be fully verified, delete it from my credit report immediately under § 1681i(a)(5)(A).
+5. Failure to investigate or respond constitutes a willful violation of the FCRA. I will file a formal complaint with the Consumer Financial Protection Bureau and pursue statutory damages under § 1681n ($100 to $1,000 per violation, per item) if this matter is not resolved.
+
+Please treat this letter as a formal written dispute under the Fair Credit Reporting Act. I expect a written response within thirty (30) days of receipt of this letter.
+
+Do not contact me by telephone. All communications must be in writing.
+
+Respectfully,
+
+
+${clientName}
+Consumer — Pro Se
+
+Enclosures: Copy of Government-Issued Photo ID · Proof of Current Address
+Sent Via: USPS Certified Mail, Return Receipt Requested
+
+ACCOUNT DATA (use this to fill in the letter above — do not include this section in the letter):
+${itemsList}`;
   }
 
   // Call Claude API

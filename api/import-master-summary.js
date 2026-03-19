@@ -162,9 +162,9 @@ Return only the JSON array, nothing else.`;
     return;
   }
 
-  // Upsert into Supabase
+  // Upsert into Supabase — on_conflict tells PostgREST which unique constraint to use
   const upsertRes = await fetch(
-    `${supabaseUrl}/rest/v1/negative_items`,
+    `${supabaseUrl}/rest/v1/negative_items?on_conflict=user_id,fingerprint`,
     {
       method: "POST",
       headers: {
