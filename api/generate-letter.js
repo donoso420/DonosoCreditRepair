@@ -42,20 +42,19 @@ export default async function handler(req, res) {
     Authorization: `Bearer ${serviceRoleKey}`,
   };
 
-  // Fetch client profile
-  const profileRes = await fetch(
-    `${supabaseUrl}/rest/v1/client_profiles?user_id=eq.${userId}&select=full_name,phone,address,contact_email`,
-    { headers }
-  );
-  if (!profileRes.ok) {
-    res.status(500).json({ error: "Could not fetch client profile." });
-    return;
-  }
-  const profiles = await profileRes.json();
-  const profile = profiles[0];
-  if (!profile) {
-    res.status(404).json({ error: "Client profile not found." });
-    return;
+  // Fetch client profile — non-fatal, use fallbacks if missing
+  let profile = {};
+  try {
+    const profileRes = await fetch(
+      `${supabaseUrl}/rest/v1/client_profiles?user_id=eq.${userId}&select=full_name,phone,address,contact_email`,
+      { headers }
+    );
+    if (profileRes.ok) {
+      const profiles = await profileRes.json();
+      profile = profiles[0] || {};
+    }
+  } catch (_) {
+    // proceed with empty profile
   }
 
   // Fetch selected negative items
