@@ -243,6 +243,17 @@
                     <h2>⚠️ Negative Items</h2>
                     <p class="muted sm">Add or correct negative accounts showing on the current report</p>
                   </div>
+                  <!-- Import from PDF -->
+                  <div class="card" id="import-summary-card">
+                    <h3 class="card-title">📄 Import from Master Summary PDF</h3>
+                    <p class="muted sm">Upload a Credit Dispute Master Summary PDF and all negative items will be automatically added — including FCRA laws, dispute issues, and recommended actions.</p>
+                    <input type="file" id="import-summary-file" accept=".pdf" style="display:none" />
+                    <div class="form-actions mt">
+                      <button class="btn primary full" id="import-summary-btn" type="button">📄 Choose PDF to Import</button>
+                    </div>
+                    <p id="import-summary-status" class="muted sm mt" style="display:none"></p>
+                  </div>
+
                   <div class="card">
                     <h3 class="card-title">Add / Update Negative Item</h3>
                     <form id="negative-item-form">

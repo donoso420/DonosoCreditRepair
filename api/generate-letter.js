@@ -61,7 +61,7 @@ export default async function handler(req, res) {
   // Fetch selected negative items
   const idsParam = negativeItemIds.map((id) => `id=eq.${id}`).join(",");
   const itemsRes = await fetch(
-    `${supabaseUrl}/rest/v1/negative_items?user_id=eq.${userId}&or=(${idsParam})&select=id,creditor,item_type,bureau,balance,account_reference,status,notes`,
+    `${supabaseUrl}/rest/v1/negative_items?user_id=eq.${userId}&or=(${idsParam})&select=id,creditor,item_type,bureau,balance,account_reference,status,notes,fcra_laws,dispute_issue,recommended_action`,
     { headers }
   );
   if (!itemsRes.ok) {
@@ -94,6 +94,9 @@ export default async function handler(req, res) {
       if (item.account_reference) parts.push(`Account: ${item.account_reference}`);
       if (item.balance) parts.push(`Balance: $${Number(item.balance).toFixed(2)}`);
       if (item.status) parts.push(`Status: ${item.status}`);
+      if (item.fcra_laws) parts.push(`Legal Basis: ${item.fcra_laws}`);
+      if (item.dispute_issue) parts.push(`Dispute Issue: ${item.dispute_issue}`);
+      if (item.recommended_action) parts.push(`Recommended Action: ${item.recommended_action}`);
       if (item.notes) parts.push(`Notes: ${item.notes}`);
       return parts.join(", ");
     })

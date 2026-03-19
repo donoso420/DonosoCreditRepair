@@ -2736,6 +2736,71 @@ function initialize() {
   previewUpdates?.addEventListener("click", handlePreviewRecordClick);
   billingInvoiceList?.addEventListener("click", handlePreviewRecordClick);
 
+  // Import from Master Summary PDF
+  const importSummaryBtn = document.getElementById("import-summary-btn");
+  const importSummaryFile = document.getElementById("import-summary-file");
+  const importSummaryStatus = document.getElementById("import-summary-status");
+
+  function setImportStatus(msg, isError = false) {
+    if (!importSummaryStatus) return;
+    importSummaryStatus.textContent = msg;
+    importSummaryStatus.style.display = msg ? "block" : "none";
+    importSummaryStatus.style.color = isError ? "var(--color-error, #e74c3c)" : "";
+  }
+
+  importSummaryBtn?.addEventListener("click", () => {
+    if (!(activeClientId)) {
+      setAdminStatus("Select a client first before importing.", true);
+      return;
+    }
+    importSummaryFile?.click();
+  });
+
+  importSummaryFile?.addEventListener("change", async () => {
+    const file = importSummaryFile?.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      setImportStatus("Please select a PDF file.", true);
+      return;
+    }
+
+    setImportStatus("Reading PDF...");
+    if (importSummaryBtn) importSummaryBtn.disabled = true;
+
+    try {
+      // Convert PDF to base64
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+      const base64 = btoa(binary);
+
+      setImportStatus("Extracting negative items with AI...");
+
+      const response = await fetch("/api/import-master-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: activeClientId, pdfBase64: base64 }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setImportStatus("Import failed: " + (data.error || "Unknown error"), true);
+        return;
+      }
+
+      setImportStatus(`✅ ${data.message}`);
+      await logClientActivity(`Imported ${data.imported} negative items from Master Summary PDF.`);
+      await loadClientPreview(activeClientId);
+    } catch (err) {
+      setImportStatus("Import error: " + (err?.message || err), true);
+    } finally {
+      if (importSummaryBtn) importSummaryBtn.disabled = false;
+      if (importSummaryFile) importSummaryFile.value = "";
+    }
+  });
+
   const uploadFileInput = document.getElementById("file-input");
   uploadFileInput?.addEventListener("change", async () => {
     const file = uploadFileInput.files?.[0];
