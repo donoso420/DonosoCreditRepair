@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseUrl = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
@@ -42,19 +42,28 @@ export default async function handler(req, res) {
     Authorization: `Bearer ${serviceRoleKey}`,
   };
 
-  // Fetch client profile — non-fatal, use fallbacks if missing
+  // Fetch client profile — required for name/address on letter
   let profile = {};
   try {
     const profileRes = await fetch(
-      `${supabaseUrl}/rest/v1/client_profiles?user_id=eq.${userId}&select=full_name,phone,address,contact_email`,
+      `${supabaseUrl}/rest/v1/client_profiles?user_id=eq.${userId}&select=full_name,phone,address,contact_email&limit=1`,
       { headers }
     );
     if (profileRes.ok) {
       const profiles = await profileRes.json();
       profile = profiles[0] || {};
+    } else {
+      const errText = await profileRes.text();
+      console.error("Profile fetch failed:", profileRes.status, errText);
     }
-  } catch (_) {
-    // proceed with empty profile
+  } catch (e) {
+    console.error("Profile fetch error:", e.message);
+  }
+
+  // If profile is still missing critical info, return a clear error
+  if (!profile.full_name) {
+    res.status(400).json({ error: "Client profile not found. Make sure the client has a name saved in Contact Info." });
+    return;
   }
 
   // Fetch selected negative items — try with new columns first, fall back if not migrated
