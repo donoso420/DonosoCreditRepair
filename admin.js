@@ -947,7 +947,9 @@ function isNegativeItemExplicitlyLogged(row = {}) {
 }
 
 function isNegativeItemExplicitlyWorking(row = {}) {
-  return /\b(disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif|updated?)\w*\b/.test(
+  // Also check if a letter has been linked to this item
+  if (row.letter_id || row.letter_sent_date) return true;
+  return /\b(letter sent|disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif|updated?)\w*\b/.test(
     normalizeNegativeItemText(row.status)
   );
 }
@@ -2133,7 +2135,7 @@ async function loadClientPreview(userId) {
       safeTableQuery(
         supabase
           .from("negative_items")
-          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,fcra_laws,dispute_issue,recommended_action,is_active,source,source_file_id,report_id,verification_method,verification_notes,evidence_excerpt,verified_at,ai_model,confidence,last_seen_at,created_at")
+          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,fcra_laws,dispute_issue,recommended_action,is_active,source,source_file_id,report_id,verification_method,verification_notes,evidence_excerpt,verified_at,ai_model,confidence,last_seen_at,created_at,letter_id,letter_sent_date")
           .eq("user_id", userId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
@@ -3839,7 +3841,12 @@ document.getElementById("ai-letter-save-btn")?.addEventListener("click", async (
   btn.disabled = true;
   btn.textContent = "Saving...";
 
-  const { error } = await supabase.from("client_letters").insert({
+  // Grab the checked negative item IDs before saving
+  const checkedItemIds = Array.from(
+    document.querySelectorAll("#ai-letter-items input[type='checkbox']:checked")
+  ).map((cb) => cb.value).filter(Boolean);
+
+  const { data: letterData, error } = await supabase.from("client_letters").insert({
     user_id: activeClientId,
     sent_date: today,
     recipient: bureau,
@@ -3849,13 +3856,25 @@ document.getElementById("ai-letter-save-btn")?.addEventListener("click", async (
     letter_content: letterText,
     letter_type: letterType,
     notes: `AI-generated ${letterType === "follow_up" ? "follow-up" : "initial"} dispute letter`,
-  });
+  }).select("id").single();
 
   if (error) {
     setAiLetterStatus("Could not save letter: " + error.message, true);
     btn.disabled = false;
     btn.textContent = "💾 Save to Client Record";
     return;
+  }
+
+  // Update the associated negative items to "Letter Sent" and link the letter
+  if (checkedItemIds.length && letterData?.id) {
+    await supabase
+      .from("negative_items")
+      .update({
+        status: "Letter Sent",
+        letter_id: letterData.id,
+        letter_sent_date: today,
+      })
+      .in("id", checkedItemIds);
   }
 
   await logClientActivity(`AI dispute letter generated and saved for ${bureau}.`);
