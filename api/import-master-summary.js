@@ -162,6 +162,13 @@ Return only the JSON array, nothing else.`;
     return;
   }
 
+  // Deduplicate rows within the batch — keep last occurrence of each fingerprint
+  const seen = new Map();
+  for (const row of rows) {
+    seen.set(row.fingerprint, row);
+  }
+  const dedupedRows = Array.from(seen.values());
+
   // Upsert into Supabase — on_conflict tells PostgREST which unique constraint to use
   const upsertRes = await fetch(
     `${supabaseUrl}/rest/v1/negative_items?on_conflict=user_id,fingerprint`,
@@ -173,7 +180,7 @@ Return only the JSON array, nothing else.`;
         Authorization: `Bearer ${serviceRoleKey}`,
         Prefer: "resolution=merge-duplicates",
       },
-      body: JSON.stringify(rows),
+      body: JSON.stringify(dedupedRows),
     }
   );
 
@@ -184,7 +191,7 @@ Return only the JSON array, nothing else.`;
   }
 
   res.status(200).json({
-    imported: rows.length,
-    message: `Successfully imported ${rows.length} negative item rows from the PDF.`,
+    imported: dedupedRows.length,
+    message: `Successfully imported ${dedupedRows.length} negative item rows from the PDF.`,
   });
 }
