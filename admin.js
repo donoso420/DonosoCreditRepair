@@ -311,6 +311,8 @@ function getMissingClientProfileColumn(error) {
   const message = String(error?.message || error || "").toLowerCase();
   if (message.includes("contact_email")) return "contact_email";
   if (message.includes("address")) return "address";
+  if (message.includes("ssn_last4")) return "ssn_last4";
+  if (message.includes("date_of_birth")) return "date_of_birth";
   return null;
 }
 
@@ -3847,7 +3849,7 @@ document.getElementById("ai-letter-copy-btn")?.addEventListener("click", async (
   setTimeout(() => (btn.textContent = "📋 Copy"), 1800);
 });
 
-// Save button — saves letter content into client_letters and auto-fills the log form
+// Save button — saves letter content into client_letters and links negative items
 document.getElementById("ai-letter-save-btn")?.addEventListener("click", async () => {
   if (!activeClientId) return;
 
@@ -3858,6 +3860,14 @@ document.getElementById("ai-letter-save-btn")?.addEventListener("click", async (
   const letterType = document.getElementById("ai-letter-type")?.value || "initial";
   const today = new Date().toISOString().split("T")[0];
 
+  // Ask for tracking number before saving
+  const tracking = window.prompt(
+    "Enter the USPS Certified Mail tracking number for this letter.\n(Leave blank if not mailed yet — you can update it later in the letter log)",
+    ""
+  );
+  // null = user hit Cancel
+  if (tracking === null) return;
+
   const btn = document.getElementById("ai-letter-save-btn");
   btn.disabled = true;
   btn.textContent = "Saving...";
@@ -3867,13 +3877,15 @@ document.getElementById("ai-letter-save-btn")?.addEventListener("click", async (
     document.querySelectorAll("#ai-letter-items input[type='checkbox']:checked")
   ).map((cb) => cb.value).filter(Boolean);
 
+  const trackingValue = tracking.trim() || "PENDING";
+
   const { data: letterData, error } = await supabase.from("client_letters").insert({
     user_id: activeClientId,
     sent_date: today,
     recipient: bureau,
     bureau: bureau,
-    tracking_number: "PENDING",
-    status: "In Transit",
+    tracking_number: trackingValue,
+    status: trackingValue === "PENDING" ? "Draft" : "In Transit",
     letter_content: letterText,
     letter_type: letterType,
     notes: `AI-generated ${letterType === "follow_up" ? "follow-up" : "initial"} dispute letter`,
@@ -3886,25 +3898,35 @@ document.getElementById("ai-letter-save-btn")?.addEventListener("click", async (
     return;
   }
 
-  // Update the associated negative items to "Letter Sent" and link the letter
+  // Update the associated negative items — link letter + tracking + status
   if (checkedItemIds.length && letterData?.id) {
     await supabase
       .from("negative_items")
       .update({
-        status: "Letter Sent",
+        status: trackingValue === "PENDING" ? "Letter Drafted" : "Letter Sent",
         letter_id: letterData.id,
         letter_sent_date: today,
+        last_tracking_number: trackingValue === "PENDING" ? null : trackingValue,
       })
       .in("id", checkedItemIds);
   }
 
-  await logClientActivity(`AI dispute letter generated and saved for ${bureau}.`);
-  setAiLetterStatus("✅ Letter saved! Update the tracking number in the letter log below once mailed.");
+  await logClientActivity(
+    trackingValue === "PENDING"
+      ? `AI dispute letter drafted for ${bureau}. Tracking number not yet assigned.`
+      : `AI dispute letter saved for ${bureau}. Tracking: ${trackingValue}.`
+  );
+
+  const statusMsg = trackingValue === "PENDING"
+    ? "✅ Letter saved as draft. Add the tracking number in the letter log once mailed."
+    : `✅ Letter saved! Tracking: ${trackingValue}. Negative items updated to Letter Sent.`;
+
+  setAiLetterStatus(statusMsg);
   document.getElementById("ai-letter-output-card").style.display = "none";
   btn.disabled = false;
   btn.textContent = "💾 Save to Client Record";
 
-  // Reload to show in letter log
+  // Reload to show updated status on negative items
   await loadClientPreview(activeClientId);
 });
 
