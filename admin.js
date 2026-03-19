@@ -967,30 +967,29 @@ function isNegativeItemExplicitlyResolved(row = {}) {
 }
 
 function getNegativeItemStage(row = {}) {
-  const status = normalizeNegativeItemText(row.status);
-  const notes = normalizeNegativeItemText(row.notes);
-  const combined = `${status} ${notes}`;
-
-  if (isNegativeItemExplicitlyLogged(row)) {
-    return { label: "Logged", step: 1, className: "stage-logged" };
-  }
-
-  if (isNegativeItemExplicitlyWorking(row)) {
-    return { label: "In progress", step: 2, className: "stage-working" };
-  }
-
+  // Priority 1: Explicitly resolved / deleted
   if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
-    return { label: "Resolved", step: 3, className: "stage-resolved" };
+    return { label: "Deleted / Resolved", step: 4, className: "stage-resolved" };
   }
 
-  if (
-    /\b(disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif)\w*\b/.test(
-      combined
-    )
-  ) {
-    return { label: "In progress", step: 2, className: "stage-working" };
+  // Priority 2: Real letter data — check actual letter linkage first
+  const status = normalizeNegativeItemText(row.status);
+  if (row.letter_id || row.letter_sent_date) {
+    if (/\b(response|received|replied|escalat|follow)\w*\b/.test(status)) {
+      return { label: "Response Received", step: 3, className: "stage-response" };
+    }
+    if (/\b(escalat|follow[- ]?up|second|round\s*2)\w*\b/.test(status)) {
+      return { label: "Escalated", step: 3, className: "stage-escalated" };
+    }
+    return { label: "Letter Sent", step: 2, className: "stage-working" };
   }
 
+  // Priority 3: Status explicitly set to letter sent/drafted
+  if (/\b(letter\s*(sent|drafted|mailed)|in\s*transit)\b/.test(status)) {
+    return { label: "Letter Sent", step: 2, className: "stage-working" };
+  }
+
+  // Default: Logged — no letter sent yet
   return { label: "Logged", step: 1, className: "stage-logged" };
 }
 
@@ -1791,6 +1790,8 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
         const fcraLaws = row.fcra_laws || "";
         const disputeIssue = row.dispute_issue || "";
         const recommendedAction = row.recommended_action || "";
+        const trackingNumber = row.last_tracking_number || "";
+        const letterSentDate = row.letter_sent_date ? formatDate(row.letter_sent_date) : "";
         li.innerHTML = `
           <div class="negative-admin-head">
             <div class="preview-item-main">
@@ -1803,9 +1804,8 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
               stage.label
             )}</span>
           </div>
-          <p class="file-record-meta">${safeText(
-            row.status || "Under review"
-          )} · ${safeText(balance)} · ${safeText(review)}</p>
+          <p class="file-record-meta">${safeText(balance)}</p>
+          ${letterSentDate ? `<p class="negative-admin-note" style="color:var(--color-gold)">📬 Letter sent: ${safeText(letterSentDate)}${trackingNumber && trackingNumber !== "PENDING" ? ` · Tracking: ${safeText(trackingNumber)}` : ""}</p>` : ""}
           ${fcraLaws ? `<p class="negative-admin-note"><strong>FCRA:</strong> ${safeText(fcraLaws)}</p>` : ""}
           ${disputeIssue ? `<p class="negative-admin-note"><strong>Issue:</strong> ${safeText(disputeIssue)}</p>` : ""}
           ${recommendedAction ? `<p class="negative-admin-note"><strong>Action:</strong> ${safeText(recommendedAction)}</p>` : ""}
@@ -2158,7 +2158,7 @@ async function loadClientPreview(userId) {
       safeTableQuery(
         supabase
           .from("negative_items")
-          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,fcra_laws,dispute_issue,recommended_action,is_active,source,source_file_id,report_id,verification_method,verification_notes,evidence_excerpt,verified_at,ai_model,confidence,last_seen_at,created_at,letter_id,letter_sent_date")
+          .select("id,bureau,creditor,item_type,account_reference,balance,status,notes,fcra_laws,dispute_issue,recommended_action,is_active,source,source_file_id,report_id,verification_method,verification_notes,evidence_excerpt,verified_at,ai_model,confidence,last_seen_at,created_at,letter_id,letter_sent_date,last_tracking_number")
           .eq("user_id", userId)
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
