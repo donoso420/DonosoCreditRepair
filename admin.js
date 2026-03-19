@@ -788,6 +788,9 @@ function populateNegativeItemForm(row) {
   const balanceInput = document.getElementById("negative-balance");
   const statusInput = document.getElementById("negative-status");
   const notesInput = document.getElementById("negative-notes");
+  const fcraLawsInput = document.getElementById("negative-fcra-laws");
+  const disputeIssueInput = document.getElementById("negative-dispute-issue");
+  const recommendedActionInput = document.getElementById("negative-recommended-action");
   const activeCheckbox = document.getElementById("negative-active");
   if (bureauInput) bureauInput.value = row.bureau || "Shared / Unknown";
   if (typeInput) typeInput.value = row.item_type || "Collection";
@@ -796,6 +799,9 @@ function populateNegativeItemForm(row) {
   if (balanceInput) balanceInput.value = row.balance ?? "";
   if (statusInput) statusInput.value = row.status || "";
   if (notesInput) notesInput.value = row.notes || "";
+  if (fcraLawsInput) fcraLawsInput.value = row.fcra_laws || "";
+  if (disputeIssueInput) disputeIssueInput.value = row.dispute_issue || "";
+  if (recommendedActionInput) recommendedActionInput.value = row.recommended_action || "";
   if (activeCheckbox) activeCheckbox.checked = row.is_active !== false;
   toggleFormEditMode(
     negativeSubmitBtn,
@@ -2326,6 +2332,9 @@ function buildNegativeItemPersistencePayload(baseItem, existingRow = null) {
     balance: baseItem.balance ?? null,
     status: baseItem.status || null,
     notes: baseItem.notes || null,
+    fcra_laws: baseItem.fcra_laws || null,
+    dispute_issue: baseItem.dispute_issue || null,
+    recommended_action: baseItem.recommended_action || null,
     source: "manual",
     verification_method: existingRow?.verification_method || "manual",
     verification_notes: existingRow?.verification_notes || (existingRow ? "Updated by admin." : "Added by admin."),
@@ -3125,6 +3134,9 @@ function initialize() {
         balance: String(document.getElementById("negative-balance")?.value || "").trim(),
         status: String(document.getElementById("negative-status")?.value || "").trim(),
         notes: String(document.getElementById("negative-notes")?.value || "").trim(),
+        fcra_laws: String(document.getElementById("negative-fcra-laws")?.value || "").trim(),
+        dispute_issue: String(document.getElementById("negative-dispute-issue")?.value || "").trim(),
+        recommended_action: String(document.getElementById("negative-recommended-action")?.value || "").trim(),
         is_active: Boolean(document.getElementById("negative-active")?.checked),
         source: "manual",
         verification_method: "manual",

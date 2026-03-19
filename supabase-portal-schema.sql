@@ -462,6 +462,9 @@ create table if not exists public.negative_items (
   source_file_id bigint references public.client_files(id) on delete set null,
   report_id bigint references public.credit_reports(id) on delete set null,
   last_seen_at date,
+  fcra_laws text,
+  dispute_issue text,
+  recommended_action text,
   created_at timestamptz not null default now()
 );
 
@@ -483,6 +486,9 @@ alter table public.negative_items
   add column if not exists source_file_id bigint references public.client_files(id) on delete set null,
   add column if not exists report_id bigint references public.credit_reports(id) on delete set null,
   add column if not exists last_seen_at date,
+  add column if not exists fcra_laws text,
+  add column if not exists dispute_issue text,
+  add column if not exists recommended_action text,
   add column if not exists created_at timestamptz not null default now();
 
 create unique index if not exists negative_items_user_fingerprint_idx
