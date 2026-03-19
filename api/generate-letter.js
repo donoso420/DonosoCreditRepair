@@ -58,7 +58,7 @@ export default async function handler(req, res) {
   }
 
   // Fetch selected negative items — try with new columns first, fall back if not migrated
-  const idsParam = negativeItemIds.map((id) => `id=eq.${id}`).join(",");
+  const idsParam = negativeItemIds.map((id) => `id.eq.${id}`).join(",");
   let negativeItems = [];
   for (const selectCols of [
     "id,creditor,item_type,bureau,balance,account_reference,status,notes,fcra_laws,dispute_issue,recommended_action",
@@ -90,7 +90,14 @@ export default async function handler(req, res) {
     Experian: "Experian\nP.O. Box 4500\nAllen, TX 75013",
     TransUnion: "TransUnion LLC\nConsumer Dispute Center\nP.O. Box 2000\nChester, PA 19016",
   };
-  const bureauAddress = bureauAddresses[bureau] || `${bureau}\n[Bureau Address]`;
+
+  const isCreditorDirect = bureau === "Creditor Direct";
+
+  // For creditor direct, pull the creditor name from the first selected item
+  const primaryCreditor = negativeItems[0]?.creditor || "Creditor";
+  const creditorAddress = isCreditorDirect
+    ? `${primaryCreditor}\n[See recommended action for mailing address]`
+    : (bureauAddresses[bureau] || `${bureau}\n[Bureau Address]`);
 
   const itemsList = negativeItems
     .map((item, i) => {
@@ -108,7 +115,37 @@ export default async function handler(req, res) {
 
   let prompt;
 
-  if (bureauResponseText) {
+  if (isCreditorDirect) {
+    // Creditor / furnisher direct dispute letter
+    prompt = `You are a professional credit repair specialist. Write a formal dispute letter sent directly to the creditor or furnisher under the Fair Credit Reporting Act (FCRA) and Fair Debt Collection Practices Act (FDCPA) where applicable.
+
+CLIENT INFORMATION:
+Name: ${clientName}
+Address: ${clientAddress}
+${clientEmail ? `Email: ${clientEmail}` : ""}
+${clientPhone ? `Phone: ${clientPhone}` : ""}
+Date: ${today}
+
+RECIPIENT: ${primaryCreditor}
+NOTE: Insert the creditor's mailing address from the recommended action notes below.
+
+ACCOUNTS IN DISPUTE:
+${itemsList}
+
+Write a professional, firm furnisher dispute letter that:
+1. Identifies the client and the specific account(s) being disputed
+2. Clearly states the exact dispute issue for each account (inaccurate, re-aging, wrong balance, not mine, double-reported, etc.)
+3. Cites FCRA §1681s-2(b) requiring furnishers to investigate and correct inaccurate information
+4. If a collection account, also invokes FDCPA §1692g demanding debt validation and proof of right to collect
+5. If re-aging is cited, specifically demands the original Date of First Delinquency (DOFD)
+6. If balance inflation is cited, demands an itemized breakdown of the balance
+7. Demands written confirmation of any corrections within 30 days
+8. States that failure to correct will result in a complaint to the CFPB and applicable state attorney general
+9. Uses a firm, professional, legally precise tone — this is going to the furnisher, not a bureau
+
+Format as a complete, ready-to-mail letter. Use the client's real name and address at the top. Do not use placeholders for the client's information — use actual data provided. Leave a placeholder for the creditor's specific mailing address.`;
+
+  } else if (bureauResponseText) {
     // Follow-up letter responding to bureau's response
     prompt = `You are a professional credit repair specialist. Write a formal follow-up dispute letter based on the bureau's response.
 
@@ -120,7 +157,7 @@ ${clientPhone ? `Phone: ${clientPhone}` : ""}
 Date: ${today}
 
 BUREAU: ${bureau}
-${bureauAddress}
+${creditorAddress}
 
 NEGATIVE ITEMS BEING DISPUTED:
 ${itemsList}
@@ -139,7 +176,7 @@ Write a professional, legally precise follow-up dispute letter that:
 
 Format as a complete, ready-to-mail letter with proper spacing. Use the client's real name and address at the top. Do not include placeholders — use the actual information provided.`;
   } else {
-    // Initial dispute letter
+    // Initial bureau dispute letter
     prompt = `You are a professional credit repair specialist. Write a formal credit dispute letter under the Fair Credit Reporting Act (FCRA).
 
 CLIENT INFORMATION:
@@ -150,7 +187,7 @@ ${clientPhone ? `Phone: ${clientPhone}` : ""}
 Date: ${today}
 
 BUREAU: ${bureau}
-${bureauAddress}
+${creditorAddress}
 
 NEGATIVE ITEMS TO DISPUTE:
 ${itemsList}
