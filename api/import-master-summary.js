@@ -102,22 +102,38 @@ Return only the JSON array, nothing else.`;
 
   let items;
   try {
-    // Strip any accidental markdown fences
+    // Strip markdown fences
     let cleaned = rawText.replace(/```json|```/g, "").trim();
-    // Try to extract just the JSON array if there's surrounding text
+    // Extract just the JSON array if there's surrounding text
     const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
     if (arrayMatch) cleaned = arrayMatch[0];
-    // If JSON is truncated, attempt to close it gracefully
+    // Attempt full parse first
     try {
       items = JSON.parse(cleaned);
     } catch {
-      // Try closing incomplete JSON arrays
-      const partial = cleaned.replace(/,\s*\{[^}]*$/, "").replace(/,?\s*$/, "") + "]";
-      items = JSON.parse(partial);
+      // Try to recover truncated JSON — remove last incomplete object and close array
+      const recovered = cleaned
+        .replace(/,\s*\{[^}]*$/, "")  // remove last incomplete object
+        .replace(/,\s*$/, "")          // remove trailing comma
+        + "]";
+      try {
+        items = JSON.parse(recovered);
+      } catch {
+        // Last resort — try removing everything after last complete }
+        const lastBrace = cleaned.lastIndexOf("}");
+        if (lastBrace !== -1) {
+          items = JSON.parse(cleaned.slice(0, lastBrace + 1) + "]");
+        } else {
+          throw new Error("Unrecoverable JSON");
+        }
+      }
     }
-    if (!Array.isArray(items)) throw new Error("Not an array");
-  } catch {
-    res.status(500).json({ error: "Could not parse items from PDF. Raw: " + rawText.slice(0, 300) });
+    if (!Array.isArray(items) || items.length === 0) throw new Error("Empty or invalid array");
+  } catch (e) {
+    res.status(500).json({
+      error: "Could not parse items from PDF. Raw: " + rawText.slice(0, 600),
+      detail: e.message
+    });
     return;
   }
 
