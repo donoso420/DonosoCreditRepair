@@ -1901,8 +1901,13 @@ async function upsertClientProfileRecord(payload) {
   const missingSupport = {
     missingAddressSupport: false,
     missingContactEmailSupport: false,
+    missingSsnLast4Support: false,
+    missingDobSupport: false,
   };
   const attemptPayload = { ...payload };
+
+  // Columns that can be dropped gracefully if they don't exist in the DB yet
+  const gracefulColumns = ["contact_email", "address", "ssn_last4", "date_of_birth"];
 
   while (true) {
     const result = await supabase
@@ -1913,15 +1918,31 @@ async function upsertClientProfileRecord(payload) {
     if (!isMissingFeatureError(result.error)) throw result.error;
 
     const missingColumn = getMissingClientProfileColumn(result.error);
+
     if (missingColumn === "contact_email" && Object.prototype.hasOwnProperty.call(attemptPayload, "contact_email")) {
       delete attemptPayload.contact_email;
       missingSupport.missingContactEmailSupport = true;
       continue;
     }
-
     if (missingColumn === "address" && Object.prototype.hasOwnProperty.call(attemptPayload, "address")) {
       delete attemptPayload.address;
       missingSupport.missingAddressSupport = true;
+      continue;
+    }
+    if (missingColumn === "ssn_last4" && Object.prototype.hasOwnProperty.call(attemptPayload, "ssn_last4")) {
+      delete attemptPayload.ssn_last4;
+      missingSupport.missingSsnLast4Support = true;
+      continue;
+    }
+    if (missingColumn === "date_of_birth" && Object.prototype.hasOwnProperty.call(attemptPayload, "date_of_birth")) {
+      delete attemptPayload.date_of_birth;
+      missingSupport.missingDobSupport = true;
+      continue;
+    }
+
+    // Try dropping any other unrecognized missing column before giving up
+    if (missingColumn && Object.prototype.hasOwnProperty.call(attemptPayload, missingColumn)) {
+      delete attemptPayload[missingColumn];
       continue;
     }
 
