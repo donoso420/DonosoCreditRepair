@@ -3700,11 +3700,11 @@ function syncAiLetterItems() {
     if (r.is_active === false) return false;
     if (!selectedBureau) return true;
     const bureau = String(r.bureau || "").trim();
-    return (
-      !bureau ||
-      bureau === "Shared / Unknown" ||
-      bureau.toLowerCase() === selectedBureau.toLowerCase()
-    );
+    // Creditor Direct: show all items
+    if (selectedBureau === "Creditor Direct") return true;
+    // Specific bureau selected: only show exact matches (not Shared / Unknown)
+    if (!bureau || bureau === "Shared / Unknown") return false;
+    return bureau.toLowerCase() === selectedBureau.toLowerCase();
   });
 
   if (!activeClientId) {
