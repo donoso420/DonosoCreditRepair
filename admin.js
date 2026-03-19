@@ -3702,9 +3702,14 @@ function syncAiLetterItems() {
     const bureau = String(r.bureau || "").trim();
     // Creditor Direct: show all items
     if (selectedBureau === "Creditor Direct") return true;
-    // Specific bureau selected: only show exact matches (not Shared / Unknown)
-    if (!bureau || bureau === "Shared / Unknown") return false;
-    return bureau.toLowerCase() === selectedBureau.toLowerCase();
+    // Items with no bureau or "Shared / Unknown" appear on all bureaus — always include
+    if (!bureau || bureau === "Shared / Unknown") return true;
+    // Exclude items explicitly belonging to a different specific bureau
+    const knownBureaus = ["equifax", "experian", "transunion"];
+    const itemBureau = bureau.toLowerCase();
+    const selected = selectedBureau.toLowerCase();
+    if (knownBureaus.includes(itemBureau) && itemBureau !== selected) return false;
+    return true;
   });
 
   if (!activeClientId) {
