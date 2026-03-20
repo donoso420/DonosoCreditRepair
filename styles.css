@@ -731,24 +731,6 @@ h1 {
   color: #554770;
 }
 
-.booking-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.7rem;
-  margin: 1.15rem 0 1.35rem;
-}
-
-.booking-tags span {
-  padding: 0.5rem 0.9rem;
-  border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid #e0d0f5;
-  color: #523a78;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
 .booking-btn {
   min-width: min(100%, 19rem);
 }
