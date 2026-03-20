@@ -27,6 +27,9 @@ Set these environment variables in your hosting platform:
 - `LEAD_WEBHOOK_URL` (optional): webhook URL for Google Sheets or CRM lead tracking.
 - `SUPABASE_URL`: your Supabase project URL (example: `https://YOUR_PROJECT.supabase.co`).
 - `SUPABASE_SERVICE_ROLE_KEY`: your Supabase service role key (server-side only; never expose in frontend).
+- `OPENAI_API_KEY`: your OpenAI API key for AI letter generation and PDF dispute-item imports.
+- `OPENAI_LETTER_MODEL` (optional): override the default letter model. Defaults to `gpt-5.2-chat-latest`.
+- `OPENAI_IMPORT_MODEL` (optional): override the default PDF import model. Defaults to `gpt-5-mini`.
 - `PORTAL_LOGIN_URL`: your live client portal page URL (example: `https://yourdomain.com/portal.html`).
 - `PORTAL_REDIRECT_URL` (optional): URL used in the password setup email redirect.
 - `ADMIN_ALERTS_TO_EMAIL` (optional): inbox for portal upload/message alerts. If omitted, falls back to `LEADS_TO_EMAIL`.
@@ -38,6 +41,7 @@ Important:
 - Public visible email on the page can remain different from `LEADS_TO_EMAIL`.
 - Local `python3 -m http.server` preview will not run serverless functions.
 - If `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are missing, lead emails still work but portal auto-onboarding is skipped.
+- If you were previously using `ANTHROPIC_API_KEY`, it is no longer needed after this OpenAI switch.
 
 ## Deploy to Netlify
 

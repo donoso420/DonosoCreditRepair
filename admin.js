@@ -3808,7 +3808,7 @@ document.getElementById("ai-letter-generate-btn")?.addEventListener("click", asy
   const btn = document.getElementById("ai-letter-generate-btn");
   btn.disabled = true;
   btn.textContent = "⏳ Generating...";
-  setAiLetterStatus("Claude is writing the letter — this takes about 10 seconds...");
+  setAiLetterStatus("ChatGPT is writing the letter. This usually takes about 10 seconds...");
   document.getElementById("ai-letter-output-card").style.display = "none";
 
   try {

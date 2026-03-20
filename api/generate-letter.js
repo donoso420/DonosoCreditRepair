@@ -1,3 +1,5 @@
+import { createOpenAIResponse, extractOutputText, getLetterModel, getOpenAiKey } from "./_openai.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -6,9 +8,10 @@ export default async function handler(req, res) {
 
   const supabaseUrl = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const openAiKey = getOpenAiKey();
+  const openAiModel = getLetterModel();
 
-  if (!supabaseUrl || !serviceRoleKey || !anthropicKey) {
+  if (!supabaseUrl || !serviceRoleKey || !openAiKey) {
     res.status(500).json({ error: "Server not configured. Check Vercel environment variables." });
     return;
   }
@@ -301,32 +304,22 @@ ACCOUNT DATA (use this to fill in the letter above — do not include this secti
 ${itemsList}`;
   }
 
-  // Call Claude API
-  const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": anthropicKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8000,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-
-  if (!claudeRes.ok) {
-    const err = await claudeRes.json().catch(() => ({}));
-    res.status(500).json({ error: err.error?.message || "Claude API error. Check your API key." });
+  let letterText = "";
+  try {
+    const openAiData = await createOpenAIResponse({
+      apiKey: openAiKey,
+      model: openAiModel,
+      input: prompt,
+      maxOutputTokens: 5000,
+    });
+    letterText = extractOutputText(openAiData);
+  } catch (error) {
+    res.status(500).json({ error: error.message || "OpenAI API error. Check your API key." });
     return;
   }
 
-  const claudeData = await claudeRes.json();
-  const letterText = claudeData.content?.[0]?.text || "";
-
   if (!letterText) {
-    res.status(500).json({ error: "Empty response from Claude." });
+    res.status(500).json({ error: "Empty response from OpenAI." });
     return;
   }
 

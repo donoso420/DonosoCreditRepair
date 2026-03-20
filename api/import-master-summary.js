@@ -1,3 +1,5 @@
+import { createOpenAIResponse, extractOutputText, getImportModel, getOpenAiKey } from "./_openai.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -6,9 +8,10 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const openAiKey = getOpenAiKey();
+  const openAiModel = getImportModel();
 
-  if (!supabaseUrl || !serviceRoleKey || !anthropicKey) {
+  if (!supabaseUrl || !serviceRoleKey || !openAiKey) {
     res.status(500).json({ error: "Server not configured. Check Vercel environment variables." });
     return;
   }
@@ -40,7 +43,12 @@ Extract EVERY dispute item found in this document. This includes ALL of the foll
 - Name discrepancies, address errors, personal information errors (use creditor = "EQUIFAX" / "EXPERIAN" / "TRANSUNION" for bureau-level personal info disputes)
 - Any other negative or disputed item mentioned
 
-Return ONLY a valid JSON array. No explanation, no markdown, no code fences — just the raw JSON array.
+Return ONLY a valid JSON object with this exact shape:
+{
+  "items": [ ... ]
+}
+
+No explanation, no markdown, no code fences — just the raw JSON object.
 
 Each item must have these exact fields:
 - creditor: string (creditor, furnisher, or bureau name — never null)
@@ -56,49 +64,110 @@ Each item must have these exact fields:
 
 For items on all 3 bureaus set bureau to "ALL_BUREAUS". For specific bureau combinations use comma-separated values.
 
-Return only the JSON array, nothing else.`;
+Return only the JSON object, nothing else.`;
 
-  // Call Claude API with the PDF document
-  const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": anthropicKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8000,
-      messages: [
+  let rawText = "";
+  try {
+    const openAiData = await createOpenAIResponse({
+      apiKey: openAiKey,
+      model: openAiModel,
+      maxOutputTokens: 7000,
+      input: [
         {
           role: "user",
           content: [
             {
-              type: "document",
-              source: {
-                type: "base64",
-                media_type: "application/pdf",
-                data: pdfBase64,
-              },
+              type: "input_file",
+              filename: "credit-dispute-summary.pdf",
+              file_data: pdfBase64,
             },
             {
-              type: "text",
+              type: "input_text",
               text: prompt,
             },
           ],
         },
       ],
-    }),
-  });
-
-  if (!claudeRes.ok) {
-    const err = await claudeRes.json().catch(() => ({}));
-    res.status(500).json({ error: err.error?.message || "Claude API error." });
+      text: {
+        format: {
+          type: "json_schema",
+          name: "credit_dispute_items",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    creditor: { type: "string" },
+                    item_type: {
+                      type: "string",
+                      enum: [
+                        "Collection",
+                        "Charge Off",
+                        "Late Payment",
+                        "Hard Inquiry",
+                        "Repossession",
+                        "Bankruptcy",
+                        "Foreclosure",
+                        "Judgment",
+                        "Lien",
+                        "Name Discrepancy",
+                        "Address Error",
+                        "Personal Info Error",
+                        "Derogatory",
+                        "Negative Item",
+                      ],
+                    },
+                    bureau: {
+                      type: "string",
+                      enum: [
+                        "ALL_BUREAUS",
+                        "Experian",
+                        "Equifax",
+                        "TransUnion",
+                        "Equifax,TransUnion",
+                        "Experian,TransUnion",
+                        "Experian,Equifax",
+                      ],
+                    },
+                    account_reference: { type: ["string", "null"] },
+                    balance: { type: ["number", "null"] },
+                    status: { type: "string" },
+                    fcra_laws: { type: "string" },
+                    dispute_issue: { type: "string" },
+                    recommended_action: { type: "string" },
+                    notes: { type: ["string", "null"] },
+                  },
+                  required: [
+                    "creditor",
+                    "item_type",
+                    "bureau",
+                    "account_reference",
+                    "balance",
+                    "status",
+                    "fcra_laws",
+                    "dispute_issue",
+                    "recommended_action",
+                    "notes",
+                  ],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["items"],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+    rawText = extractOutputText(openAiData);
+  } catch (error) {
+    res.status(500).json({ error: error.message || "OpenAI API error." });
     return;
   }
-
-  const claudeData = await claudeRes.json();
-  const rawText = claudeData.content?.[0]?.text || "";
 
   let items;
   try {
@@ -127,6 +196,9 @@ Return only the JSON array, nothing else.`;
           throw new Error("Unrecoverable JSON");
         }
       }
+    }
+    if (!Array.isArray(items)) {
+      items = Array.isArray(items?.items) ? items.items : null;
     }
     if (!Array.isArray(items) || items.length === 0) throw new Error("Empty or invalid array");
   } catch (e) {
