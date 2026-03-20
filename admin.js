@@ -589,7 +589,6 @@ function resetActiveClientCollections() {
   activeUpdateRows = [];
   activeBillingProfile = null;
   activeInvoiceRows = [];
-  syncAiLetterItems();
 }
 
 function resetActiveClientForms() {
@@ -2191,7 +2190,6 @@ async function loadClientPreview(userId) {
   syncLetterUpdateChoices();
   activeUpdateRows = updates || [];
   activeNegativeItemRows = negativeItems || [];
-  syncAiLetterItems();
   activeBillingProfile = billingProfile || null;
   activeInvoiceRows = invoices || [];
   const mergedClientProfile = {
@@ -2646,7 +2644,6 @@ function initialize() {
         setAuthStatus(error?.message || "Could not sign in.", true);
         return;
       }
-
       const access = await checkAdmin(data.user.id);
       if (access.error) {
         await supabase.auth.signOut();
@@ -3703,231 +3700,5 @@ function initialize() {
     setAuthStatus("Could not restore admin session: " + (error?.message || error), true);
   });
 }
-
-// ── AI Letter Generator ───────────────────────────────────────────────────────
-
-function getBadgeClass(itemType) {
-  const t = String(itemType || "").toLowerCase();
-  if (t.includes("collection")) return "collections";
-  if (t.includes("late") || t.includes("delinquent")) return "late";
-  if (t.includes("inquiry")) return "inquiry";
-  return "other";
-}
-
-function syncAiLetterItems() {
-  const container = document.getElementById("ai-letter-items");
-  if (!container) return;
-
-  const selectedBureau = String(document.getElementById("ai-letter-bureau")?.value || "").trim();
-
-  // Filter to only items matching the selected bureau
-  const active = activeNegativeItemRows.filter((r) => {
-    if (r.is_active === false) return false;
-    if (!selectedBureau) return true;
-    const bureau = String(r.bureau || "").trim();
-    // Creditor Direct: show all items
-    if (selectedBureau === "Creditor Direct") return true;
-    // Items with no bureau or "Shared / Unknown" appear on all bureaus — always include
-    if (!bureau || bureau === "Shared / Unknown") return true;
-    // Exclude items explicitly belonging to a different specific bureau
-    const knownBureaus = ["equifax", "experian", "transunion"];
-    const itemBureau = bureau.toLowerCase();
-    const selected = selectedBureau.toLowerCase();
-    if (knownBureaus.includes(itemBureau) && itemBureau !== selected) return false;
-    return true;
-  });
-
-  if (!activeClientId) {
-    container.innerHTML = '<p class="muted sm">Select a client to see their negative items.</p>';
-    return;
-  }
-  if (!active.length) {
-    container.innerHTML = `<p class="muted sm">No active negative items on file for ${selectedBureau || "this bureau"}.</p>`;
-    return;
-  }
-
-  container.innerHTML = active
-    .map((item) => {
-      const badgeClass = getBadgeClass(item.item_type);
-      const balance = item.balance ? ` — $${Number(item.balance).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "";
-      const ref = item.account_reference ? ` · Acct: ${item.account_reference}` : "";
-      return `<label class="ai-item-check">
-        <input type="checkbox" value="${item.id}" checked />
-        <span>
-          <span class="ai-item-badge ${badgeClass}">${item.item_type}</span>
-          ${item.creditor}${balance}${ref}
-        </span>
-      </label>`;
-    })
-    .join("");
-}
-
-function getSelectedNegativeItemIds() {
-  const checkboxes = document.querySelectorAll('#ai-letter-items input[type="checkbox"]:checked');
-  return Array.from(checkboxes).map((cb) => Number(cb.value));
-}
-
-function setAiLetterStatus(msg, isError = false) {
-  const el = document.getElementById("ai-letter-status");
-  if (!el) return;
-  el.textContent = msg;
-  el.style.display = msg ? "block" : "none";
-  el.style.color = isError ? "var(--danger, #b91c1c)" : "var(--muted)";
-}
-
-// Refresh negative items list when bureau changes
-document.getElementById("ai-letter-bureau")?.addEventListener("change", syncAiLetterItems);
-
-// Show/hide the bureau response textarea based on letter type
-document.getElementById("ai-letter-type")?.addEventListener("change", function () {
-  const wrap = document.getElementById("ai-letter-response-wrap");
-  if (wrap) wrap.style.display = this.value === "follow_up" ? "block" : "none";
-});
-
-// Generate button
-document.getElementById("ai-letter-generate-btn")?.addEventListener("click", async () => {
-  if (!activeClientId) {
-    setAiLetterStatus("Select a client first.", true);
-    return;
-  }
-
-  const bureau = document.getElementById("ai-letter-bureau")?.value;
-  const letterType = document.getElementById("ai-letter-type")?.value;
-  const negativeItemIds = getSelectedNegativeItemIds();
-  const bureauResponseText = String(document.getElementById("ai-letter-response")?.value || "").trim();
-
-  if (!negativeItemIds.length) {
-    setAiLetterStatus("Check at least one negative item to dispute.", true);
-    return;
-  }
-  if (letterType === "follow_up" && !bureauResponseText) {
-    setAiLetterStatus("Paste the bureau's response letter to generate a follow-up.", true);
-    return;
-  }
-
-  const btn = document.getElementById("ai-letter-generate-btn");
-  btn.disabled = true;
-  btn.textContent = "⏳ Generating...";
-  setAiLetterStatus("ChatGPT is writing the letter. This usually takes about 10 seconds...");
-  document.getElementById("ai-letter-output-card").style.display = "none";
-
-  try {
-    const res = await fetch("/api/generate-letter", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: activeClientId,
-        bureau,
-        negativeItemIds,
-        bureauResponseText: letterType === "follow_up" ? bureauResponseText : undefined,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Generation failed.");
-
-    const output = document.getElementById("ai-letter-output");
-    if (output) output.value = data.letter;
-    document.getElementById("ai-letter-output-card").style.display = "block";
-    document.getElementById("ai-letter-output-card").scrollIntoView({ behavior: "smooth", block: "start" });
-    setAiLetterStatus("");
-  } catch (err) {
-    setAiLetterStatus("Error: " + err.message, true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "✨ Generate Letter";
-  }
-});
-
-// Copy button
-document.getElementById("ai-letter-copy-btn")?.addEventListener("click", async () => {
-  const text = document.getElementById("ai-letter-output")?.value;
-  if (!text) return;
-  await navigator.clipboard.writeText(text).catch(() => {});
-  const btn = document.getElementById("ai-letter-copy-btn");
-  btn.textContent = "✅ Copied!";
-  setTimeout(() => (btn.textContent = "📋 Copy"), 1800);
-});
-
-// Save button — saves letter content into client_letters and links negative items
-document.getElementById("ai-letter-save-btn")?.addEventListener("click", async () => {
-  if (!activeClientId) return;
-
-  const letterText = document.getElementById("ai-letter-output")?.value;
-  if (!letterText) return;
-
-  const bureau = document.getElementById("ai-letter-bureau")?.value || "";
-  const letterType = document.getElementById("ai-letter-type")?.value || "initial";
-  const today = new Date().toISOString().split("T")[0];
-
-  // Ask for tracking number before saving
-  const tracking = window.prompt(
-    "Enter the USPS Certified Mail tracking number for this letter.\n(Leave blank if not mailed yet — you can update it later in the letter log)",
-    ""
-  );
-  // null = user hit Cancel
-  if (tracking === null) return;
-
-  const btn = document.getElementById("ai-letter-save-btn");
-  btn.disabled = true;
-  btn.textContent = "Saving...";
-
-  // Grab the checked negative item IDs before saving
-  const checkedItemIds = Array.from(
-    document.querySelectorAll("#ai-letter-items input[type='checkbox']:checked")
-  ).map((cb) => cb.value).filter(Boolean);
-
-  const trackingValue = tracking.trim() || "PENDING";
-
-  const { data: letterData, error } = await supabase.from("client_letters").insert({
-    user_id: activeClientId,
-    sent_date: today,
-    recipient: bureau,
-    bureau: bureau,
-    tracking_number: trackingValue,
-    status: trackingValue === "PENDING" ? "Draft" : "In Transit",
-    letter_content: letterText,
-    letter_type: letterType,
-    notes: `AI-generated ${letterType === "follow_up" ? "follow-up" : "initial"} dispute letter`,
-  }).select("id").single();
-
-  if (error) {
-    setAiLetterStatus("Could not save letter: " + error.message, true);
-    btn.disabled = false;
-    btn.textContent = "💾 Save to Client Record";
-    return;
-  }
-
-  // Update the associated negative items — link letter + tracking + status
-  if (checkedItemIds.length && letterData?.id) {
-    await supabase
-      .from("negative_items")
-      .update({
-        status: trackingValue === "PENDING" ? "Letter Drafted" : "Letter Sent",
-        letter_id: letterData.id,
-        letter_sent_date: today,
-        last_tracking_number: trackingValue === "PENDING" ? null : trackingValue,
-      })
-      .in("id", checkedItemIds);
-  }
-
-  await logClientActivity(
-    trackingValue === "PENDING"
-      ? `AI dispute letter drafted for ${bureau}. Tracking number not yet assigned.`
-      : `AI dispute letter saved for ${bureau}. Tracking: ${trackingValue}.`
-  );
-
-  const statusMsg = trackingValue === "PENDING"
-    ? "✅ Letter saved as draft. Add the tracking number in the letter log once mailed."
-    : `✅ Letter saved! Tracking: ${trackingValue}. Negative items updated to Letter Sent.`;
-
-  setAiLetterStatus(statusMsg);
-  document.getElementById("ai-letter-output-card").style.display = "none";
-  btn.disabled = false;
-  btn.textContent = "💾 Save to Client Record";
-
-  // Reload to show updated status on negative items
-  await loadClientPreview(activeClientId);
-});
 
 initialize();

@@ -4,12 +4,8 @@ export function getOpenAiKey() {
   return process.env.OPENAI_API_KEY;
 }
 
-export function getLetterModel() {
-  return process.env.OPENAI_LETTER_MODEL || "gpt-5.2-chat-latest";
-}
-
 export function getImportModel() {
-  return process.env.OPENAI_IMPORT_MODEL || process.env.OPENAI_LETTER_MODEL || "gpt-5-mini";
+  return process.env.OPENAI_IMPORT_MODEL || "gpt-5-mini";
 }
 
 export async function createOpenAIResponse({

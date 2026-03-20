@@ -27,7 +27,7 @@
     </script>
     <link rel="icon" type="image/jpeg" href="images/SCR-20260306-loyx.jpeg" />
     <link rel="apple-touch-icon" href="images/SCR-20260306-loyx.jpeg" />
-    <link rel="stylesheet" href="admin.css?v=20260319a" />
+    <link rel="stylesheet" href="admin.css?v=20260320b" />
   </head>
   <body>
 
@@ -352,57 +352,7 @@
                 <div class="section-group">
                   <div class="section-label">
                     <h2>✉️ Letters &amp; Tracking</h2>
-                    <p class="muted sm">Generate AI dispute letters or log sent letters and update their status</p>
-                  </div>
-
-                  <!-- AI Letter Generator -->
-                  <div class="card" id="ai-letter-card">
-                    <h3 class="card-title">✨ Generate Dispute Letter</h3>
-                    <p class="muted sm">Select the bureau and which negative items to dispute. ChatGPT will write a complete, legally precise letter using this client's information.</p>
-
-                    <div class="form-row">
-                      <div>
-                        <label for="ai-letter-bureau">Bureau / Creditor</label>
-                        <select id="ai-letter-bureau">
-                          <option value="Equifax">Equifax</option>
-                          <option value="Experian">Experian</option>
-                          <option value="TransUnion">TransUnion</option>
-                          <option value="Creditor Direct">Creditor Direct</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label for="ai-letter-type">Letter Type</label>
-                        <select id="ai-letter-type">
-                          <option value="initial">Initial Dispute</option>
-                          <option value="follow_up">Follow-Up (Response Received)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <label>Negative Items to Dispute</label>
-                    <div id="ai-letter-items" class="ai-items-list">
-                      <p class="muted sm">Select a client to see their negative items.</p>
-                    </div>
-
-                    <div id="ai-letter-response-wrap" style="display:none">
-                      <label for="ai-letter-response">Bureau's Response Letter</label>
-                      <p class="muted sm">Paste or type the text from the response letter you received from the bureau.</p>
-                      <textarea id="ai-letter-response" rows="6" placeholder="Paste the bureau's response letter here..."></textarea>
-                    </div>
-
-                    <button class="btn primary full" id="ai-letter-generate-btn" type="button">✨ Generate Letter</button>
-                    <p class="muted sm" id="ai-letter-status" style="margin-top:0.5rem;display:none"></p>
-                  </div>
-
-                  <!-- Generated Letter Output -->
-                  <div class="card" id="ai-letter-output-card" style="display:none">
-                    <h3 class="card-title">Generated Letter</h3>
-                    <p class="muted sm">Review the letter below. You can edit it before saving.</p>
-                    <textarea id="ai-letter-output" rows="20" style="font-family: Georgia, serif; font-size:0.875rem; line-height:1.7;"></textarea>
-                    <div class="form-actions mt">
-                      <button class="btn secondary" id="ai-letter-copy-btn" type="button">📋 Copy</button>
-                      <button class="btn primary" id="ai-letter-save-btn" type="button">💾 Save to Client Record</button>
-                    </div>
+                    <p class="muted sm">Log sent letters and update their tracking details and status</p>
                   </div>
 
                   <div class="card">
@@ -977,6 +927,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260319a"></script>
+    <script type="module" src="admin.js?v=20260320b"></script>
   </body>
 </html>

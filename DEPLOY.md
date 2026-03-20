@@ -27,8 +27,7 @@ Set these environment variables in your hosting platform:
 - `LEAD_WEBHOOK_URL` (optional): webhook URL for Google Sheets or CRM lead tracking.
 - `SUPABASE_URL`: your Supabase project URL (example: `https://YOUR_PROJECT.supabase.co`).
 - `SUPABASE_SERVICE_ROLE_KEY`: your Supabase service role key (server-side only; never expose in frontend).
-- `OPENAI_API_KEY`: your OpenAI API key for AI letter generation and PDF dispute-item imports.
-- `OPENAI_LETTER_MODEL` (optional): override the default letter model. Defaults to `gpt-5.2-chat-latest`.
+- `OPENAI_API_KEY`: your OpenAI API key for PDF dispute-item imports.
 - `OPENAI_IMPORT_MODEL` (optional): override the default PDF import model. Defaults to `gpt-5-mini`.
 - `PORTAL_LOGIN_URL`: your live client portal page URL (example: `https://yourdomain.com/portal.html`).
 - `PORTAL_REDIRECT_URL` (optional): URL used in the password setup email redirect.
