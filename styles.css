@@ -193,12 +193,20 @@ a {
 }
 
 .hero-logo-showcase {
-  width: min(100%, 44rem);
-  padding: 0.8rem;
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(60, 43, 92, 0.42) 0%, rgba(35, 23, 57, 0.22) 100%);
-  border: 1px solid rgba(147, 121, 196, 0.28);
-  box-shadow: 0 26px 60px rgba(7, 3, 17, 0.22);
+  position: relative;
+  width: min(100%, 42rem);
+  padding: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.hero-logo-showcase::before {
+  content: "";
+  position: absolute;
+  inset: 12% 16%;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(146, 90, 232, 0.18) 0%, rgba(146, 90, 232, 0.08) 34%, transparent 72%);
+  filter: blur(18px);
 }
 
 .hero-logo {
@@ -206,7 +214,12 @@ a {
   width: 100%;
   height: auto;
   object-fit: contain;
-  border-radius: 20px;
+  position: relative;
+  z-index: 1;
+  border-radius: 0;
+  mix-blend-mode: screen;
+  opacity: 0.92;
+  filter: saturate(1.02) brightness(1.04) drop-shadow(0 0 28px rgba(168, 107, 255, 0.18));
 }
 
 .hero-panel {
@@ -906,12 +919,7 @@ a {
   }
 
   .hero-logo-showcase {
-    padding: 0.55rem;
-    border-radius: 22px;
-  }
-
-  .hero-logo {
-    border-radius: 16px;
+    width: min(100%, 26rem);
   }
 
   /* Sections */
