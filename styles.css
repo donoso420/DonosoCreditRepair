@@ -191,71 +191,34 @@ a {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.78fr);
-  gap: 2.9rem;
-  align-items: start;
-  padding: 3.25rem 0 2.75rem;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.13em;
-  color: #f3b4de;
-  font-size: 0.75rem;
-  font-weight: 800;
-  margin-bottom: 0.7rem;
-}
-
-h1 {
-  font-size: clamp(2.35rem, 4.7vw, 3.85rem);
-  max-width: 9.6ch;
-  margin-bottom: 0;
+  grid-template-columns: minmax(0, 1.02fr) minmax(320px, 0.82fr);
+  gap: 2.8rem;
+  align-items: center;
+  padding: 3.1rem 0 2.6rem;
 }
 
 .hero-copy {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-}
-
-.hero-lead {
-  max-width: 32rem;
-  color: #ddd1ee;
-  font-size: 1.02rem;
-  line-height: 1.58;
-  margin-top: 0.95rem;
-}
-
-.hero-proofline {
-  margin: 0.95rem 0 0;
-  color: #f0e6ff;
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  margin: 1.2rem 0 0.72rem;
+  justify-content: center;
 }
 
-.hero-note {
-  color: #d2c5e4;
-  font-size: 0.88rem;
-  margin: 0;
+.hero-logo-showcase {
+  width: min(100%, 44rem);
+  padding: 0.8rem;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(60, 43, 92, 0.42) 0%, rgba(35, 23, 57, 0.22) 100%);
+  border: 1px solid rgba(147, 121, 196, 0.28);
+  box-shadow: 0 26px 60px rgba(7, 3, 17, 0.22);
 }
 
-.hero-secondary {
-  color: #f0e6ff;
-  text-decoration: none;
-  font-weight: 700;
-}
-
-.hero-secondary:hover {
-  color: #ffffff;
+.hero-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 20px;
 }
 
 .hero-panel {
@@ -333,6 +296,10 @@ h1 {
   color: #d9cdee;
   font-size: 0.88rem;
   font-weight: 700;
+}
+
+.hero-panel-btn {
+  margin-top: 1.15rem;
 }
 
 .stats {
@@ -896,10 +863,6 @@ h1 {
   .hero-panel {
     max-width: 38rem;
   }
-
-  h1 {
-    max-width: none;
-  }
 }
 
 /* ── Mobile: tighten spacing and font sizes ─────────────────────────── */
@@ -946,34 +909,8 @@ h1 {
     padding: 2.25rem 0 2rem;
   }
 
-  h1 {
-    font-size: 1.9rem;
-  }
-
   .hero-panel {
     padding: 1.1rem 1rem;
-  }
-
-  .hero-lead {
-    font-size: 0.97rem;
-  }
-
-  .hero-proofline {
-    font-size: 0.86rem;
-  }
-
-  .hero-actions {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .hero-actions .btn {
-    width: 100%;
-    text-align: center;
-  }
-
-  .hero-secondary {
-    padding-left: 0.1rem;
   }
 
   .hero-panel h2 {
@@ -984,6 +921,15 @@ h1 {
     grid-template-columns: 1.7rem minmax(0, 1fr);
     gap: 0.62rem;
     padding: 0.7rem 0;
+  }
+
+  .hero-logo-showcase {
+    padding: 0.55rem;
+    border-radius: 22px;
+  }
+
+  .hero-logo {
+    border-radius: 16px;
   }
 
   /* Sections */
