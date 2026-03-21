@@ -325,6 +325,10 @@ a {
   padding: 1.45rem 0 0;
 }
 
+.services-highlights-kicker {
+  margin-bottom: 0.85rem;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
