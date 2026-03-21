@@ -190,7 +190,7 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding-top: 0.25rem;
+  padding-top: 0;
 }
 
 .hero-logo-showcase {
@@ -199,6 +199,7 @@ a {
   padding: 0;
   display: flex;
   justify-content: center;
+  margin-top: -1.5rem;
 }
 
 .hero-logo-showcase::before {
@@ -224,12 +225,14 @@ a {
 }
 
 .hero-logo-caption {
-  max-width: 28rem;
-  margin: 0.9rem auto 0;
+  max-width: 31rem;
+  margin: 0.55rem auto 0;
   color: #d8ccef;
-  font-size: 0.98rem;
+  font-family: "Sora", sans-serif;
+  font-size: 1.08rem;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   text-align: center;
 }
 
@@ -923,6 +926,10 @@ a {
     padding-top: 0;
   }
 
+  .hero-logo-showcase {
+    margin-top: -0.85rem;
+  }
+
   .hero-panel h2 {
     font-size: 1.42rem;
   }
@@ -938,8 +945,8 @@ a {
   }
 
   .hero-logo-caption {
-    max-width: 22rem;
-    font-size: 0.9rem;
+    max-width: 23rem;
+    font-size: 0.94rem;
   }
 
   /* Sections */
