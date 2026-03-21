@@ -532,7 +532,7 @@ h1 {
   margin-top: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.25rem;
+  gap: 1.1rem;
   align-items: stretch;
 }
 
@@ -543,30 +543,30 @@ h1 {
   gap: 0.95rem;
   background: #ffffff;
   border: 1px solid #e7deef;
-  border-radius: 24px;
-  padding: 1.55rem;
-  box-shadow: 0 16px 34px rgba(49, 33, 92, 0.05);
+  border-radius: 20px;
+  padding: 1.4rem;
+  box-shadow: 0 10px 24px rgba(49, 33, 92, 0.04);
 }
 
 .plan-top {
   display: flex;
   flex-direction: column;
-  gap: 0.46rem;
+  gap: 0.38rem;
 }
 
 .plan-tier {
   margin: 0;
   align-self: flex-start;
   color: #75648f;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
 .plan-card h3 {
-  font-size: 1.5rem;
-  line-height: 1.12;
+  font-size: 1.28rem;
+  line-height: 1.14;
   margin: 0;
   color: #24193c;
 }
@@ -574,19 +574,20 @@ h1 {
 .plan-for {
   margin: 0;
   color: #66597d;
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 0.92rem;
+  line-height: 1.48;
 }
 
 .plan-price-box {
-  margin: 0.15rem 0 0.1rem;
-  padding: 1rem 0 1.02rem;
-  border-top: 1px solid #ede5f4;
-  border-bottom: 1px solid #ede5f4;
+  margin: 0.05rem 0 0;
+  padding: 0.95rem 1rem;
+  border: 1px solid #ede5f4;
+  border-radius: 16px;
+  background: #faf8fd;
 }
 
 .plan-price-label {
-  margin: 0 0 0.18rem;
+  margin: 0 0 0.22rem;
   color: #786996;
   font-size: 0.76rem;
   font-weight: 700;
@@ -596,82 +597,58 @@ h1 {
 
 .plan-price {
   margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.24rem;
 }
 
 .plan-price-value {
   margin: 0;
   font-family: "Sora", sans-serif;
-  font-size: 2.15rem;
-  line-height: 1.02;
+  font-size: 1.84rem;
+  line-height: 1;
   color: #2f2347;
 }
 
-.plan-price-note {
-  margin: 0.16rem 0 0;
-  color: #6c607f;
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-
-.plan-summary {
-  margin: 0;
-  color: #5b506c;
-  font-size: 0.94rem;
-  line-height: 1.58;
-}
-
-.plan-feature-label {
-  margin: 0.3rem 0 0.05rem;
-  color: #54476a;
-  font-size: 0.76rem;
+.plan-price-unit {
+  color: #786996;
+  font-size: 0.9rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .plan-card ul {
-  margin: 0 0 0.55rem;
+  margin: 0;
   padding-left: 0;
   list-style: none;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.68rem;
+  gap: 0.56rem;
 }
 
 .plan-card li {
   position: relative;
-  padding-left: 1.15rem;
+  padding-left: 1rem;
   margin: 0;
   color: #4d425f;
-  line-height: 1.46;
+  font-size: 0.93rem;
+  line-height: 1.4;
 }
 
 .plan-card li::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 0.62rem;
-  width: 6px;
-  height: 6px;
+  top: 0.54rem;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #8b74cc;
 }
 
 .plan-card.featured {
-  border-color: #d7c8eb;
-  box-shadow: 0 20px 42px rgba(93, 63, 197, 0.08);
-}
-
-.plan-card.featured::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 1.55rem;
-  right: 1.55rem;
-  height: 4px;
-  border-radius: 0 0 999px 999px;
-  background: linear-gradient(90deg, #7c62ca 0%, #b29ddb 100%);
+  border-color: #d9cdee;
+  background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
 }
 
 .plan-card .btn {
@@ -682,24 +659,14 @@ h1 {
 }
 
 .plan-card .btn-outline {
-  border-color: #cfbfe7;
+  border-color: #d1c3e7;
   background: #fffdfd;
   color: #654fa7;
 }
 
 .plan-card .btn-outline:hover {
   background: #f7f1ff;
-  border-color: #beaadd;
-}
-
-.plan-card .btn-primary {
-  background: #9a84d6;
-  color: #ffffff;
-  box-shadow: 0 12px 22px rgba(121, 90, 193, 0.12);
-}
-
-.plan-card .btn-primary:hover {
-  background: #8b74cc;
+  border-color: #c3b2dd;
 }
 
 .fineprint {
@@ -1022,13 +989,8 @@ h1 {
     border-radius: 22px;
   }
 
-  .plan-card.featured::before {
-    left: 1.25rem;
-    right: 1.25rem;
-  }
-
   .plan-price-value {
-    font-size: 1.82rem;
+    font-size: 1.62rem;
   }
 
   /* FAQ */
