@@ -76,7 +76,22 @@ a {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
   text-decoration: none;
+}
+
+.brand-mark {
+  width: 2.55rem;
+  height: 2.55rem;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(233, 219, 255, 0.24);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+}
+
+.brand-text {
   font-family: "Sora", sans-serif;
   font-size: 1.06rem;
   font-weight: 700;
@@ -529,42 +544,6 @@ h1 {
   font-size: 0.95rem;
 }
 
-.steps-grid {
-  margin-top: 1rem;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.7rem;
-}
-
-.steps-grid article {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.9rem;
-}
-
-.step-num {
-  display: inline-block;
-  margin: 0 0 0.5rem;
-  padding: 0.16rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid #cbb7e0;
-  color: #5f4a7f;
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.steps-grid h3 {
-  margin-bottom: 0.34rem;
-  font-size: 1.18rem;
-}
-
-.steps-grid p {
-  margin: 0;
-  color: #675a82;
-}
-
 .pricing-header {
   display: flex;
   flex-direction: column;
@@ -870,10 +849,6 @@ h1 {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .steps-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .nav-links {
     display: none;
   }
@@ -931,8 +906,17 @@ h1 {
 @media (max-width: 640px) {
   /* Nav — keep brand on one line */
   .brand {
-    font-size: 0.92rem;
     white-space: nowrap;
+  }
+
+  .brand-mark {
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 12px;
+  }
+
+  .brand-text {
+    font-size: 0.92rem;
   }
 
   .nav-btn {
@@ -1041,12 +1025,6 @@ h1 {
 
   /* Services grid — single column on small phones */
   .issue-grid {
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
-  }
-
-  /* Steps — single column on small phones */
-  .steps-grid {
     grid-template-columns: 1fr;
     gap: 0.6rem;
   }
