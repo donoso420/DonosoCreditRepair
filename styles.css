@@ -76,19 +76,7 @@ a {
 }
 
 .brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
   text-decoration: none;
-}
-
-.brand-mark {
-  width: 2.55rem;
-  height: 2.55rem;
-  object-fit: cover;
-  border-radius: 14px;
-  border: 1px solid rgba(233, 219, 255, 0.24);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
 }
 
 .brand-text {
@@ -870,12 +858,6 @@ a {
   /* Nav — keep brand on one line */
   .brand {
     white-space: nowrap;
-  }
-
-  .brand-mark {
-    width: 2.15rem;
-    height: 2.15rem;
-    border-radius: 12px;
   }
 
   .brand-text {
