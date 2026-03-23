@@ -5,7 +5,7 @@ export function getOpenAiKey() {
 }
 
 export function getImportModel() {
-  return process.env.OPENAI_IMPORT_MODEL || "gpt-5-mini";
+  return process.env.OPENAI_IMPORT_MODEL || "gpt-4o-mini";
 }
 
 export async function createOpenAIResponse({
