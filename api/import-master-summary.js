@@ -1,5 +1,3 @@
-import { createOpenAIResponse, extractOutputText, getImportModel, getOpenAiKey } from "./_openai.js";
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -8,10 +6,9 @@ export default async function handler(req, res) {
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const openAiKey = getOpenAiKey();
-  const openAiModel = getImportModel();
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey || !openAiKey) {
+  if (!supabaseUrl || !serviceRoleKey || !anthropicKey) {
     res.status(500).json({ error: "Server not configured. Check Vercel environment variables." });
     return;
   }
@@ -66,147 +63,49 @@ For items on all 3 bureaus set bureau to "ALL_BUREAUS". For specific bureau comb
 
 Return only the JSON object, nothing else.`;
 
-  // Upload PDF to OpenAI Files API first, then reference by file_id
-  let uploadedFileId;
-  try {
-    const pdfBytes = Buffer.from(pdfBase64, "base64");
-    const formData = new FormData();
-    formData.append("purpose", "user_data");
-    formData.append(
-      "file",
-      new Blob([pdfBytes], { type: "application/pdf" }),
-      "credit-dispute-summary.pdf"
-    );
-    const uploadRes = await fetch("https://api.openai.com/v1/files", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${openAiKey}` },
-      body: formData,
-    });
-    const uploadData = await uploadRes.json().catch(() => ({}));
-    if (!uploadRes.ok) {
-      throw new Error(uploadData.error?.message || "File upload failed.");
-    }
-    uploadedFileId = uploadData.id;
-  } catch (error) {
-    res.status(500).json({ error: "PDF upload failed: " + (error.message || "Unknown error.") });
-    return;
-  }
-
   let rawText = "";
   try {
-    const openAiData = await createOpenAIResponse({
-      apiKey: openAiKey,
-      model: openAiModel,
-      maxOutputTokens: 7000,
-      input: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_file",
-              file_id: uploadedFileId,
-            },
-            {
-              type: "input_text",
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "credit_dispute_items",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              items: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    creditor: { type: "string" },
-                    item_type: {
-                      type: "string",
-                      enum: [
-                        "Collection",
-                        "Charge Off",
-                        "Late Payment",
-                        "Hard Inquiry",
-                        "Repossession",
-                        "Bankruptcy",
-                        "Foreclosure",
-                        "Judgment",
-                        "Lien",
-                        "Name Discrepancy",
-                        "Address Error",
-                        "Personal Info Error",
-                        "Derogatory",
-                        "Negative Item",
-                      ],
-                    },
-                    bureau: {
-                      type: "string",
-                      enum: [
-                        "ALL_BUREAUS",
-                        "Experian",
-                        "Equifax",
-                        "TransUnion",
-                        "Equifax,TransUnion",
-                        "Experian,TransUnion",
-                        "Experian,Equifax",
-                      ],
-                    },
-                    account_reference: { type: ["string", "null"] },
-                    balance: { type: ["number", "null"] },
-                    status: { type: "string" },
-                    fcra_laws: { type: "string" },
-                    dispute_issue: { type: "string" },
-                    recommended_action: { type: "string" },
-                    notes: { type: ["string", "null"] },
-                  },
-                  required: [
-                    "creditor",
-                    "item_type",
-                    "bureau",
-                    "account_reference",
-                    "balance",
-                    "status",
-                    "fcra_laws",
-                    "dispute_issue",
-                    "recommended_action",
-                    "notes",
-                  ],
-                  additionalProperties: false,
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_IMPORT_MODEL || "claude-haiku-4-5-20251001",
+        max_tokens: 7000,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: {
+                  type: "base64",
+                  media_type: "application/pdf",
+                  data: pdfBase64,
                 },
               },
-            },
-            required: ["items"],
-            additionalProperties: false,
+              {
+                type: "text",
+                text: prompt,
+              },
+            ],
           },
-        },
-      },
+        ],
+      }),
     });
-    rawText = extractOutputText(openAiData);
-  } catch (error) {
-    // Clean up uploaded file before returning error
-    if (uploadedFileId) {
-      fetch(`https://api.openai.com/v1/files/${uploadedFileId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${openAiKey}` },
-      }).catch(() => {});
-    }
-    res.status(500).json({ error: error.message || "OpenAI API error." });
-    return;
-  }
 
-  // Clean up uploaded file (fire and forget)
-  if (uploadedFileId) {
-    fetch(`https://api.openai.com/v1/files/${uploadedFileId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${openAiKey}` },
-    }).catch(() => {});
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Anthropic API error.");
+    }
+
+    rawText = data.content?.find((b) => b.type === "text")?.text?.trim() || "";
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Anthropic API error." });
+    return;
   }
 
   let items;
