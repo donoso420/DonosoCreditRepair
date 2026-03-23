@@ -1,4 +1,9 @@
 {
   "cleanUrls": false,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "functions": {
+    "api/import-master-summary.js": {
+      "maxDuration": 60
+    }
+  }
 }
