@@ -66,6 +66,32 @@ For items on all 3 bureaus set bureau to "ALL_BUREAUS". For specific bureau comb
 
 Return only the JSON object, nothing else.`;
 
+  // Upload PDF to OpenAI Files API first, then reference by file_id
+  let uploadedFileId;
+  try {
+    const pdfBytes = Buffer.from(pdfBase64, "base64");
+    const formData = new FormData();
+    formData.append("purpose", "user_data");
+    formData.append(
+      "file",
+      new Blob([pdfBytes], { type: "application/pdf" }),
+      "credit-dispute-summary.pdf"
+    );
+    const uploadRes = await fetch("https://api.openai.com/v1/files", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${openAiKey}` },
+      body: formData,
+    });
+    const uploadData = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok) {
+      throw new Error(uploadData.error?.message || "File upload failed.");
+    }
+    uploadedFileId = uploadData.id;
+  } catch (error) {
+    res.status(500).json({ error: "PDF upload failed: " + (error.message || "Unknown error.") });
+    return;
+  }
+
   let rawText = "";
   try {
     const openAiData = await createOpenAIResponse({
@@ -78,8 +104,7 @@ Return only the JSON object, nothing else.`;
           content: [
             {
               type: "input_file",
-              filename: "credit-dispute-summary.pdf",
-              file_data: pdfBase64,
+              file_id: uploadedFileId,
             },
             {
               type: "input_text",
@@ -165,8 +190,23 @@ Return only the JSON object, nothing else.`;
     });
     rawText = extractOutputText(openAiData);
   } catch (error) {
+    // Clean up uploaded file before returning error
+    if (uploadedFileId) {
+      fetch(`https://api.openai.com/v1/files/${uploadedFileId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${openAiKey}` },
+      }).catch(() => {});
+    }
     res.status(500).json({ error: error.message || "OpenAI API error." });
     return;
+  }
+
+  // Clean up uploaded file (fire and forget)
+  if (uploadedFileId) {
+    fetch(`https://api.openai.com/v1/files/${uploadedFileId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${openAiKey}` },
+    }).catch(() => {});
   }
 
   let items;
