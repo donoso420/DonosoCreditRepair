@@ -916,6 +916,54 @@ textarea { resize: vertical; }
   line-height: 1.45;
 }
 
+.letter-deadline-card {
+  border: 1px solid #eadfc7;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(212, 173, 92, 0.18), transparent 35%),
+    linear-gradient(180deg, #fffdf7 0%, #f7f1e6 100%);
+  padding: 0.9rem 1rem;
+  min-height: 100%;
+}
+
+.letter-deadline-label {
+  margin: 0 0 0.35rem;
+  color: #8b7755;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.letter-deadline-date {
+  margin: 0;
+  color: #3a2b14;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.letter-deadline-card[data-deadline-state="overdue"] {
+  border-color: #efcfcb;
+  background:
+    radial-gradient(circle at top right, rgba(222, 125, 117, 0.14), transparent 35%),
+    linear-gradient(180deg, #fff8f7 0%, #fff0ee 100%);
+}
+
+.letter-deadline-card[data-deadline-state="overdue"] .letter-deadline-label,
+.letter-deadline-card[data-deadline-state="overdue"] .letter-deadline-date {
+  color: #8f3b36;
+}
+
+.letter-followup-note {
+  margin: 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid #efe5f9;
+  color: #5a4b74;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .negative-admin-row {
   background:
     radial-gradient(circle at top right, rgba(232, 164, 213, 0.12), transparent 35%),
@@ -2162,6 +2210,34 @@ textarea:focus {
 
 [data-theme="dark"] .invite-fields input::placeholder {
   color: #988458;
+}
+
+[data-theme="dark"] .letter-deadline-card {
+  border-color: rgba(233, 204, 148, 0.26);
+  background:
+    radial-gradient(circle at top right, rgba(214, 176, 92, 0.18), transparent 35%),
+    linear-gradient(180deg, rgba(55, 44, 20, 0.9) 0%, rgba(41, 31, 15, 0.96) 100%);
+}
+
+[data-theme="dark"] .letter-deadline-label {
+  color: #e7cb8f;
+}
+
+[data-theme="dark"] .letter-deadline-date {
+  color: #fff3d7;
+}
+
+[data-theme="dark"] .letter-deadline-card[data-deadline-state="overdue"] {
+  border-color: rgba(231, 125, 116, 0.35);
+  background:
+    radial-gradient(circle at top right, rgba(224, 111, 101, 0.2), transparent 35%),
+    linear-gradient(180deg, rgba(69, 29, 28, 0.92) 0%, rgba(51, 21, 20, 0.98) 100%);
+}
+
+[data-theme="dark"] .letter-deadline-card[data-deadline-state="overdue"] .letter-deadline-label,
+[data-theme="dark"] .letter-deadline-card[data-deadline-state="overdue"] .letter-deadline-date,
+[data-theme="dark"] .letter-followup-note {
+  color: #e6d8f7;
 }
 
 /* ── Purple-First Fine Tune ─────────────────────── */

@@ -36,6 +36,8 @@ create table if not exists public.client_letters (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   sent_date date not null,
+  delivered_date date,
+  file_id bigint,
   bureau text,
   recipient text,
   tracking_number text not null,
@@ -49,6 +51,8 @@ create table if not exists public.client_letters (
 -- Add letter content columns to existing deployments
 alter table public.client_letters
   add column if not exists letter_content text,
+  add column if not exists delivered_date date,
+  add column if not exists file_id bigint,
   add column if not exists letter_type text not null default 'initial';
 
 -- Timeline/account updates

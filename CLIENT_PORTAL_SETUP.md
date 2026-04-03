@@ -122,6 +122,10 @@ Use consistent status text in `client_letters.status`, for example:
 - `Delivered`
 - `Response Received`
 
+When the admin marks a letter as `Delivered`, the admin portal can store `delivered_date` and show the company response deadline 35 days later.
+Letter rows can also store `file_id` so the tracking table can open the actual uploaded letter file.
+If the linked letter file is a PDF, the portal downloads it directly. If it is a DOCX letter, the portal can generate a PDF download from that document for the client.
+
 ## 8) File uploads
 
 Uploads are stored in Supabase Storage bucket `client-docs` with object paths like:

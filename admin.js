@@ -37,6 +37,14 @@ const letterSubmitBtn = document.getElementById("letter-submit-btn");
 const letterCancelBtn = document.getElementById("letter-cancel-btn");
 const letterUpdateIdSelect = document.getElementById("letter-update-id");
 const letterUpdateSelectedMeta = document.getElementById("letter-update-selected-meta");
+const letterDateInput = document.getElementById("letter-date");
+const letterStatusInput = document.getElementById("letter-status");
+const letterDeliveredDateInput = document.getElementById("letter-delivered-date");
+const letterDeliveryRow = document.getElementById("letter-delivery-row");
+const letterDeadlineCard = document.getElementById("letter-deadline-card");
+const letterDeadlineDate = document.getElementById("letter-deadline-date");
+const letterDeadlineMeta = document.getElementById("letter-deadline-meta");
+const letterFileSelect = document.getElementById("letter-file-id");
 const timelineForm = document.getElementById("timeline-form");
 const timelineEditIdInput = document.getElementById("timeline-edit-id");
 const timelineSubmitBtn = document.getElementById("timeline-submit-btn");
@@ -103,6 +111,7 @@ const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".webp", ".d
 const ACTIVITY_PREFIX = "[Activity] ";
 const ALL_CREDIT_BUREAUS = ["Experian", "Equifax", "TransUnion"];
 const THEME_STORAGE_KEY = "donoso_theme_preference";
+const LETTER_RESPONSE_WINDOW_DAYS = 35;
 
 const missingConfig = ["supabaseUrl", "supabaseAnonKey"].filter((k) => !config[k]);
 let supabase = null;
@@ -278,6 +287,11 @@ function isUuid(value) {
 }
 
 function parseDisplayDate(value) {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
   const raw = String(value || "").trim();
   if (!raw) return null;
 
@@ -300,11 +314,107 @@ function formatDate(value) {
   return date.toLocaleDateString();
 }
 
+function formatDateInputValue(value) {
+  const date = parseDisplayDate(value);
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(value, days) {
+  const date = parseDisplayDate(value);
+  if (!date) return null;
+  const shifted = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  shifted.setDate(shifted.getDate() + Number(days || 0));
+  return shifted;
+}
+
+function normalizeLetterStatus(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function letterTracksResponseWindow(status) {
+  const normalized = normalizeLetterStatus(status);
+  return normalized === "delivered" || normalized === "response received";
+}
+
+function letterIsAwaitingCompanyResponse(status) {
+  return normalizeLetterStatus(status) === "delivered";
+}
+
+function formatDayDelta(days) {
+  if (days > 0) return `${days} day${days === 1 ? "" : "s"} remaining`;
+  if (days === 0) return "Due today";
+  const overdueDays = Math.abs(days);
+  return `${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue`;
+}
+
+function getLetterDeadlineSummary({
+  status = "",
+  sent_date = "",
+  sentDate = "",
+  delivered_date = "",
+  deliveredDate = "",
+} = {}) {
+  const awaitingResponse = letterIsAwaitingCompanyResponse(status);
+  const responseReceived = normalizeLetterStatus(status) === "response received";
+  if (!awaitingResponse && !responseReceived) return null;
+
+  const deliveredValue = delivered_date || deliveredDate || "";
+  const sentValue = sent_date || sentDate || "";
+  const sourceDate = parseDisplayDate(deliveredValue || sentValue);
+  const sourceLabel = deliveredValue
+    ? `Delivered ${formatDate(deliveredValue)}`
+    : sourceDate
+      ? `Using sent date ${formatDate(sentValue)} until delivery is entered`
+      : "Add a delivered date to start the 35-day response window";
+
+  if (!sourceDate) {
+    return {
+      state: responseReceived ? "complete" : "pending",
+      headline: responseReceived ? "Response received" : "Waiting on delivery date",
+      meta: sourceLabel,
+      dueDate: null,
+    };
+  }
+
+  const dueDate = addDays(sourceDate, LETTER_RESPONSE_WINDOW_DAYS);
+  const today = addDays(new Date(), 0);
+  const remainingDays = dueDate
+    ? Math.round((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  if (responseReceived) {
+    return {
+      state: "complete",
+      headline: "Response received",
+      meta: `${sourceLabel} · Response deadline was ${formatDate(dueDate)}`,
+      dueDate,
+    };
+  }
+
+  return {
+    state: remainingDays < 0 ? "overdue" : remainingDays === 0 ? "due-today" : "pending",
+    headline: `Company response due ${formatDate(dueDate)}`,
+    meta: `${sourceLabel} · ${formatDayDelta(remainingDays)}`,
+    dueDate,
+  };
+}
+
 function safeText(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function getLetterFileDisplayName(fileRow = {}) {
+  const title = String(fileRow.title || fileRow.file_name || "Untitled file").trim();
+  const category = String(fileRow.category || "").trim();
+  const createdAt = fileRow.created_at ? formatDate(fileRow.created_at) : "";
+  return [title, category, createdAt].filter(Boolean).join(" · ");
 }
 
 function getMissingClientProfileColumn(error) {
@@ -313,6 +423,13 @@ function getMissingClientProfileColumn(error) {
   if (message.includes("address")) return "address";
   if (message.includes("ssn_last4")) return "ssn_last4";
   if (message.includes("date_of_birth")) return "date_of_birth";
+  return null;
+}
+
+function getMissingLetterColumn(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (message.includes("delivered_date")) return "delivered_date";
+  if (message.includes("file_id")) return "file_id";
   return null;
 }
 
@@ -857,7 +974,11 @@ function resetLetterForm() {
   if (letterUpdateIdSelect) {
     letterUpdateIdSelect.value = "";
   }
+  if (letterFileSelect) {
+    letterFileSelect.value = "";
+  }
   syncLetterUpdateMeta();
+  syncLetterDeadlineUi();
   toggleFormEditMode(letterSubmitBtn, letterCancelBtn, false, "Add Letter Record", "Save Changes");
 }
 
@@ -872,7 +993,9 @@ function syncLetterUpdateMeta() {
   const recipient = row.recipient || row.bureau || "Unknown recipient";
   const tracking = row.tracking_number || "No tracking";
   const sentDate = row.sent_date ? formatDate(row.sent_date) : "No sent date";
-  letterUpdateSelectedMeta.textContent = `Selected: #${row.id} · ${recipient} · ${tracking} · ${sentDate}`;
+  const deadline = getLetterDeadlineSummary(row);
+  const deadlineLabel = deadline ? ` · ${deadline.headline}` : "";
+  letterUpdateSelectedMeta.textContent = `Selected: #${row.id} · ${recipient} · ${tracking} · ${sentDate}${deadlineLabel}`;
 }
 
 function syncLetterUpdateChoices() {
@@ -894,23 +1017,76 @@ function syncLetterUpdateChoices() {
   syncLetterUpdateMeta();
 }
 
+function syncLetterFileChoices() {
+  if (!letterFileSelect) return;
+  const previousValue = String(letterFileSelect.value || "");
+  letterFileSelect.innerHTML = '<option value="">No linked file yet</option>';
+
+  activeClientFiles.forEach((row) => {
+    const option = document.createElement("option");
+    option.value = String(row.id);
+    option.textContent = getLetterFileDisplayName(row);
+    letterFileSelect.appendChild(option);
+  });
+
+  if (previousValue && activeClientFiles.some((row) => String(row.id) === previousValue)) {
+    letterFileSelect.value = previousValue;
+  }
+}
+
 function populateLetterForm(row) {
   if (!row) return;
   if (letterEditIdInput) letterEditIdInput.value = String(row.id || "");
   if (letterUpdateIdSelect) letterUpdateIdSelect.value = String(row.id || "");
-  const sentDateInput = document.getElementById("letter-date");
-  const statusInput = document.getElementById("letter-status");
   const recipientInput = document.getElementById("letter-recipient");
   const trackingInput = document.getElementById("letter-tracking");
   const notesInput = document.getElementById("letter-notes");
-  if (sentDateInput) sentDateInput.value = row.sent_date || "";
-  if (statusInput) statusInput.value = row.status || "In Transit";
+  if (letterDateInput) letterDateInput.value = row.sent_date || "";
+  if (letterStatusInput) letterStatusInput.value = row.status || "In Transit";
+  if (letterDeliveredDateInput) letterDeliveredDateInput.value = row.delivered_date || "";
+  if (letterFileSelect) letterFileSelect.value = row.file_id != null ? String(row.file_id) : "";
   if (recipientInput) recipientInput.value = row.recipient || row.bureau || "";
   if (trackingInput) trackingInput.value = row.tracking_number || "";
   if (notesInput) notesInput.value = row.notes || "";
   syncLetterUpdateMeta();
+  syncLetterDeadlineUi();
   toggleFormEditMode(letterSubmitBtn, letterCancelBtn, true, "Add Letter Record", "Save Changes");
   letterForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function syncLetterDeadlineUi({ autofillDeliveredDate = false } = {}) {
+  const status = letterStatusInput?.value || "";
+  const tracksResponseWindow = letterTracksResponseWindow(status);
+  letterDeliveryRow?.classList.toggle("hidden", !tracksResponseWindow);
+
+  if (
+    autofillDeliveredDate &&
+    letterIsAwaitingCompanyResponse(status) &&
+    letterDeliveredDateInput &&
+    !letterDeliveredDateInput.value
+  ) {
+    letterDeliveredDateInput.value = formatDateInputValue(new Date());
+  }
+
+  const deadline = getLetterDeadlineSummary({
+    status,
+    sentDate: letterDateInput?.value || "",
+    deliveredDate: letterDeliveredDateInput?.value || "",
+  });
+
+  if (!letterDeadlineCard || !letterDeadlineDate || !letterDeadlineMeta) return;
+  if (!deadline) {
+    letterDeadlineCard.classList.add("hidden");
+    letterDeadlineCard.dataset.deadlineState = "";
+    letterDeadlineDate.textContent = "Company response due date will show here.";
+    letterDeadlineMeta.textContent = "";
+    return;
+  }
+
+  letterDeadlineCard.classList.remove("hidden");
+  letterDeadlineCard.dataset.deadlineState = deadline.state || "pending";
+  letterDeadlineDate.textContent = deadline.headline;
+  letterDeadlineMeta.textContent = deadline.meta || "";
 }
 
 function formatVerificationStatus(value) {
@@ -1820,6 +1996,21 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
     previewLetters.innerHTML = '<li class="preview-empty">No letter records yet.</li>';
   } else {
     for (const row of letters) {
+      const deadline = getLetterDeadlineSummary(row);
+      const followupNote = deadline
+        ? `<p class="letter-followup-note"><strong>${safeText(deadline.headline)}</strong>${deadline.meta ? ` · ${safeText(deadline.meta)}` : ""}</p>`
+        : "";
+      const linkedFile = row.linked_file || null;
+      const linkedFileName = linkedFile ? getLetterFileDisplayName(linkedFile) : "";
+      const linkedFileActions = linkedFile?.signed_url
+        ? `
+            <div class="file-actions-row">
+              <a class="btn secondary sm" href="${safeText(
+                linkedFile.signed_url
+              )}" target="_blank" rel="noopener noreferrer">Open File</a>
+            </div>
+          `
+        : "";
       const li = document.createElement("li");
       li.className = "file-record";
       li.innerHTML = `
@@ -1829,6 +2020,8 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
         <p class="file-record-meta">${safeText(row.tracking_number || "N/A")} · ${safeText(
           row.status || "In Transit"
         )} · ${safeText(row.sent_date ? formatDate(row.sent_date) : "No date")}</p>
+        ${followupNote}
+        ${linkedFileName ? `<p class="letter-followup-note"><strong>Linked file:</strong> ${safeText(linkedFileName)}</p>` : ""}
         <div class="file-actions-row">
           <button class="btn secondary sm" type="button" data-action="edit-letter" data-row-id="${safeText(
             row.id
@@ -1837,6 +2030,7 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
             row.id
           )}">Delete</button>
         </div>
+        ${linkedFileActions}
       `;
       previewLetters.appendChild(li);
     }
@@ -1896,6 +2090,106 @@ async function safeTableQuery(queryPromise, fallback = []) {
   if (!error) return data || fallback;
   if (isMissingFeatureError(error)) return fallback;
   throw error;
+}
+
+async function loadClientLetters(userId) {
+  const buildQuery = (selectColumns) =>
+    supabase
+      .from("client_letters")
+      .select(selectColumns)
+      .eq("user_id", userId)
+      .order("sent_date", { ascending: false });
+
+  const variants = [
+    {
+      columns: "id,recipient,bureau,tracking_number,status,sent_date,delivered_date,file_id,notes,created_at",
+      defaults: {},
+    },
+    {
+      columns: "id,recipient,bureau,tracking_number,status,sent_date,delivered_date,notes,created_at",
+      defaults: { file_id: null },
+    },
+    {
+      columns: "id,recipient,bureau,tracking_number,status,sent_date,file_id,notes,created_at",
+      defaults: { delivered_date: null },
+    },
+    {
+      columns: "id,recipient,bureau,tracking_number,status,sent_date,notes,created_at",
+      defaults: { delivered_date: null, file_id: null },
+    },
+  ];
+
+  for (const variant of variants) {
+    const result = await buildQuery(variant.columns);
+    if (!result.error) {
+      return (result.data || []).map((row) => ({
+        ...variant.defaults,
+        ...row,
+      }));
+    }
+    if (!isMissingFeatureError(result.error)) throw result.error;
+  }
+
+  return [];
+}
+
+async function saveClientLetterRecord({
+  editId,
+  sentDate,
+  deliveredDate,
+  fileId,
+  recipient,
+  tracking,
+  status,
+  notes,
+}) {
+  const attemptPayload = {
+    sent_date: sentDate,
+    recipient,
+    bureau: recipient,
+    tracking_number: tracking,
+    status,
+    notes: notes || null,
+    delivered_date: letterTracksResponseWindow(status) ? deliveredDate || null : null,
+    file_id: fileId || null,
+  };
+  const missingSupport = {
+    missingDeliveredDateSupport: false,
+    missingLetterFileSupport: false,
+  };
+
+  const runQuery = async () => {
+    return editId
+      ? supabase
+          .from("client_letters")
+          .update(attemptPayload)
+          .eq("user_id", activeClientId)
+          .eq("id", editId)
+      : supabase.from("client_letters").insert({
+          user_id: activeClientId,
+          ...attemptPayload,
+        });
+  };
+
+  while (true) {
+    const result = await runQuery();
+    if (!result.error) return { error: null, ...missingSupport };
+    if (!isMissingFeatureError(result.error)) return { error: result.error, ...missingSupport };
+
+    const missingColumn = getMissingLetterColumn(result.error);
+    if (missingColumn === "delivered_date" && Object.prototype.hasOwnProperty.call(attemptPayload, "delivered_date")) {
+      delete attemptPayload.delivered_date;
+      missingSupport.missingDeliveredDateSupport = true;
+      continue;
+    }
+    if (missingColumn === "file_id" && Object.prototype.hasOwnProperty.call(attemptPayload, "file_id")) {
+      delete attemptPayload.file_id;
+      missingSupport.missingLetterFileSupport = true;
+      continue;
+    }
+
+    return { error: result.error, ...missingSupport };
+  }
 }
 
 async function upsertClientProfileRecord(payload) {
@@ -2121,7 +2415,7 @@ async function loadClientPreview(userId) {
   const [
     profile,
     scoreSnapshots,
-    { data: letters },
+    letters,
     { data: updates },
     files,
     { data: messages },
@@ -2141,7 +2435,7 @@ async function loadClientPreview(userId) {
           .order("created_at", { ascending: false })
           .limit(12)
       ),
-      supabase.from("client_letters").select("id,recipient,bureau,tracking_number,status,sent_date,notes,created_at").eq("user_id", userId).order("sent_date", { ascending: false }),
+      loadClientLetters(userId),
       supabase.from("client_updates").select("id,details,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
       loadClientFiles(userId),
       supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", userId).order("created_at", { ascending: true }),
@@ -2184,9 +2478,15 @@ async function loadClientPreview(userId) {
   const filesWithUrls = files || [];
   activeClientProfile = profile || null;
   activeClientFiles = filesWithUrls;
+  syncLetterFileChoices();
   activeScoreSnapshotRows = scoreSnapshots || [];
   activeReportRows = reports || [];
-  activeLetterRows = letters || [];
+  const fileMap = new Map(filesWithUrls.map((row) => [row.id, row]));
+  const lettersWithFiles = (letters || []).map((row) => ({
+    ...row,
+    linked_file: row.file_id ? fileMap.get(row.file_id) || null : null,
+  }));
+  activeLetterRows = lettersWithFiles;
   syncLetterUpdateChoices();
   activeUpdateRows = updates || [];
   activeNegativeItemRows = negativeItems || [];
@@ -2210,7 +2510,7 @@ async function loadClientPreview(userId) {
     scoreSnapshots || [],
     reportsWithUrls,
     negativeItems || [],
-    letters || [],
+    lettersWithFiles,
     updates || [],
     filesWithUrls.filter((f) => f.uploaded_by !== "client")
   );
@@ -2855,6 +3155,12 @@ function initialize() {
     }
     resetLetterForm();
   });
+  letterStatusInput?.addEventListener("change", () => {
+    syncLetterDeadlineUi({ autofillDeliveredDate: true });
+    syncLetterUpdateMeta();
+  });
+  letterDateInput?.addEventListener("change", syncLetterDeadlineUi);
+  letterDeliveredDateInput?.addEventListener("change", syncLetterDeadlineUi);
   timelineCancelBtn?.addEventListener("click", resetTimelineForm);
   invoiceCancelBtn?.addEventListener("click", resetInvoiceForm);
 
@@ -3333,10 +3639,12 @@ function initialize() {
     if (!(await requireActiveClient())) return;
 
     const editId = Number(letterEditIdInput?.value || 0);
-    const sentDate = String(document.getElementById("letter-date")?.value || "");
+    const sentDate = String(letterDateInput?.value || "");
+    const deliveredDate = String(letterDeliveredDateInput?.value || "");
+    const fileId = Number(letterFileSelect?.value || 0);
     const recipient = String(document.getElementById("letter-recipient")?.value || "").trim();
     const tracking = String(document.getElementById("letter-tracking")?.value || "").trim();
-    const status = String(document.getElementById("letter-status")?.value || "").trim();
+    const status = String(letterStatusInput?.value || "").trim();
     const notes = String(document.getElementById("letter-notes")?.value || "").trim();
 
     if (!sentDate || !recipient || !tracking) {
@@ -3344,43 +3652,44 @@ function initialize() {
       return;
     }
 
-    const query = editId
-      ? supabase
-          .from("client_letters")
-          .update({
-            sent_date: sentDate,
-            recipient,
-            bureau: recipient,
-            tracking_number: tracking,
-            status,
-            notes: notes || null,
-          })
-          .eq("user_id", activeClientId)
-          .eq("id", editId)
-      : supabase.from("client_letters").insert({
-          user_id: activeClientId,
-          sent_date: sentDate,
-          recipient,
-          bureau: recipient,
-          tracking_number: tracking,
-          status,
-          notes: notes || null,
-        });
-
-    const { error } = await query;
+    const { error, missingDeliveredDateSupport, missingLetterFileSupport } = await saveClientLetterRecord({
+      editId,
+      sentDate,
+      deliveredDate,
+      fileId,
+      recipient,
+      tracking,
+      status,
+      notes,
+    });
 
     if (error) {
       setAdminStatus("Could not add letter record: " + error.message, true);
       return;
     }
 
+    const deadline = getLetterDeadlineSummary({ status, sentDate, deliveredDate });
+    const activityDeadline = deadline ? ` ${deadline.headline}.` : "";
+    const fileLabel = fileId ? " Letter file linked." : "";
     await logClientActivity(
       editId
-        ? `Letter updated: ${recipient} — ${tracking}.`
-        : `Letter added: ${recipient} — ${tracking}.`
+        ? `Letter updated: ${recipient} — ${tracking}.${activityDeadline}${fileLabel}`
+        : `Letter added: ${recipient} — ${tracking}.${activityDeadline}${fileLabel}`
     );
     resetLetterForm();
-    setAdminStatus(editId ? "Letter record updated." : "Letter record added.");
+    const savedMessage = editId ? "Letter record updated." : "Letter record added.";
+    const schemaWarnings = [];
+    if (missingDeliveredDateSupport) {
+      schemaWarnings.push("delivered dates for 35-day follow-up tracking");
+    }
+    if (missingLetterFileSupport) {
+      schemaWarnings.push("linked letter files");
+    }
+    setAdminStatus(
+      schemaWarnings.length
+        ? `${savedMessage} Run the updated Supabase schema to save ${schemaWarnings.join(" and ")}.`
+        : savedMessage
+    );
     await loadClientPreview(activeClientId);
   });
 

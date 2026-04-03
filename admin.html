@@ -27,7 +27,7 @@
     </script>
     <link rel="icon" type="image/jpeg" href="images/SCR-20260306-loyx.jpeg" />
     <link rel="apple-touch-icon" href="images/SCR-20260306-loyx.jpeg" />
-    <link rel="stylesheet" href="admin.css?v=20260320b" />
+    <link rel="stylesheet" href="admin.css?v=20260403b" />
   </head>
   <body>
 
@@ -381,10 +381,27 @@
                           </select>
                         </div>
                       </div>
+                      <div class="form-row hidden" id="letter-delivery-row">
+                        <div>
+                          <label for="letter-delivered-date">Delivered Date</label>
+                          <input id="letter-delivered-date" type="date" />
+                          <p class="muted sm">When a letter is marked delivered, the company response date is tracked 35 days out.</p>
+                        </div>
+                        <div class="letter-deadline-card hidden" id="letter-deadline-card">
+                          <p class="letter-deadline-label">Follow-up deadline</p>
+                          <p class="letter-deadline-date" id="letter-deadline-date">Company response due date will show here.</p>
+                          <p class="muted sm" id="letter-deadline-meta"></p>
+                        </div>
+                      </div>
                       <label for="letter-recipient">Bureau / Creditor <span class="req">*</span></label>
                       <input id="letter-recipient" type="text" placeholder="e.g. Experian, NCB Management" required />
                       <label for="letter-tracking">Tracking Number <span class="req">*</span></label>
                       <input id="letter-tracking" type="text" placeholder="USPS or UPS tracking number" required />
+                      <label for="letter-file-id">Linked Letter File</label>
+                      <select id="letter-file-id">
+                        <option value="">No linked file yet</option>
+                      </select>
+                      <p class="muted sm">Upload the letter in the Files section, then link it here so the tracking row can open the actual letter document. Use DOCX or PDF for the best client download experience.</p>
                       <label for="letter-notes">Notes</label>
                       <textarea id="letter-notes" rows="2" placeholder="Optional — dispute reason, account number, etc."></textarea>
                       <div class="form-actions mt">
@@ -478,7 +495,7 @@
                         <textarea id="file-notes" rows="2" placeholder="Optional description"></textarea>
                         <label for="file-input">Attachment <span class="req">*</span> <span class="muted sm">(PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</span></label>
                         <input id="file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
-                        <p class="muted sm">Use <strong>Dispute Summary</strong> for a Credit Dispute Master Summary image, PDF, or Word document. When the file is small enough and parseable in the browser, the uploader will import the detected negative items into the section on the left.</p>
+                        <p class="muted sm">Use <strong>Dispute Summary</strong> for a Credit Dispute Master Summary image, PDF, or Word document. When the file is small enough and parseable in the browser, the uploader will import the detected negative items into the section on the left. For linked letter downloads in the client portal, DOCX or PDF works best.</p>
                         <button class="btn primary full mt" type="submit">Upload File</button>
                       </form>
                     </div>
@@ -927,6 +944,6 @@
         if (btn) btn.classList.add('active');
       }
     </script>
-    <script type="module" src="admin.js?v=20260320b"></script>
+    <script type="module" src="admin.js?v=20260403b"></script>
   </body>
 </html>

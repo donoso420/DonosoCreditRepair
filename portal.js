@@ -522,6 +522,11 @@ function getUploadContentType(file) {
 }
 
 function parseDisplayDate(value) {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
   const raw = String(value || "").trim();
   if (!raw) return null;
 
@@ -548,6 +553,44 @@ function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "N/A";
   return date.toLocaleString();
+}
+
+let jsZipPromise = null;
+
+function isPdfFileRow(fileRow) {
+  const contentType = String(fileRow?.content_type || "").toLowerCase();
+  const fileName = String(fileRow?.file_name || "").toLowerCase();
+  return contentType === "application/pdf" || fileName.endsWith(".pdf");
+}
+
+function isDocxFileRow(fileRow) {
+  const contentType = String(fileRow?.content_type || "").toLowerCase();
+  const fileName = String(fileRow?.file_name || "").toLowerCase();
+  return (
+    contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    fileName.endsWith(".docx")
+  );
+}
+
+function getLinkedLetterFileName(fileRow = {}) {
+  return String(fileRow.title || fileRow.file_name || "letter").trim() || "letter";
+}
+
+function getJsPdfCtor() {
+  const ctor = window.jspdf?.jsPDF;
+  if (!ctor) {
+    throw new Error("PDF tools are still loading. Try again in a moment.");
+  }
+  return ctor;
+}
+
+async function getJsZip() {
+  if (!jsZipPromise) {
+    jsZipPromise = import("https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm").then(
+      (module) => module.default || module
+    );
+  }
+  return jsZipPromise;
 }
 
 function formatBillingInterval(value) {
@@ -839,12 +882,185 @@ async function safeTableQuery(queryPromise, fallback = []) {
   throw error;
 }
 
+async function loadPortalLetters(supabase, userId) {
+  const buildQuery = (columns) =>
+    supabase
+      .from("client_letters")
+      .select(columns)
+      .eq("user_id", userId)
+      .order("sent_date", { ascending: false });
+
+  const variants = [
+    {
+      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type,file_id",
+      defaults: {},
+    },
+    {
+      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type",
+      defaults: { file_id: null },
+    },
+  ];
+
+  for (const variant of variants) {
+    const result = await buildQuery(variant.columns);
+    if (!result.error) {
+      return (result.data || []).map((row) => ({
+        ...variant.defaults,
+        ...row,
+      }));
+    }
+    if (!isMissingFeatureError(result.error)) throw result.error;
+  }
+
+  return [];
+}
+
 function sanitizeFileName(name) {
   return String(name || "file")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9._-]/g, "-")
     .replace(/-+/g, "-");
+}
+
+function downloadBlob(blob, fileName) {
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
+async function fetchBlobFromSignedUrl(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Could not download the linked letter file.");
+  }
+  return response.blob();
+}
+
+async function extractTextFromDocxBlob(blob) {
+  const JSZip = await getJsZip();
+  const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+  const documentXml = await zip.file("word/document.xml")?.async("text");
+  if (!documentXml) return "";
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(documentXml, "application/xml");
+  const paragraphs = Array.from(xmlDoc.getElementsByTagName("w:p"))
+    .map((paragraph) =>
+      Array.from(paragraph.getElementsByTagName("w:t"))
+        .map((node) => node.textContent || "")
+        .join("")
+        .trim()
+    )
+    .filter(Boolean);
+
+  return paragraphs.join("\n\n");
+}
+
+function buildLetterPdfFileName(row) {
+  const recipient = sanitizeFileName(row.recipient || row.bureau || "letter");
+  const sentDate = sanitizeFileName(row.sent_date || formatDate(new Date()));
+  return `${recipient}-${sentDate}.pdf`;
+}
+
+async function createLetterPdfBlob({ title, text, metadata = [] }) {
+  const JsPdf = getJsPdfCtor();
+  const doc = new JsPdf({ unit: "pt", format: "letter" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const left = 54;
+  const right = 54;
+  const top = 56;
+  const bottom = 54;
+  const maxWidth = pageWidth - left - right;
+  let y = top;
+
+  const ensureSpace = (requiredHeight = 14) => {
+    if (y + requiredHeight <= pageHeight - bottom) return;
+    doc.addPage();
+    y = top;
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  ensureSpace(20);
+  doc.text(title || "Letter", left, y);
+  y += 24;
+
+  if (metadata.length) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    metadata.forEach((line) => {
+      ensureSpace(14);
+      doc.text(String(line), left, y);
+      y += 14;
+    });
+    y += 8;
+  }
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(11);
+  const paragraphs = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.replace(/\n/g, " ").trim())
+    .filter(Boolean);
+
+  const printableParagraphs = paragraphs.length ? paragraphs : ["Letter text unavailable."];
+  printableParagraphs.forEach((paragraph) => {
+    const lines = doc.splitTextToSize(paragraph, maxWidth);
+    lines.forEach((line) => {
+      ensureSpace(16);
+      doc.text(line, left, y);
+      y += 16;
+    });
+    y += 10;
+  });
+
+  return doc.output("blob");
+}
+
+async function downloadLetterAsPdf(row) {
+  const linkedFile = row.linked_file || null;
+  if (linkedFile?.signed_url && isPdfFileRow(linkedFile)) {
+    const blob = await fetchBlobFromSignedUrl(linkedFile.signed_url);
+    downloadBlob(blob, buildLetterPdfFileName(row));
+    return;
+  }
+
+  let text = "";
+
+  if (linkedFile?.signed_url && isDocxFileRow(linkedFile)) {
+    const blob = await fetchBlobFromSignedUrl(linkedFile.signed_url);
+    text = await extractTextFromDocxBlob(blob);
+  }
+
+  if (!text) {
+    text = String(row.letter_content || "").trim();
+  }
+
+  if (!text) {
+    throw new Error(
+      "PDF download is available for linked PDF files, linked DOCX files, or letters saved with text content."
+    );
+  }
+
+  const pdfBlob = await createLetterPdfBlob({
+    title: row.recipient || row.bureau || getLinkedLetterFileName(linkedFile),
+    text,
+    metadata: [
+      `Sent: ${formatDate(row.sent_date)}`,
+      `Tracking: ${row.tracking_number || "N/A"}`,
+      `Status: ${row.status || "In Transit"}`,
+    ],
+  });
+
+  downloadBlob(pdfBlob, buildLetterPdfFileName(row));
 }
 
 function statusBadgeClass(status) {
@@ -917,19 +1133,32 @@ function renderLetters(letters) {
   }
 
   lettersBodyEl.innerHTML = letters
-    .map((row) => {
+    .map((row, index) => {
       const status = row.status || "In Transit";
       const badgeClass = statusBadgeClass(status);
+      const linkedFile = row.linked_file || null;
       const viewBtn = row.letter_content
         ? `<button class="btn sm secondary view-letter-btn" type="button" data-content="${escapeHtml(row.letter_content)}" data-label="${escapeHtml(row.recipient || row.bureau || "Letter")}">View Letter</button>`
         : "";
+      const openFileBtn = linkedFile?.signed_url
+        ? `<a class="btn sm secondary" href="${escapeHtml(
+            linkedFile.signed_url
+          )}" target="_blank" rel="noopener noreferrer">Open File</a>`
+        : "";
+      const canDownloadPdf = Boolean(row.letter_content) || isPdfFileRow(linkedFile) || isDocxFileRow(linkedFile);
+      const downloadPdfBtn = canDownloadPdf
+        ? `<button class="btn sm secondary download-letter-pdf-btn" type="button" data-letter-index="${escapeHtml(
+            index
+          )}">Download PDF</button>`
+        : "";
+      const actionMarkup = [openFileBtn, viewBtn, downloadPdfBtn].filter(Boolean).join(" ");
       return `
         <tr>
           <td>${escapeHtml(formatDate(row.sent_date))}</td>
           <td>${escapeHtml(row.recipient || row.bureau || "N/A")}</td>
           <td>${escapeHtml(row.tracking_number && row.tracking_number !== "PENDING" ? row.tracking_number : "—")}</td>
           <td><span class="badge ${escapeHtml(badgeClass)}">${escapeHtml(status)}</span></td>
-          <td>${viewBtn}</td>
+          <td>${actionMarkup ? `<div class="letter-actions">${actionMarkup}</div>` : "—"}</td>
         </tr>
       `;
     })
@@ -941,6 +1170,25 @@ function renderLetters(letters) {
       const content = btn.dataset.content || "";
       const label = btn.dataset.label || "Dispute Letter";
       showLetterModal(label, content);
+    });
+  });
+
+  lettersBodyEl.querySelectorAll(".download-letter-pdf-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const index = Number(btn.dataset.letterIndex || -1);
+      const row = letters[index];
+      if (!row) return;
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Preparing PDF...";
+      try {
+        await downloadLetterAsPdf(row);
+      } catch (error) {
+        window.alert(error?.message || "Could not prepare the PDF for this letter.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
     });
   });
 }
@@ -1665,7 +1913,7 @@ function initializePortal() {
       billingProfile,
       invoices,
       negativeItems,
-      { data: letters },
+      letters,
       { data: updates },
       { data: files },
       { data: messages },
@@ -1706,9 +1954,9 @@ function initializePortal() {
           .order("is_active", { ascending: false })
           .order("created_at", { ascending: false })
       ),
-      supabase.from("client_letters").select("sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type").eq("user_id", currentPortalUserId).order("sent_date", { ascending: false }),
+      loadPortalLetters(supabase, currentPortalUserId),
       supabase.from("client_updates").select("details,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
-      supabase.from("client_files").select("id,title,category,notes,file_name,file_path,bucket,created_at,uploaded_by").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
+      supabase.from("client_files").select("id,title,category,notes,file_name,file_path,bucket,created_at,uploaded_by,content_type,file_size").eq("user_id", currentPortalUserId).order("created_at", { ascending: false }),
       supabase.from("portal_messages").select("sender_role,content,created_at").eq("user_id", currentPortalUserId).order("created_at", { ascending: true }),
     ]);
 
@@ -1746,10 +1994,14 @@ function initializePortal() {
       })
     );
 
-    const fileMap = new Map(filesWithSignedUrls.map((row) => [row.id, row.signed_url || ""]));
+    const fileMap = new Map(filesWithSignedUrls.map((row) => [row.id, row]));
     const reportsWithUrls = (reports || []).map((row) => ({
       ...row,
-      signed_url: fileMap.get(row.file_id) || "",
+      signed_url: fileMap.get(row.file_id)?.signed_url || "",
+    }));
+    const lettersWithFiles = (letters || []).map((row) => ({
+      ...row,
+      linked_file: row.file_id ? fileMap.get(row.file_id) || null : null,
     }));
 
     renderScores(snapshots || []);
@@ -1757,8 +2009,8 @@ function initializePortal() {
     renderBilling(billingProfile || null, invoices || []);
     syncScoreSectionVisibility(snapshots || [], reportsWithUrls);
     renderNegativeItems(negativeItems || []);
-    renderTracker(letters || [], snapshots || [], reportsWithUrls);
-    renderLetters(letters || []);
+    renderTracker(lettersWithFiles, snapshots || [], reportsWithUrls);
+    renderLetters(lettersWithFiles);
     renderUpdates(updates || []);
     renderActivity(updates || []);
     renderRequiredDocuments(filesWithSignedUrls);
