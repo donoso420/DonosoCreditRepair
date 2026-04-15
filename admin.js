@@ -2899,9 +2899,135 @@ async function handlePreviewRecordAction(action, rowId) {
   }
 }
 
+let mailStatusAllRows = [];
+
 function initTabs() {
   // Tab switching is handled by adminTab() inline onclick in HTML
+  document.getElementById("mail-status-refresh-btn")?.addEventListener("click", loadMailStatusTab);
+  document.getElementById("mail-status-client-select")?.addEventListener("change", renderMailStatusForSelectedClient);
 }
+
+async function loadMailStatusTab() {
+  const select = document.getElementById("mail-status-client-select");
+  const bodies = {
+    delivered: document.getElementById("mail-status-body-delivered"),
+    returned: document.getElementById("mail-status-body-returned"),
+    transit: document.getElementById("mail-status-body-transit"),
+  };
+
+  Object.values(bodies).forEach((el) => {
+    if (el) el.innerHTML = '<p class="muted sm mail-status-empty">Loading…</p>';
+  });
+
+  let rows;
+  try {
+    const { data, error } = await supabase
+      .from("client_letters")
+      .select("id,user_id,recipient,bureau,tracking_number,status,sent_date,delivered_date,notes,created_at")
+      .order("sent_date", { ascending: false });
+    if (error) throw error;
+    rows = data || [];
+  } catch (err) {
+    Object.values(bodies).forEach((el) => {
+      if (el) el.innerHTML = '<p class="muted sm mail-status-empty">Could not load letters.</p>';
+    });
+    return;
+  }
+
+  mailStatusAllRows = rows;
+
+  // Populate client dropdown from clients who have letters
+  if (select) {
+    const clientMap = {};
+    for (const c of clientDirectory) clientMap[c.user_id] = getClientDisplayName(c);
+    const seen = new Set();
+    const options = [{ value: "", label: "— Choose a client —" }];
+    for (const row of rows) {
+      if (!seen.has(row.user_id)) {
+        seen.add(row.user_id);
+        options.push({ value: row.user_id, label: clientMap[row.user_id] || "Unknown Client" });
+      }
+    }
+    options.sort((a, b) => (a.value === "" ? -1 : b.value === "" ? 1 : a.label.localeCompare(b.label, undefined, { sensitivity: "base" })));
+    const currentVal = select.value;
+    select.innerHTML = options.map((o) => `<option value="${safeText(o.value)}">${safeText(o.label)}</option>`).join("");
+    if (currentVal && options.some((o) => o.value === currentVal)) select.value = currentVal;
+  }
+
+  renderMailStatusForSelectedClient();
+}
+
+function renderMailStatusForSelectedClient() {
+  const select = document.getElementById("mail-status-client-select");
+  const selectedUserId = select?.value || "";
+
+  const bodies = {
+    delivered: document.getElementById("mail-status-body-delivered"),
+    returned: document.getElementById("mail-status-body-returned"),
+    transit: document.getElementById("mail-status-body-transit"),
+  };
+  const counts = {
+    delivered: document.getElementById("mail-status-count-delivered"),
+    returned: document.getElementById("mail-status-count-returned"),
+    transit: document.getElementById("mail-status-count-transit"),
+  };
+
+  if (!selectedUserId) {
+    Object.values(bodies).forEach((el) => {
+      if (el) el.innerHTML = '<p class="muted sm mail-status-empty">Choose a client above to see their letters.</p>';
+    });
+    Object.values(counts).forEach((el) => { if (el) el.textContent = "0"; });
+    return;
+  }
+
+  const filtered = mailStatusAllRows.filter((r) => r.user_id === selectedUserId);
+  const groups = { delivered: [], returned: [], transit: [] };
+  for (const row of filtered) {
+    const norm = normalizeLetterStatus(row.status);
+    if (norm === "delivered") groups.delivered.push(row);
+    else if (norm === "returned mail" || norm === "mail not delivered") groups.returned.push(row);
+    else if (norm === "in transit") groups.transit.push(row);
+  }
+
+  function renderLetterRow(row, showDeadline) {
+    const recipient = safeText(row.recipient || row.bureau || "—");
+    const tracking = safeText(row.tracking_number || "—");
+    const sentDate = row.sent_date ? safeText(formatDate(row.sent_date)) : "—";
+    let deadlineHtml = "";
+    if (showDeadline) {
+      const summary = getLetterDeadlineSummary(row);
+      if (summary) {
+        const stateClass = summary.state === "overdue" ? "mail-deadline-overdue" : summary.state === "due-today" ? "mail-deadline-today" : "mail-deadline-pending";
+        deadlineHtml = `<span class="mail-deadline-badge ${stateClass}">${safeText(summary.meta)}</span>`;
+      }
+    }
+    return `<div class="mail-status-row">
+      <div class="mail-status-row-meta">
+        <span class="mail-status-recipient">${recipient}</span>
+        <span class="mail-status-tracking">Tracking: ${tracking}</span>
+        <span class="mail-status-sent">Sent: ${sentDate}</span>
+        ${deadlineHtml}
+      </div>
+    </div>`;
+  }
+
+  function renderGroup(key, showDeadline) {
+    const list = groups[key];
+    if (counts[key]) counts[key].textContent = String(list.length);
+    if (!bodies[key]) return;
+    if (!list.length) {
+      bodies[key].innerHTML = '<p class="muted sm mail-status-empty">No letters in this category.</p>';
+      return;
+    }
+    bodies[key].innerHTML = list.map((r) => renderLetterRow(r, showDeadline)).join("");
+  }
+
+  renderGroup("delivered", true);
+  renderGroup("returned", false);
+  renderGroup("transit", false);
+}
+
+window.renderMailStatusForSelectedClient = renderMailStatusForSelectedClient;
 
 async function requireActiveClient() {
   if (!activeClientId) {
@@ -4012,5 +4138,7 @@ function initialize() {
     setAuthStatus("Could not restore admin session: " + (error?.message || error), true);
   });
 }
+
+window.loadMailStatusTab = loadMailStatusTab;
 
 initialize();

@@ -1404,6 +1404,159 @@ textarea { resize: vertical; }
   border-color: #d6d5dd;
 }
 
+/* ── Mail Status Tab ─────────────────────────────── */
+.mail-status-wrap {
+  max-width: 860px;
+  padding-top: 1.5rem;
+}
+
+.mail-status-group {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.mail-status-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.mail-status-summary::-webkit-details-marker { display: none; }
+
+.mail-status-summary::after {
+  content: "›";
+  margin-left: auto;
+  font-size: 1.1rem;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+  line-height: 1;
+}
+
+details[open] > .mail-status-summary::after {
+  transform: rotate(90deg);
+}
+
+.mail-status-title {
+  flex: 1;
+}
+
+.mail-status-count {
+  background: #ede7f8;
+  color: #5b3c98;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 1.6rem;
+  text-align: center;
+}
+
+.mail-status-body {
+  border-top: 1px solid var(--line);
+  padding: 0.75rem 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.mail-status-empty {
+  margin: 0.25rem 0;
+}
+
+.mail-status-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.mail-status-filter select {
+  flex: 1;
+  max-width: 340px;
+}
+
+.mail-client-group {
+  margin-bottom: 0.75rem;
+}
+
+.mail-client-group:last-child {
+  margin-bottom: 0;
+}
+
+.mail-client-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #5b3c98;
+  padding: 0.35rem 0.5rem 0.3rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.4rem;
+}
+
+.mail-client-letters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.mail-status-row {
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.mail-status-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  font-size: 0.83rem;
+  color: var(--muted);
+}
+
+.mail-status-recipient {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.mail-deadline-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.mail-deadline-pending {
+  background: #e7f3ff;
+  color: #1d5d97;
+  border-color: #c5def7;
+}
+
+.mail-deadline-today {
+  background: #fff8e1;
+  color: #8a6200;
+  border-color: #f5d77a;
+}
+
+.mail-deadline-overdue {
+  background: #fff0e6;
+  color: #a75712;
+  border-color: #f0c9a8;
+}
+
 /* ── Helpers ─────────────────────────────────────── */
 .muted { color: var(--muted); }
 .sm { font-size: 0.85rem; }

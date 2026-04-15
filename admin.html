@@ -95,6 +95,7 @@
             <button class="tab-btn" data-tab="dashboard" onclick="adminTab('dashboard',this)">📋 Client Dashboard</button>
             <button class="tab-btn" data-tab="billing" onclick="adminTab('billing',this)">💳 Billing</button>
             <button class="tab-btn" data-tab="invite" onclick="adminTab('invite',this)">✉ Invite Client</button>
+            <button class="tab-btn" data-tab="mail-status" onclick="adminTab('mail-status',this)">📬 Mail Status</button>
           </nav>
         </div>
 
@@ -833,6 +834,57 @@
         </div>
         <!-- end tab-invite -->
 
+        <!-- ── TAB: Mail Status ─────────────────────────────── -->
+        <div class="tab-panel" id="tab-mail-status" style="display:none">
+          <div class="container mail-status-wrap">
+            <div class="section-label" style="margin-bottom:1.5rem;">
+              <h2>📬 Mail Status</h2>
+              <p class="muted sm">Filter by client to view their letter delivery status.</p>
+            </div>
+            <div class="mail-status-filter">
+              <label for="mail-status-client-select" class="sr-only">Select client</label>
+              <select id="mail-status-client-select">
+                <option value="">— Choose a client —</option>
+              </select>
+              <button class="btn secondary sm" id="mail-status-refresh-btn" type="button">↺ Refresh</button>
+            </div>
+
+            <details class="mail-status-group" id="mail-status-delivered" open>
+              <summary class="mail-status-summary">
+                <span class="mail-status-icon">✅</span>
+                <span class="mail-status-title">Delivered — Response Window Active</span>
+                <span class="mail-status-count" id="mail-status-count-delivered">0</span>
+              </summary>
+              <div class="mail-status-body" id="mail-status-body-delivered">
+                <p class="muted sm mail-status-empty">Loading…</p>
+              </div>
+            </details>
+
+            <details class="mail-status-group" id="mail-status-returned">
+              <summary class="mail-status-summary">
+                <span class="mail-status-icon">↩️</span>
+                <span class="mail-status-title">Returned Mail</span>
+                <span class="mail-status-count" id="mail-status-count-returned">0</span>
+              </summary>
+              <div class="mail-status-body" id="mail-status-body-returned">
+                <p class="muted sm mail-status-empty">Loading…</p>
+              </div>
+            </details>
+
+            <details class="mail-status-group" id="mail-status-transit">
+              <summary class="mail-status-summary">
+                <span class="mail-status-icon">🚚</span>
+                <span class="mail-status-title">In Transit</span>
+                <span class="mail-status-count" id="mail-status-count-transit">0</span>
+              </summary>
+              <div class="mail-status-body" id="mail-status-body-transit">
+                <p class="muted sm mail-status-empty">Loading…</p>
+              </div>
+            </details>
+          </div>
+        </div>
+        <!-- end tab-mail-status -->
+
         <!-- ── TAB: Clients ───────────────────────────────── -->
         <div class="tab-panel active" id="tab-clients">
           <div class="container clients-tab-wrap">
@@ -921,6 +973,9 @@
           var showBar = (target === 'dashboard' || target === 'billing' || target === 'clients');
           clientBar.style.display = showBar ? 'block' : 'none';
           clientBar.classList.toggle('client-bar-compact', target === 'dashboard' || target === 'billing');
+        }
+        if (target === 'mail-status' && typeof loadMailStatusTab === 'function') {
+          loadMailStatusTab();
         }
       }
 
