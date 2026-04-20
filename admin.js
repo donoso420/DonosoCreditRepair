@@ -44,6 +44,10 @@ const letterDeliveryRow = document.getElementById("letter-delivery-row");
 const letterDeadlineCard = document.getElementById("letter-deadline-card");
 const letterDeadlineDate = document.getElementById("letter-deadline-date");
 const letterDeadlineMeta = document.getElementById("letter-deadline-meta");
+const letterFollowupAlert = document.getElementById("letter-followup-alert");
+const letterFollowupAlertTitle = document.getElementById("letter-followup-alert-title");
+const letterFollowupAlertMeta = document.getElementById("letter-followup-alert-meta");
+const letterFollowupAlertBtn = document.getElementById("letter-followup-alert-btn");
 const letterFileSelect = document.getElementById("letter-file-id");
 const timelineForm = document.getElementById("timeline-form");
 const timelineEditIdInput = document.getElementById("timeline-edit-id");
@@ -127,6 +131,7 @@ let activeLetterRows = [];
 let activeUpdateRows = [];
 let activeBillingProfile = null;
 let activeInvoiceRows = [];
+let clientLetterFollowupCounts = new Map();
 
 function getStoredThemePreference() {
   try {
@@ -403,6 +408,86 @@ function getLetterDeadlineSummary({
   };
 }
 
+function getActionableLetterFollowups(rows = []) {
+  return (rows || [])
+    .map((row) => ({
+      row,
+      deadline: getLetterDeadlineSummary(row),
+    }))
+    .filter(
+      ({ deadline }) => deadline && (deadline.state === "due-today" || deadline.state === "overdue")
+    )
+    .sort((a, b) => {
+      const aTime = a.deadline?.dueDate?.getTime?.() || 0;
+      const bTime = b.deadline?.dueDate?.getTime?.() || 0;
+      return aTime - bTime;
+    });
+}
+
+function renderLetterFollowupAlert(rows = activeLetterRows) {
+  if (!letterFollowupAlert || !letterFollowupAlertTitle || !letterFollowupAlertMeta || !letterFollowupAlertBtn) {
+    return;
+  }
+
+  const actionable = getActionableLetterFollowups(rows);
+  const firstMatch = actionable[0] || null;
+
+  if (!firstMatch) {
+    letterFollowupAlert.classList.add("hidden");
+    letterFollowupAlert.removeAttribute("data-alert-state");
+    letterFollowupAlertBtn.classList.add("hidden");
+    letterFollowupAlertBtn.dataset.rowId = "";
+    letterFollowupAlertTitle.textContent = "No letters have reached the follow-up date yet.";
+    letterFollowupAlertMeta.textContent = "";
+    return;
+  }
+
+  const overdueExists = actionable.some(({ deadline }) => deadline?.state === "overdue");
+  const alertState = overdueExists ? "overdue" : "due-today";
+  const summaryPreview = actionable
+    .slice(0, 2)
+    .map(({ row, deadline }) => {
+      const parts = [
+        `#${row.id}`,
+        row.recipient || row.bureau || "Letter",
+        row.tracking_number || "",
+        deadline?.headline || "",
+      ].filter(Boolean);
+      return parts.join(" · ");
+    })
+    .join(" | ");
+
+  letterFollowupAlert.classList.remove("hidden");
+  letterFollowupAlert.dataset.alertState = alertState;
+  letterFollowupAlertTitle.textContent =
+    actionable.length === 1
+      ? "1 letter has reached the 35-day follow-up mark."
+      : `${actionable.length} letters have reached the 35-day follow-up mark.`;
+  letterFollowupAlertMeta.textContent =
+    actionable.length > 2 ? `${summaryPreview} | +${actionable.length - 2} more` : summaryPreview;
+  letterFollowupAlertBtn.classList.remove("hidden");
+  letterFollowupAlertBtn.dataset.rowId = String(firstMatch.row.id || "");
+  letterFollowupAlertBtn.textContent = actionable.length > 1 ? "Open oldest due letter" : "Open due letter";
+}
+
+function buildClientLetterFollowupCounts(rows = []) {
+  const groupedRows = new Map();
+
+  for (const row of rows || []) {
+    if (!row?.user_id) continue;
+    if (!groupedRows.has(row.user_id)) {
+      groupedRows.set(row.user_id, []);
+    }
+    groupedRows.get(row.user_id).push(row);
+  }
+
+  return new Map(
+    Array.from(groupedRows.entries())
+      .map(([userId, userRows]) => [userId, getActionableLetterFollowups(userRows).length])
+      .filter(([, count]) => count > 0)
+  );
+}
+
 function safeText(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
@@ -515,6 +600,7 @@ function getClientsOverviewState(row = {}) {
 function renderClientsOverview(row = null) {
   const selectedRow = row?.user_id ? row : null;
   const manualUpdateCount = activeUpdateRows.filter((entry) => !isActivityUpdateRow(entry)).length;
+  const actionableFollowups = getActionableLetterFollowups(activeLetterRows);
   const detailParts = [];
 
   if (clientsStatTotalEl) {
@@ -562,6 +648,11 @@ function renderClientsOverview(row = null) {
         `${manualUpdateCount} portal update${manualUpdateCount === 1 ? "" : "s"}, ` +
         `${activeClientFiles.length} file${activeClientFiles.length === 1 ? "" : "s"} on record.`
     );
+    if (actionableFollowups.length) {
+      detailParts.push(
+        `${actionableFollowups.length} letter follow-up${actionableFollowups.length === 1 ? "" : "s"} hit the 35-day mark.`
+      );
+    }
 
     if (clientsOverviewDetailsEl) {
       clientsOverviewDetailsEl.textContent = detailParts.join(" ");
@@ -676,6 +767,7 @@ function renderClientList() {
     .map((row) => {
       const name = getClientDisplayName(row);
       const isActive = row.user_id === activeClientId;
+      const followupCount = clientLetterFollowupCounts.get(row.user_id) || 0;
       return `
         <button
           class="client-list-item${isActive ? " active" : ""}"
@@ -686,7 +778,16 @@ function renderClientList() {
         >
           <span class="client-list-avatar" aria-hidden="true">${safeText(getClientInitials(name))}</span>
           <span class="client-list-copy">
-            <span class="client-list-name">${safeText(name)}</span>
+            <span class="client-list-name-row">
+              <span class="client-list-name">${safeText(name)}</span>
+              ${
+                followupCount
+                  ? `<span class="client-list-alert">${safeText(
+                      `${followupCount} due`
+                    )}</span>`
+                  : ""
+              }
+            </span>
             <span class="client-list-meta">${safeText(getClientListMeta(row))}</span>
           </span>
           <span class="client-list-state">${isActive ? "Selected" : "Dashboard"}</span>
@@ -722,6 +823,7 @@ function clearRenderedClientState() {
   renderBillingManager(null, []);
   renderAdminMessages([]);
   renderClientUploads([]);
+  renderLetterFollowupAlert([]);
   renderClientsOverview(null);
 }
 
@@ -1472,14 +1574,21 @@ async function loadClientProfileRecord(userId) {
 async function loadClients() {
   let profileRows;
   let adminRows;
+  let letterRows;
 
   try {
-    [profileRows, adminRows] = await Promise.all([
+    [profileRows, adminRows, letterRows] = await Promise.all([
       loadClientDirectoryRows(),
       safeTableQuery(
         supabase
           .from("admin_users")
           .select("user_id")
+      ),
+      safeTableQuery(
+        supabase
+          .from("client_letters")
+          .select("user_id,status,sent_date,delivered_date"),
+        []
       ),
     ]);
   } catch (error) {
@@ -1493,12 +1602,14 @@ async function loadClients() {
     .sort((a, b) =>
       getClientDisplayName(a).localeCompare(getClientDisplayName(b), undefined, { sensitivity: "base" })
     );
+  clientLetterFollowupCounts = buildClientLetterFollowupCounts(letterRows || []);
 
   renderClientSelectOptions();
   renderClientList();
 
   if (!clientDirectory.length) {
     activeClientId = null;
+    clientLetterFollowupCounts = new Map();
     resetActiveClientCollections();
     resetActiveClientForms();
     updateActiveClientSummary(null);
@@ -1997,6 +2108,12 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
   } else {
     for (const row of letters) {
       const deadline = getLetterDeadlineSummary(row);
+      const followupState = ["overdue", "due-today"].includes(deadline?.state) ? deadline.state : "";
+      const followupPill = followupState
+        ? `<span class="letter-alert-pill ${safeText(followupState)}">${
+            followupState === "overdue" ? "35-day follow-up overdue" : "35-day follow-up due"
+          }</span>`
+        : "";
       const followupNote = deadline
         ? `<p class="letter-followup-note"><strong>${safeText(deadline.headline)}</strong>${deadline.meta ? ` · ${safeText(deadline.meta)}` : ""}</p>`
         : "";
@@ -2012,14 +2129,19 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
           `
         : "";
       const li = document.createElement("li");
-      li.className = "file-record";
+      li.className = `file-record${followupState ? " letter-alert-record" : ""}`;
       li.innerHTML = `
-        <p class="file-record-title">#${safeText(row.id)} · ${safeText(
-          row.recipient || row.bureau || "N/A"
-        )}</p>
-        <p class="file-record-meta">${safeText(row.tracking_number || "N/A")} · ${safeText(
-          row.status || "In Transit"
-        )} · ${safeText(row.sent_date ? formatDate(row.sent_date) : "No date")}</p>
+        <div class="preview-item-head">
+          <div class="preview-item-main">
+            <p class="file-record-title">#${safeText(row.id)} · ${safeText(
+              row.recipient || row.bureau || "N/A"
+            )}</p>
+            <p class="file-record-meta">${safeText(row.tracking_number || "N/A")} · ${safeText(
+              row.status || "In Transit"
+            )} · ${safeText(row.sent_date ? formatDate(row.sent_date) : "No date")}</p>
+          </div>
+          ${followupPill}
+        </div>
         ${followupNote}
         ${linkedFileName ? `<p class="letter-followup-note"><strong>Linked file:</strong> ${safeText(linkedFileName)}</p>` : ""}
         <div class="file-actions-row">
@@ -2487,6 +2609,13 @@ async function loadClientPreview(userId) {
     linked_file: row.file_id ? fileMap.get(row.file_id) || null : null,
   }));
   activeLetterRows = lettersWithFiles;
+  const actionableCount = getActionableLetterFollowups(lettersWithFiles).length;
+  if (actionableCount) {
+    clientLetterFollowupCounts.set(userId, actionableCount);
+  } else {
+    clientLetterFollowupCounts.delete(userId);
+  }
+  renderLetterFollowupAlert(lettersWithFiles);
   syncLetterUpdateChoices();
   activeUpdateRows = updates || [];
   activeNegativeItemRows = negativeItems || [];
@@ -2518,6 +2647,7 @@ async function loadClientPreview(userId) {
   renderAdminMessages(messages || []);
   renderClientUploads(filesWithUrls);
   renderClientsOverview(mergedClientProfile);
+  renderClientList();
 }
 
 async function safeDeleteQuery(queryPromise) {
@@ -3287,6 +3417,15 @@ function initialize() {
   });
   letterDateInput?.addEventListener("change", syncLetterDeadlineUi);
   letterDeliveredDateInput?.addEventListener("change", syncLetterDeadlineUi);
+  letterFollowupAlertBtn?.addEventListener("click", () => {
+    const row = findActiveRow(activeLetterRows, letterFollowupAlertBtn.dataset.rowId);
+    if (!row) {
+      setAdminStatus("That letter follow-up could not be found. Refresh and try again.", true);
+      return;
+    }
+    activateWorkspaceTab("letters");
+    populateLetterForm(row);
+  });
   timelineCancelBtn?.addEventListener("click", resetTimelineForm);
   invoiceCancelBtn?.addEventListener("click", resetInvoiceForm);
 

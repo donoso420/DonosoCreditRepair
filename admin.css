@@ -393,10 +393,32 @@ a { color: var(--accent-strong); text-decoration: none; }
   gap: 0.2rem;
 }
 
+.client-list-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .client-list-name {
   font-size: 0.94rem;
   font-weight: 800;
   color: #261a41;
+}
+
+.client-list-alert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: #fde9e6;
+  color: #a04640;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .client-list-meta {
@@ -962,6 +984,98 @@ textarea { resize: vertical; }
   color: #5a4b74;
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.letter-followup-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  border: 1px solid #e8dcf7;
+  background:
+    radial-gradient(circle at top right, rgba(194, 149, 233, 0.16), transparent 35%),
+    linear-gradient(180deg, #ffffff 0%, #faf7ff 100%);
+  box-shadow: 0 14px 28px rgba(98, 65, 155, 0.08);
+}
+
+.letter-followup-alert-copy {
+  min-width: 0;
+}
+
+.letter-followup-alert-label {
+  margin: 0 0 0.3rem;
+  color: #7d57b1;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.letter-followup-alert-title {
+  margin: 0;
+  color: #2d2143;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.letter-followup-alert-meta {
+  margin: 0.35rem 0 0;
+  color: #65577c;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.letter-followup-alert[data-alert-state="due-today"] {
+  border-color: #e6d8f8;
+}
+
+.letter-followup-alert[data-alert-state="overdue"] {
+  border-color: #efcfcb;
+  background:
+    radial-gradient(circle at top right, rgba(224, 122, 112, 0.14), transparent 35%),
+    linear-gradient(180deg, #fff8f7 0%, #fff1ef 100%);
+}
+
+.letter-followup-alert[data-alert-state="overdue"] .letter-followup-alert-label,
+.letter-followup-alert[data-alert-state="overdue"] .letter-followup-alert-title {
+  color: #8f3b36;
+}
+
+.letter-followup-alert[data-alert-state="overdue"] .letter-followup-alert-meta {
+  color: #7a4a46;
+}
+
+.letter-alert-record {
+  border-color: #e6d8f8;
+  box-shadow: 0 12px 24px rgba(118, 86, 177, 0.08);
+}
+
+.letter-alert-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+}
+
+.letter-alert-pill.due-today {
+  background: #efe7fb;
+  color: #6d44a5;
+}
+
+.letter-alert-pill.overdue {
+  background: #fde9e6;
+  color: #a04640;
 }
 
 .negative-admin-row {
@@ -1849,6 +1963,11 @@ details[open] > .mail-status-summary::after {
   color: #ebddff;
 }
 
+[data-theme="dark"] .client-list-alert {
+  background: rgba(224, 111, 101, 0.18);
+  color: #ffc9c4;
+}
+
 [data-theme="dark"] .client-list-item.active .client-list-state {
   background: #8f6bd4;
   color: #ffffff;
@@ -2391,6 +2510,57 @@ textarea:focus {
 [data-theme="dark"] .letter-deadline-card[data-deadline-state="overdue"] .letter-deadline-date,
 [data-theme="dark"] .letter-followup-note {
   color: #e6d8f7;
+}
+
+[data-theme="dark"] .letter-followup-alert {
+  border-color: rgba(174, 135, 228, 0.3);
+  background:
+    radial-gradient(circle at top right, rgba(162, 114, 218, 0.22), transparent 35%),
+    linear-gradient(180deg, rgba(35, 24, 52, 0.96) 0%, rgba(27, 19, 41, 0.98) 100%);
+  box-shadow: 0 16px 30px rgba(4, 2, 12, 0.35);
+}
+
+[data-theme="dark"] .letter-followup-alert-label {
+  color: #d4b5ff;
+}
+
+[data-theme="dark"] .letter-followup-alert-title {
+  color: #f4eeff;
+}
+
+[data-theme="dark"] .letter-followup-alert-meta {
+  color: #d0c2e7;
+}
+
+[data-theme="dark"] .letter-followup-alert[data-alert-state="overdue"] {
+  border-color: rgba(231, 125, 116, 0.35);
+  background:
+    radial-gradient(circle at top right, rgba(224, 111, 101, 0.2), transparent 35%),
+    linear-gradient(180deg, rgba(69, 29, 28, 0.92) 0%, rgba(51, 21, 20, 0.98) 100%);
+}
+
+[data-theme="dark"] .letter-followup-alert[data-alert-state="overdue"] .letter-followup-alert-label,
+[data-theme="dark"] .letter-followup-alert[data-alert-state="overdue"] .letter-followup-alert-title {
+  color: #ffc2bc;
+}
+
+[data-theme="dark"] .letter-followup-alert[data-alert-state="overdue"] .letter-followup-alert-meta {
+  color: #f0d0cd;
+}
+
+[data-theme="dark"] .letter-alert-record {
+  border-color: rgba(174, 135, 228, 0.25);
+  box-shadow: 0 16px 30px rgba(5, 2, 16, 0.28);
+}
+
+[data-theme="dark"] .letter-alert-pill.due-today {
+  background: rgba(174, 135, 228, 0.18);
+  color: #e1c8ff;
+}
+
+[data-theme="dark"] .letter-alert-pill.overdue {
+  background: rgba(224, 111, 101, 0.18);
+  color: #ffc9c4;
 }
 
 /* ── Purple-First Fine Tune ─────────────────────── */
