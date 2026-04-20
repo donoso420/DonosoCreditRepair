@@ -804,6 +804,13 @@ tbody tr:last-child td {
   gap: 0.45rem;
 }
 
+.letter-row-type {
+  margin-top: 0.2rem;
+  color: #7d7190;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
 .empty {
   color: var(--muted);
 }
@@ -1630,6 +1637,7 @@ tbody tr:last-child td {
 [data-theme="dark"] .msg-label,
 [data-theme="dark"] .doc-note,
 [data-theme="dark"] .reports-note,
+[data-theme="dark"] .letter-row-type,
 [data-theme="dark"] .tracker-label span,
 [data-theme="dark"] .empty {
   color: #b9aacd;

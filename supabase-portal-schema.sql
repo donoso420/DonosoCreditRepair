@@ -35,6 +35,7 @@ create table if not exists public.credit_snapshots (
 create table if not exists public.client_letters (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
+  parent_letter_id bigint references public.client_letters(id) on delete set null,
   sent_date date not null,
   delivered_date date,
   file_id bigint,
@@ -53,6 +54,7 @@ alter table public.client_letters
   add column if not exists letter_content text,
   add column if not exists delivered_date date,
   add column if not exists file_id bigint,
+  add column if not exists parent_letter_id bigint references public.client_letters(id) on delete set null,
   add column if not exists letter_type text not null default 'initial';
 
 -- Timeline/account updates

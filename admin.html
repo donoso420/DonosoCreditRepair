@@ -362,9 +362,14 @@
                       <p class="letter-followup-alert-title" id="letter-followup-alert-title">No letters have reached the follow-up date yet.</p>
                       <p class="letter-followup-alert-meta" id="letter-followup-alert-meta"></p>
                     </div>
-                    <button class="btn secondary sm hidden" id="letter-followup-alert-btn" type="button">
-                      Open due letter
-                    </button>
+                    <div class="letter-followup-alert-actions">
+                      <button class="btn secondary sm hidden" id="letter-followup-alert-btn" type="button">
+                        Open due letter
+                      </button>
+                      <button class="btn primary sm hidden" id="letter-followup-create-btn" type="button">
+                        Create follow-up
+                      </button>
+                    </div>
                   </div>
 
                   <div class="card">
@@ -372,11 +377,17 @@
                     <p class="muted sm">Add a new letter or choose an existing one to update its details and status.</p>
                     <form id="letter-form">
                       <input id="letter-edit-id" type="hidden" />
+                      <input id="letter-parent-id" type="hidden" />
+                      <input id="letter-type" type="hidden" value="initial" />
                       <label for="letter-update-id">Existing Letter</label>
                       <select id="letter-update-id">
                         <option value="">Add a new letter...</option>
                       </select>
                       <p class="muted sm" id="letter-update-selected-meta">Choose a letter to edit, or leave blank to add a new one.</p>
+                      <p class="letter-followup-draft hidden" id="letter-followup-draft">
+                        <strong id="letter-followup-draft-label">Creating a follow-up letter.</strong>
+                        This will save as a new letter record and keep the original letter in history.
+                      </p>
                       <div class="form-row">
                         <div>
                           <label for="letter-date">Sent Date <span class="req">*</span></label>

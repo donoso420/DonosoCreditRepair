@@ -33,6 +33,8 @@ const negativeSubmitBtn = document.getElementById("negative-submit-btn");
 const negativeCancelBtn = document.getElementById("negative-cancel-btn");
 const letterForm = document.getElementById("letter-form");
 const letterEditIdInput = document.getElementById("letter-edit-id");
+const letterParentIdInput = document.getElementById("letter-parent-id");
+const letterTypeInput = document.getElementById("letter-type");
 const letterSubmitBtn = document.getElementById("letter-submit-btn");
 const letterCancelBtn = document.getElementById("letter-cancel-btn");
 const letterUpdateIdSelect = document.getElementById("letter-update-id");
@@ -48,6 +50,9 @@ const letterFollowupAlert = document.getElementById("letter-followup-alert");
 const letterFollowupAlertTitle = document.getElementById("letter-followup-alert-title");
 const letterFollowupAlertMeta = document.getElementById("letter-followup-alert-meta");
 const letterFollowupAlertBtn = document.getElementById("letter-followup-alert-btn");
+const letterFollowupCreateBtn = document.getElementById("letter-followup-create-btn");
+const letterFollowupDraft = document.getElementById("letter-followup-draft");
+const letterFollowupDraftLabel = document.getElementById("letter-followup-draft-label");
 const letterFileSelect = document.getElementById("letter-file-id");
 const timelineForm = document.getElementById("timeline-form");
 const timelineEditIdInput = document.getElementById("timeline-edit-id");
@@ -409,13 +414,22 @@ function getLetterDeadlineSummary({
 }
 
 function getActionableLetterFollowups(rows = []) {
+  const supersededLetterIds = new Set(
+    (rows || [])
+      .map((row) => Number(row?.parent_letter_id || 0))
+      .filter((value) => Number.isFinite(value) && value > 0)
+  );
+
   return (rows || [])
     .map((row) => ({
       row,
       deadline: getLetterDeadlineSummary(row),
     }))
     .filter(
-      ({ deadline }) => deadline && (deadline.state === "due-today" || deadline.state === "overdue")
+      ({ row, deadline }) =>
+        deadline &&
+        (deadline.state === "due-today" || deadline.state === "overdue") &&
+        !supersededLetterIds.has(Number(row?.id || 0))
     )
     .sort((a, b) => {
       const aTime = a.deadline?.dueDate?.getTime?.() || 0;
@@ -425,7 +439,13 @@ function getActionableLetterFollowups(rows = []) {
 }
 
 function renderLetterFollowupAlert(rows = activeLetterRows) {
-  if (!letterFollowupAlert || !letterFollowupAlertTitle || !letterFollowupAlertMeta || !letterFollowupAlertBtn) {
+  if (
+    !letterFollowupAlert ||
+    !letterFollowupAlertTitle ||
+    !letterFollowupAlertMeta ||
+    !letterFollowupAlertBtn ||
+    !letterFollowupCreateBtn
+  ) {
     return;
   }
 
@@ -436,7 +456,9 @@ function renderLetterFollowupAlert(rows = activeLetterRows) {
     letterFollowupAlert.classList.add("hidden");
     letterFollowupAlert.removeAttribute("data-alert-state");
     letterFollowupAlertBtn.classList.add("hidden");
+    letterFollowupCreateBtn.classList.add("hidden");
     letterFollowupAlertBtn.dataset.rowId = "";
+    letterFollowupCreateBtn.dataset.rowId = "";
     letterFollowupAlertTitle.textContent = "No letters have reached the follow-up date yet.";
     letterFollowupAlertMeta.textContent = "";
     return;
@@ -466,8 +488,12 @@ function renderLetterFollowupAlert(rows = activeLetterRows) {
   letterFollowupAlertMeta.textContent =
     actionable.length > 2 ? `${summaryPreview} | +${actionable.length - 2} more` : summaryPreview;
   letterFollowupAlertBtn.classList.remove("hidden");
+  letterFollowupCreateBtn.classList.remove("hidden");
   letterFollowupAlertBtn.dataset.rowId = String(firstMatch.row.id || "");
+  letterFollowupCreateBtn.dataset.rowId = String(firstMatch.row.id || "");
   letterFollowupAlertBtn.textContent = actionable.length > 1 ? "Open oldest due letter" : "Open due letter";
+  letterFollowupCreateBtn.textContent =
+    actionable.length > 1 ? "Create oldest follow-up" : "Create follow-up";
 }
 
 function buildClientLetterFollowupCounts(rows = []) {
@@ -486,6 +512,27 @@ function buildClientLetterFollowupCounts(rows = []) {
       .map(([userId, userRows]) => [userId, getActionableLetterFollowups(userRows).length])
       .filter(([, count]) => count > 0)
   );
+}
+
+function findChildLetterRow(rows = [], parentLetterId) {
+  const numericParentId = Number(parentLetterId || 0);
+  if (!numericParentId) return null;
+  return (rows || []).find((row) => Number(row?.parent_letter_id || 0) === numericParentId) || null;
+}
+
+function getLetterContextLabel(row, rows = activeLetterRows) {
+  const childRow = findChildLetterRow(rows, row?.id);
+  if (childRow) {
+    return `Superseded by follow-up #${childRow.id}`;
+  }
+
+  const numericParentId = Number(row?.parent_letter_id || 0);
+  if (numericParentId) {
+    const parentRow = findActiveRow(rows, numericParentId);
+    return `Follow-up to #${parentRow?.id || numericParentId}`;
+  }
+
+  return String(row?.letter_type || "").toLowerCase() === "follow_up" ? "Follow-up letter" : "";
 }
 
 function safeText(value) {
@@ -515,6 +562,8 @@ function getMissingLetterColumn(error) {
   const message = String(error?.message || error || "").toLowerCase();
   if (message.includes("delivered_date")) return "delivered_date";
   if (message.includes("file_id")) return "file_id";
+  if (message.includes("letter_type")) return "letter_type";
+  if (message.includes("parent_letter_id")) return "parent_letter_id";
   return null;
 }
 
@@ -964,6 +1013,75 @@ function toggleFormEditMode(submitBtn, cancelBtn, isEditing, createLabel, editLa
   cancelBtn?.classList.toggle("hidden", !isEditing);
 }
 
+function syncLetterFormMode() {
+  const isEditing = Boolean(Number(letterEditIdInput?.value || 0));
+  const isFollowupDraft = !isEditing && Boolean(Number(letterParentIdInput?.value || 0));
+
+  if (letterSubmitBtn) {
+    letterSubmitBtn.textContent = isFollowupDraft
+      ? "Save Follow-up Letter"
+      : isEditing
+        ? "Save Changes"
+        : "Add Letter Record";
+  }
+
+  letterCancelBtn?.classList.toggle("hidden", !(isEditing || isFollowupDraft));
+}
+
+function syncLetterFollowupDraftNotice() {
+  if (!letterFollowupDraft || !letterFollowupDraftLabel) return;
+
+  const editId = Number(letterEditIdInput?.value || 0);
+  const parentLetterId = Number(letterParentIdInput?.value || 0);
+  const currentRow = editId ? findActiveRow(activeLetterRows, editId) : null;
+  const parentRow = parentLetterId ? findActiveRow(activeLetterRows, parentLetterId) : null;
+
+  if (!editId && parentLetterId) {
+    const recipient = parentRow?.recipient || parentRow?.bureau || "this creditor";
+    letterFollowupDraftLabel.textContent = `Creating a follow-up letter for #${parentRow?.id || parentLetterId} · ${recipient}.`;
+    letterFollowupDraft.classList.remove("hidden");
+    return;
+  }
+
+  if (editId && String(currentRow?.letter_type || "").toLowerCase() === "follow_up" && parentLetterId) {
+    letterFollowupDraftLabel.textContent = `Editing follow-up letter #${currentRow?.id || editId} linked to #${parentRow?.id || parentLetterId}.`;
+    letterFollowupDraft.classList.remove("hidden");
+    return;
+  }
+
+  letterFollowupDraft.classList.add("hidden");
+  letterFollowupDraftLabel.textContent = "Creating a follow-up letter.";
+}
+
+function startFollowupLetterDraft(sourceRow) {
+  if (!sourceRow) return;
+
+  letterForm?.reset();
+  if (letterEditIdInput) letterEditIdInput.value = "";
+  if (letterParentIdInput) letterParentIdInput.value = String(sourceRow.id || "");
+  if (letterTypeInput) letterTypeInput.value = "follow_up";
+  if (letterUpdateIdSelect) letterUpdateIdSelect.value = "";
+  if (letterDateInput) letterDateInput.value = todayIsoDate();
+  if (letterStatusInput) letterStatusInput.value = "In Transit";
+  if (letterDeliveredDateInput) letterDeliveredDateInput.value = "";
+  if (letterFileSelect) letterFileSelect.value = "";
+
+  const recipientInput = document.getElementById("letter-recipient");
+  const trackingInput = document.getElementById("letter-tracking");
+  const notesInput = document.getElementById("letter-notes");
+  if (recipientInput) recipientInput.value = sourceRow.recipient || sourceRow.bureau || "";
+  if (trackingInput) trackingInput.value = "";
+  if (notesInput) notesInput.value = "";
+
+  syncLetterUpdateMeta();
+  syncLetterFollowupDraftNotice();
+  syncLetterDeadlineUi();
+  syncLetterFormMode();
+
+  trackingInput?.focus();
+  letterForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function resetTimelineForm() {
   timelineForm?.reset();
   if (timelineEditIdInput) timelineEditIdInput.value = "";
@@ -1073,6 +1191,8 @@ function applyNegativeOutcomePreset(outcome) {
 function resetLetterForm() {
   letterForm?.reset();
   if (letterEditIdInput) letterEditIdInput.value = "";
+  if (letterParentIdInput) letterParentIdInput.value = "";
+  if (letterTypeInput) letterTypeInput.value = "initial";
   if (letterUpdateIdSelect) {
     letterUpdateIdSelect.value = "";
   }
@@ -1080,8 +1200,9 @@ function resetLetterForm() {
     letterFileSelect.value = "";
   }
   syncLetterUpdateMeta();
+  syncLetterFollowupDraftNotice();
   syncLetterDeadlineUi();
-  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, false, "Add Letter Record", "Save Changes");
+  syncLetterFormMode();
 }
 
 function syncLetterUpdateMeta() {
@@ -1097,7 +1218,9 @@ function syncLetterUpdateMeta() {
   const sentDate = row.sent_date ? formatDate(row.sent_date) : "No sent date";
   const deadline = getLetterDeadlineSummary(row);
   const deadlineLabel = deadline ? ` · ${deadline.headline}` : "";
-  letterUpdateSelectedMeta.textContent = `Selected: #${row.id} · ${recipient} · ${tracking} · ${sentDate}${deadlineLabel}`;
+  const contextLabel = getLetterContextLabel(row);
+  const contextMeta = contextLabel ? ` · ${contextLabel}` : "";
+  letterUpdateSelectedMeta.textContent = `Selected: #${row.id}${contextMeta} · ${recipient} · ${tracking} · ${sentDate}${deadlineLabel}`;
 }
 
 function syncLetterUpdateChoices() {
@@ -1108,7 +1231,15 @@ function syncLetterUpdateChoices() {
   activeLetterRows.forEach((row) => {
     const option = document.createElement("option");
     option.value = String(row.id);
-    option.textContent = `#${row.id} · ${row.recipient || row.bureau || "N/A"} · ${row.tracking_number || "No tracking"}`;
+    const contextLabel = getLetterContextLabel(row);
+    option.textContent = [
+      `#${row.id}`,
+      contextLabel,
+      row.recipient || row.bureau || "N/A",
+      row.tracking_number || "No tracking",
+    ]
+      .filter(Boolean)
+      .join(" · ");
     letterUpdateIdSelect.appendChild(option);
   });
 
@@ -1139,6 +1270,8 @@ function syncLetterFileChoices() {
 function populateLetterForm(row) {
   if (!row) return;
   if (letterEditIdInput) letterEditIdInput.value = String(row.id || "");
+  if (letterParentIdInput) letterParentIdInput.value = row.parent_letter_id != null ? String(row.parent_letter_id) : "";
+  if (letterTypeInput) letterTypeInput.value = row.letter_type || "initial";
   if (letterUpdateIdSelect) letterUpdateIdSelect.value = String(row.id || "");
   const recipientInput = document.getElementById("letter-recipient");
   const trackingInput = document.getElementById("letter-tracking");
@@ -1151,8 +1284,9 @@ function populateLetterForm(row) {
   if (trackingInput) trackingInput.value = row.tracking_number || "";
   if (notesInput) notesInput.value = row.notes || "";
   syncLetterUpdateMeta();
+  syncLetterFollowupDraftNotice();
   syncLetterDeadlineUi();
-  toggleFormEditMode(letterSubmitBtn, letterCancelBtn, true, "Add Letter Record", "Save Changes");
+  syncLetterFormMode();
   letterForm?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
@@ -1587,7 +1721,7 @@ async function loadClients() {
       safeTableQuery(
         supabase
           .from("client_letters")
-          .select("user_id,status,sent_date,delivered_date"),
+          .select("user_id,status,sent_date,delivered_date,parent_letter_id"),
         []
       ),
     ]);
@@ -2108,15 +2242,20 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
   } else {
     for (const row of letters) {
       const deadline = getLetterDeadlineSummary(row);
-      const followupState = ["overdue", "due-today"].includes(deadline?.state) ? deadline.state : "";
+      const isSuperseded = Boolean(findChildLetterRow(letters, row.id));
+      const followupState =
+        !isSuperseded && ["overdue", "due-today"].includes(deadline?.state) ? deadline.state : "";
       const followupPill = followupState
         ? `<span class="letter-alert-pill ${safeText(followupState)}">${
             followupState === "overdue" ? "35-day follow-up overdue" : "35-day follow-up due"
           }</span>`
         : "";
-      const followupNote = deadline
-        ? `<p class="letter-followup-note"><strong>${safeText(deadline.headline)}</strong>${deadline.meta ? ` · ${safeText(deadline.meta)}` : ""}</p>`
-        : "";
+      const contextLabel = getLetterContextLabel(row, letters);
+      const followupNote = isSuperseded
+        ? `<p class="letter-followup-note"><strong>Follow-up tracking moved to the newest linked letter.</strong></p>`
+        : deadline
+          ? `<p class="letter-followup-note"><strong>${safeText(deadline.headline)}</strong>${deadline.meta ? ` · ${safeText(deadline.meta)}` : ""}</p>`
+          : "";
       const linkedFile = row.linked_file || null;
       const linkedFileName = linkedFile ? getLetterFileDisplayName(linkedFile) : "";
       const linkedFileActions = linkedFile?.signed_url
@@ -2142,12 +2281,20 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
           </div>
           ${followupPill}
         </div>
+        ${contextLabel ? `<p class="letter-followup-note"><strong>${safeText(contextLabel)}</strong></p>` : ""}
         ${followupNote}
         ${linkedFileName ? `<p class="letter-followup-note"><strong>Linked file:</strong> ${safeText(linkedFileName)}</p>` : ""}
         <div class="file-actions-row">
           <button class="btn secondary sm" type="button" data-action="edit-letter" data-row-id="${safeText(
             row.id
           )}">Edit</button>
+          ${
+            followupState
+              ? `<button class="btn primary sm" type="button" data-action="create-followup-letter" data-row-id="${safeText(
+                  row.id
+                )}">Create Follow-up</button>`
+              : ""
+          }
           <button class="btn danger sm" type="button" data-action="delete-letter" data-row-id="${safeText(
             row.id
           )}">Delete</button>
@@ -2222,34 +2369,42 @@ async function loadClientLetters(userId) {
       .eq("user_id", userId)
       .order("sent_date", { ascending: false });
 
-  const variants = [
-    {
-      columns: "id,recipient,bureau,tracking_number,status,sent_date,delivered_date,file_id,notes,created_at",
-      defaults: {},
-    },
-    {
-      columns: "id,recipient,bureau,tracking_number,status,sent_date,delivered_date,notes,created_at",
-      defaults: { file_id: null },
-    },
-    {
-      columns: "id,recipient,bureau,tracking_number,status,sent_date,file_id,notes,created_at",
-      defaults: { delivered_date: null },
-    },
-    {
-      columns: "id,recipient,bureau,tracking_number,status,sent_date,notes,created_at",
-      defaults: { delivered_date: null, file_id: null },
-    },
+  let columns = [
+    "id",
+    "recipient",
+    "bureau",
+    "tracking_number",
+    "status",
+    "sent_date",
+    "delivered_date",
+    "file_id",
+    "letter_type",
+    "parent_letter_id",
+    "notes",
+    "created_at",
   ];
+  const defaults = {
+    delivered_date: null,
+    file_id: null,
+    letter_type: "initial",
+    parent_letter_id: null,
+  };
 
-  for (const variant of variants) {
-    const result = await buildQuery(variant.columns);
+  while (columns.length >= 8) {
+    const result = await buildQuery(columns.join(","));
     if (!result.error) {
       return (result.data || []).map((row) => ({
-        ...variant.defaults,
+        ...defaults,
         ...row,
       }));
     }
     if (!isMissingFeatureError(result.error)) throw result.error;
+
+    const missingColumn = getMissingLetterColumn(result.error);
+    if (!missingColumn || !columns.includes(missingColumn)) {
+      break;
+    }
+    columns = columns.filter((column) => column !== missingColumn);
   }
 
   return [];
@@ -2257,6 +2412,8 @@ async function loadClientLetters(userId) {
 
 async function saveClientLetterRecord({
   editId,
+  parentLetterId,
+  letterType,
   sentDate,
   deliveredDate,
   fileId,
@@ -2274,10 +2431,13 @@ async function saveClientLetterRecord({
     notes: notes || null,
     delivered_date: letterTracksResponseWindow(status) ? deliveredDate || null : null,
     file_id: fileId || null,
+    letter_type: letterType || "initial",
+    parent_letter_id: parentLetterId || null,
   };
   const missingSupport = {
     missingDeliveredDateSupport: false,
     missingLetterFileSupport: false,
+    missingLetterThreadSupport: false,
   };
 
   const runQuery = async () => {
@@ -2307,6 +2467,16 @@ async function saveClientLetterRecord({
     if (missingColumn === "file_id" && Object.prototype.hasOwnProperty.call(attemptPayload, "file_id")) {
       delete attemptPayload.file_id;
       missingSupport.missingLetterFileSupport = true;
+      continue;
+    }
+    if (
+      (missingColumn === "letter_type" || missingColumn === "parent_letter_id") &&
+      (Object.prototype.hasOwnProperty.call(attemptPayload, "letter_type") ||
+        Object.prototype.hasOwnProperty.call(attemptPayload, "parent_letter_id"))
+    ) {
+      delete attemptPayload.letter_type;
+      delete attemptPayload.parent_letter_id;
+      missingSupport.missingLetterThreadSupport = true;
       continue;
     }
 
@@ -2953,6 +3123,16 @@ async function handlePreviewRecordAction(action, rowId) {
       populateLetterForm(row);
       return;
     }
+    case "create-followup-letter": {
+      const row = findActiveRow(activeLetterRows, rowId);
+      if (!row) {
+        setAdminStatus("Letter record not found. Refresh and try again.", true);
+        return;
+      }
+      activateWorkspaceTab("letters");
+      startFollowupLetterDraft(row);
+      return;
+    }
     case "update-letter-status": {
       const row = findActiveRow(activeLetterRows, rowId);
       if (!row) {
@@ -3425,6 +3605,15 @@ function initialize() {
     }
     activateWorkspaceTab("letters");
     populateLetterForm(row);
+  });
+  letterFollowupCreateBtn?.addEventListener("click", () => {
+    const row = findActiveRow(activeLetterRows, letterFollowupCreateBtn.dataset.rowId);
+    if (!row) {
+      setAdminStatus("That letter follow-up could not be found. Refresh and try again.", true);
+      return;
+    }
+    activateWorkspaceTab("letters");
+    startFollowupLetterDraft(row);
   });
   timelineCancelBtn?.addEventListener("click", resetTimelineForm);
   invoiceCancelBtn?.addEventListener("click", resetInvoiceForm);
@@ -3904,6 +4093,10 @@ function initialize() {
     if (!(await requireActiveClient())) return;
 
     const editId = Number(letterEditIdInput?.value || 0);
+    const parentLetterId = Number(letterParentIdInput?.value || 0);
+    const letterType = String(letterTypeInput?.value || "initial").trim().toLowerCase() === "follow_up"
+      ? "follow_up"
+      : "initial";
     const sentDate = String(letterDateInput?.value || "");
     const deliveredDate = String(letterDeliveredDateInput?.value || "");
     const fileId = Number(letterFileSelect?.value || 0);
@@ -3917,8 +4110,10 @@ function initialize() {
       return;
     }
 
-    const { error, missingDeliveredDateSupport, missingLetterFileSupport } = await saveClientLetterRecord({
+    const { error, missingDeliveredDateSupport, missingLetterFileSupport, missingLetterThreadSupport } = await saveClientLetterRecord({
       editId,
+      parentLetterId,
+      letterType,
       sentDate,
       deliveredDate,
       fileId,
@@ -3936,10 +4131,11 @@ function initialize() {
     const deadline = getLetterDeadlineSummary({ status, sentDate, deliveredDate });
     const activityDeadline = deadline ? ` ${deadline.headline}.` : "";
     const fileLabel = fileId ? " Letter file linked." : "";
+    const followupLabel = !editId && letterType === "follow_up" && parentLetterId ? ` Follow-up to letter #${parentLetterId}.` : "";
     await logClientActivity(
       editId
         ? `Letter updated: ${recipient} — ${tracking}.${activityDeadline}${fileLabel}`
-        : `Letter added: ${recipient} — ${tracking}.${activityDeadline}${fileLabel}`
+        : `Letter added: ${recipient} — ${tracking}.${activityDeadline}${followupLabel}${fileLabel}`
     );
     resetLetterForm();
     const savedMessage = editId ? "Letter record updated." : "Letter record added.";
@@ -3949,6 +4145,9 @@ function initialize() {
     }
     if (missingLetterFileSupport) {
       schemaWarnings.push("linked letter files");
+    }
+    if (missingLetterThreadSupport) {
+      schemaWarnings.push("follow-up letter threading");
     }
     setAdminStatus(
       schemaWarnings.length

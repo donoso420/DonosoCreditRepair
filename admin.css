@@ -986,6 +986,21 @@ textarea { resize: vertical; }
   line-height: 1.45;
 }
 
+.letter-followup-draft {
+  margin: 0.75rem 0 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #e4d4fb;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fbf8ff 0%, #f4eeff 100%);
+  color: #5a4b74;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.letter-followup-draft strong {
+  color: #4d347c;
+}
+
 .letter-followup-alert {
   display: flex;
   align-items: center;
@@ -1003,6 +1018,13 @@ textarea { resize: vertical; }
 
 .letter-followup-alert-copy {
   min-width: 0;
+}
+
+.letter-followup-alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
 }
 
 .letter-followup-alert-label {
@@ -2530,6 +2552,16 @@ textarea:focus {
 
 [data-theme="dark"] .letter-followup-alert-meta {
   color: #d0c2e7;
+}
+
+[data-theme="dark"] .letter-followup-draft {
+  border-color: rgba(174, 135, 228, 0.28);
+  background: linear-gradient(180deg, rgba(45, 30, 67, 0.96) 0%, rgba(33, 22, 49, 0.98) 100%);
+  color: #d8c9ee;
+}
+
+[data-theme="dark"] .letter-followup-draft strong {
+  color: #f0e6ff;
 }
 
 [data-theme="dark"] .letter-followup-alert[data-alert-state="overdue"] {

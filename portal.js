@@ -892,12 +892,20 @@ async function loadPortalLetters(supabase, userId) {
 
   const variants = [
     {
-      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type,file_id",
+      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type,parent_letter_id,file_id",
       defaults: {},
     },
     {
-      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type",
+      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type,parent_letter_id",
       defaults: { file_id: null },
+    },
+    {
+      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type,file_id",
+      defaults: { parent_letter_id: null },
+    },
+    {
+      columns: "sent_date,bureau,recipient,tracking_number,status,notes,letter_content,letter_type",
+      defaults: { parent_letter_id: null, file_id: null },
     },
   ];
 
@@ -1136,6 +1144,7 @@ function renderLetters(letters) {
     .map((row, index) => {
       const status = row.status || "In Transit";
       const badgeClass = statusBadgeClass(status);
+      const typeLabel = String(row.letter_type || "").toLowerCase() === "follow_up" ? "Follow-up letter" : "";
       const linkedFile = row.linked_file || null;
       const viewBtn = row.letter_content
         ? `<button class="btn sm secondary view-letter-btn" type="button" data-content="${escapeHtml(row.letter_content)}" data-label="${escapeHtml(row.recipient || row.bureau || "Letter")}">View Letter</button>`
@@ -1155,7 +1164,7 @@ function renderLetters(letters) {
       return `
         <tr>
           <td>${escapeHtml(formatDate(row.sent_date))}</td>
-          <td>${escapeHtml(row.recipient || row.bureau || "N/A")}</td>
+          <td>${escapeHtml(row.recipient || row.bureau || "N/A")}${typeLabel ? `<div class="letter-row-type">${escapeHtml(typeLabel)}</div>` : ""}</td>
           <td>${escapeHtml(row.tracking_number && row.tracking_number !== "PENDING" ? row.tracking_number : "—")}</td>
           <td><span class="badge ${escapeHtml(badgeClass)}">${escapeHtml(status)}</span></td>
           <td>${actionMarkup ? `<div class="letter-actions">${actionMarkup}</div>` : "—"}</td>
