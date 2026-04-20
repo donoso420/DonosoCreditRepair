@@ -39,6 +39,8 @@ const letterSubmitBtn = document.getElementById("letter-submit-btn");
 const letterCancelBtn = document.getElementById("letter-cancel-btn");
 const letterUpdateIdSelect = document.getElementById("letter-update-id");
 const letterUpdateSelectedMeta = document.getElementById("letter-update-selected-meta");
+const letterCaseSelect = document.getElementById("letter-case-root-id");
+const letterCaseMeta = document.getElementById("letter-case-meta");
 const letterDateInput = document.getElementById("letter-date");
 const letterStatusInput = document.getElementById("letter-status");
 const letterDeliveredDateInput = document.getElementById("letter-delivered-date");
@@ -413,24 +415,90 @@ function getLetterDeadlineSummary({
   };
 }
 
-function getActionableLetterFollowups(rows = []) {
-  const supersededLetterIds = new Set(
-    (rows || [])
-      .map((row) => Number(row?.parent_letter_id || 0))
-      .filter((value) => Number.isFinite(value) && value > 0)
-  );
+function getLetterSortDate(row = {}) {
+  return parseDisplayDate(row.sent_date) || parseDisplayDate(row.delivered_date) || parseDisplayDate(row.created_at) || new Date(0);
+}
 
-  return (rows || [])
+function compareLettersNewestFirst(a = {}, b = {}) {
+  const timeDiff = getLetterSortDate(b).getTime() - getLetterSortDate(a).getTime();
+  if (timeDiff !== 0) return timeDiff;
+  return Number(b.id || 0) - Number(a.id || 0);
+}
+
+function compareLettersOldestFirst(a = {}, b = {}) {
+  const timeDiff = getLetterSortDate(a).getTime() - getLetterSortDate(b).getTime();
+  if (timeDiff !== 0) return timeDiff;
+  return Number(a.id || 0) - Number(b.id || 0);
+}
+
+function getLetterCaseRootId(row, rows = activeLetterRows, visited = new Set()) {
+  const explicitCaseId = Number(row?.case_root_id || 0);
+  if (explicitCaseId > 0) return explicitCaseId;
+
+  const rowId = Number(row?.id || 0);
+  if (rowId && visited.has(rowId)) return rowId;
+  if (rowId) visited.add(rowId);
+
+  const parentLetterId = Number(row?.parent_letter_id || 0);
+  if (parentLetterId > 0) {
+    const parentRow = findActiveRow(rows, parentLetterId);
+    if (parentRow) {
+      return getLetterCaseRootId(parentRow, rows, visited) || parentLetterId;
+    }
+    return parentLetterId;
+  }
+
+  return rowId || 0;
+}
+
+function getLetterCaseRows(rows = [], caseRootId, fallbackRowId = 0) {
+  const targetCaseId = Number(caseRootId || fallbackRowId || 0);
+  if (!targetCaseId) return [];
+  return (rows || []).filter((row) => getLetterCaseRootId(row, rows) === targetCaseId);
+}
+
+function getLetterCaseAnchorRow(rows = [], caseRootId) {
+  const numericCaseId = Number(caseRootId || 0);
+  if (!numericCaseId) return null;
+  return findActiveRow(rows, numericCaseId) || [...getLetterCaseRows(rows, numericCaseId)].sort(compareLettersOldestFirst)[0] || null;
+}
+
+function getLetterCaseLatestRow(rows = [], caseRootId) {
+  const numericCaseId = Number(caseRootId || 0);
+  if (!numericCaseId) return null;
+  return [...getLetterCaseRows(rows, numericCaseId)].sort(compareLettersNewestFirst)[0] || null;
+}
+
+function getLetterCaseOptionLabel(caseRootId, rows = activeLetterRows) {
+  const anchorRow = getLetterCaseAnchorRow(rows, caseRootId);
+  const caseRows = getLetterCaseRows(rows, caseRootId);
+  const parts = [
+    `Case #${caseRootId}`,
+    anchorRow?.recipient || anchorRow?.bureau || "Letter case",
+    anchorRow?.sent_date ? formatDate(anchorRow.sent_date) : "",
+    caseRows.length > 1 ? `${caseRows.length} letters` : "",
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function getActionableLetterFollowups(rows = []) {
+  const latestRowsByCase = new Map();
+
+  for (const row of rows || []) {
+    const caseRootId = getLetterCaseRootId(row, rows);
+    if (!caseRootId) continue;
+    const currentLatest = latestRowsByCase.get(caseRootId);
+    if (!currentLatest || compareLettersNewestFirst(row, currentLatest) < 0) {
+      latestRowsByCase.set(caseRootId, row);
+    }
+  }
+
+  return Array.from(latestRowsByCase.values())
     .map((row) => ({
       row,
       deadline: getLetterDeadlineSummary(row),
     }))
-    .filter(
-      ({ row, deadline }) =>
-        deadline &&
-        (deadline.state === "due-today" || deadline.state === "overdue") &&
-        !supersededLetterIds.has(Number(row?.id || 0))
-    )
+    .filter(({ deadline }) => deadline && (deadline.state === "due-today" || deadline.state === "overdue"))
     .sort((a, b) => {
       const aTime = a.deadline?.dueDate?.getTime?.() || 0;
       const bTime = b.deadline?.dueDate?.getTime?.() || 0;
@@ -469,7 +537,9 @@ function renderLetterFollowupAlert(rows = activeLetterRows) {
   const summaryPreview = actionable
     .slice(0, 2)
     .map(({ row, deadline }) => {
+      const caseRootId = getLetterCaseRootId(row, rows);
       const parts = [
+        caseRootId ? `Case #${caseRootId}` : "",
         `#${row.id}`,
         row.recipient || row.bureau || "Letter",
         row.tracking_number || "",
@@ -514,25 +584,22 @@ function buildClientLetterFollowupCounts(rows = []) {
   );
 }
 
-function findChildLetterRow(rows = [], parentLetterId) {
-  const numericParentId = Number(parentLetterId || 0);
-  if (!numericParentId) return null;
-  return (rows || []).find((row) => Number(row?.parent_letter_id || 0) === numericParentId) || null;
-}
-
 function getLetterContextLabel(row, rows = activeLetterRows) {
-  const childRow = findChildLetterRow(rows, row?.id);
-  if (childRow) {
-    return `Superseded by follow-up #${childRow.id}`;
+  const numericRowId = Number(row?.id || 0);
+  const caseRootId = getLetterCaseRootId(row, rows);
+  if (!numericRowId || !caseRootId) return "";
+
+  const latestRow = getLetterCaseLatestRow(rows, caseRootId);
+  if (latestRow && Number(latestRow.id || 0) !== numericRowId) {
+    return `Case #${caseRootId} · handled by newer letter #${latestRow.id}`;
   }
 
-  const numericParentId = Number(row?.parent_letter_id || 0);
-  if (numericParentId) {
-    const parentRow = findActiveRow(rows, numericParentId);
-    return `Follow-up to #${parentRow?.id || numericParentId}`;
+  if (caseRootId !== numericRowId) {
+    return `Case #${caseRootId} · active follow-up`;
   }
 
-  return String(row?.letter_type || "").toLowerCase() === "follow_up" ? "Follow-up letter" : "";
+  const caseRows = getLetterCaseRows(rows, caseRootId);
+  return caseRows.length > 1 ? `Case #${caseRootId} · active letter` : "";
 }
 
 function safeText(value) {
@@ -564,6 +631,7 @@ function getMissingLetterColumn(error) {
   if (message.includes("file_id")) return "file_id";
   if (message.includes("letter_type")) return "letter_type";
   if (message.includes("parent_letter_id")) return "parent_letter_id";
+  if (message.includes("case_root_id")) return "case_root_id";
   return null;
 }
 
@@ -1061,6 +1129,10 @@ function startFollowupLetterDraft(sourceRow) {
   if (letterParentIdInput) letterParentIdInput.value = String(sourceRow.id || "");
   if (letterTypeInput) letterTypeInput.value = "follow_up";
   if (letterUpdateIdSelect) letterUpdateIdSelect.value = "";
+  if (letterCaseSelect) {
+    const caseRootId = getLetterCaseRootId(sourceRow, activeLetterRows) || Number(sourceRow.id || 0);
+    letterCaseSelect.value = caseRootId ? String(caseRootId) : "";
+  }
   if (letterDateInput) letterDateInput.value = todayIsoDate();
   if (letterStatusInput) letterStatusInput.value = "In Transit";
   if (letterDeliveredDateInput) letterDeliveredDateInput.value = "";
@@ -1074,6 +1146,7 @@ function startFollowupLetterDraft(sourceRow) {
   if (notesInput) notesInput.value = "";
 
   syncLetterUpdateMeta();
+  syncLetterCaseChoices();
   syncLetterFollowupDraftNotice();
   syncLetterDeadlineUi();
   syncLetterFormMode();
@@ -1200,6 +1273,7 @@ function resetLetterForm() {
     letterFileSelect.value = "";
   }
   syncLetterUpdateMeta();
+  syncLetterCaseChoices();
   syncLetterFollowupDraftNotice();
   syncLetterDeadlineUi();
   syncLetterFormMode();
@@ -1248,6 +1322,7 @@ function syncLetterUpdateChoices() {
   }
 
   syncLetterUpdateMeta();
+  syncLetterCaseChoices();
 }
 
 function syncLetterFileChoices() {
@@ -1267,6 +1342,82 @@ function syncLetterFileChoices() {
   }
 }
 
+function syncLetterCaseMeta() {
+  if (!letterCaseMeta) return;
+
+  const selectedCaseId = Number(letterCaseSelect?.value || 0);
+  const editId = Number(letterEditIdInput?.value || 0);
+  const currentRow = editId ? findActiveRow(activeLetterRows, editId) : null;
+
+  if (selectedCaseId) {
+    const caseRows = getLetterCaseRows(activeLetterRows, selectedCaseId);
+    letterCaseMeta.textContent = `${getLetterCaseOptionLabel(selectedCaseId)}${
+      caseRows.length ? ` · ${caseRows.length} letter${caseRows.length === 1 ? "" : "s"} in this case` : ""
+    }`;
+    return;
+  }
+
+  if (currentRow) {
+    const caseRootId = getLetterCaseRootId(currentRow, activeLetterRows);
+    const caseRows = getLetterCaseRows(activeLetterRows, caseRootId);
+    if (caseRows.length > 1 && caseRootId === Number(currentRow.id || 0)) {
+      letterCaseMeta.textContent = `This letter currently starts Case #${caseRootId}. ${caseRows.length} letters are linked to it.`;
+      return;
+    }
+  }
+
+  letterCaseMeta.textContent = "Choose an existing case to link this letter to, or leave it standalone.";
+}
+
+function syncLetterCaseChoices() {
+  if (!letterCaseSelect) return;
+
+  const previousValue = String(letterCaseSelect.value || "");
+  const editId = Number(letterEditIdInput?.value || 0);
+  const currentRow = editId ? findActiveRow(activeLetterRows, editId) : null;
+  const followupParentId = Number(letterParentIdInput?.value || 0);
+  const followupParentRow = followupParentId ? findActiveRow(activeLetterRows, followupParentId) : null;
+  const caseIds = Array.from(
+    new Set(
+      activeLetterRows
+        .map((row) => getLetterCaseRootId(row, activeLetterRows))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    )
+  ).sort((a, b) => {
+    const aLatest = getLetterCaseLatestRow(activeLetterRows, a);
+    const bLatest = getLetterCaseLatestRow(activeLetterRows, b);
+    return compareLettersNewestFirst(aLatest || {}, bLatest || {});
+  });
+
+  letterCaseSelect.innerHTML = '<option value="">Standalone / start a new case</option>';
+  caseIds.forEach((caseId) => {
+    const option = document.createElement("option");
+    option.value = String(caseId);
+    option.textContent = getLetterCaseOptionLabel(caseId, activeLetterRows);
+    letterCaseSelect.appendChild(option);
+  });
+
+  let nextValue = "";
+  if (previousValue && caseIds.includes(Number(previousValue))) {
+    nextValue = previousValue;
+  } else if (currentRow) {
+    const explicitCaseId = Number(currentRow.case_root_id || 0);
+    const derivedCaseId = getLetterCaseRootId(currentRow, activeLetterRows);
+    nextValue =
+      explicitCaseId > 0
+        ? String(explicitCaseId)
+        : derivedCaseId > 0 && derivedCaseId !== Number(currentRow.id || 0)
+          ? String(derivedCaseId)
+          : "";
+  } else if (followupParentRow) {
+    const derivedCaseId = getLetterCaseRootId(followupParentRow, activeLetterRows) || Number(followupParentRow.id || 0);
+    nextValue = derivedCaseId > 0 ? String(derivedCaseId) : "";
+  }
+
+  letterCaseSelect.value = nextValue;
+  syncLetterCaseMeta();
+}
+
 function populateLetterForm(row) {
   if (!row) return;
   if (letterEditIdInput) letterEditIdInput.value = String(row.id || "");
@@ -1280,10 +1431,15 @@ function populateLetterForm(row) {
   if (letterStatusInput) letterStatusInput.value = row.status || "In Transit";
   if (letterDeliveredDateInput) letterDeliveredDateInput.value = row.delivered_date || "";
   if (letterFileSelect) letterFileSelect.value = row.file_id != null ? String(row.file_id) : "";
+  if (letterCaseSelect) {
+    const explicitCaseId = Number(row.case_root_id || 0);
+    letterCaseSelect.value = explicitCaseId > 0 ? String(explicitCaseId) : "";
+  }
   if (recipientInput) recipientInput.value = row.recipient || row.bureau || "";
   if (trackingInput) trackingInput.value = row.tracking_number || "";
   if (notesInput) notesInput.value = row.notes || "";
   syncLetterUpdateMeta();
+  syncLetterCaseChoices();
   syncLetterFollowupDraftNotice();
   syncLetterDeadlineUi();
   syncLetterFormMode();
@@ -1705,6 +1861,34 @@ async function loadClientProfileRecord(userId) {
   };
 }
 
+async function loadLetterFollowupRows() {
+  let columns = ["id", "user_id", "status", "sent_date", "delivered_date", "parent_letter_id", "case_root_id"];
+
+  while (columns.length >= 4) {
+    const result = await supabase.from("client_letters").select(columns.join(","));
+    if (!result.error) {
+      return (result.data || []).map((row) => ({
+        delivered_date: null,
+        parent_letter_id: null,
+        case_root_id: null,
+        ...row,
+      }));
+    }
+
+    if (!isMissingFeatureError(result.error)) {
+      throw result.error;
+    }
+
+    const missingColumn = getMissingLetterColumn(result.error);
+    if (!missingColumn || !columns.includes(missingColumn)) {
+      break;
+    }
+    columns = columns.filter((column) => column !== missingColumn);
+  }
+
+  return [];
+}
+
 async function loadClients() {
   let profileRows;
   let adminRows;
@@ -1718,12 +1902,7 @@ async function loadClients() {
           .from("admin_users")
           .select("user_id")
       ),
-      safeTableQuery(
-        supabase
-          .from("client_letters")
-          .select("user_id,status,sent_date,delivered_date,parent_letter_id"),
-        []
-      ),
+      loadLetterFollowupRows(),
     ]);
   } catch (error) {
     setAdminStatus("Could not load clients: " + (error?.message || error), true);
@@ -2242,7 +2421,8 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
   } else {
     for (const row of letters) {
       const deadline = getLetterDeadlineSummary(row);
-      const isSuperseded = Boolean(findChildLetterRow(letters, row.id));
+      const latestCaseRow = getLetterCaseLatestRow(letters, getLetterCaseRootId(row, letters));
+      const isSuperseded = Boolean(latestCaseRow && Number(latestCaseRow.id || 0) !== Number(row.id || 0));
       const followupState =
         !isSuperseded && ["overdue", "due-today"].includes(deadline?.state) ? deadline.state : "";
       const followupPill = followupState
@@ -2380,6 +2560,7 @@ async function loadClientLetters(userId) {
     "file_id",
     "letter_type",
     "parent_letter_id",
+    "case_root_id",
     "notes",
     "created_at",
   ];
@@ -2388,6 +2569,7 @@ async function loadClientLetters(userId) {
     file_id: null,
     letter_type: "initial",
     parent_letter_id: null,
+    case_root_id: null,
   };
 
   while (columns.length >= 8) {
@@ -2413,6 +2595,7 @@ async function loadClientLetters(userId) {
 async function saveClientLetterRecord({
   editId,
   parentLetterId,
+  caseRootId,
   letterType,
   sentDate,
   deliveredDate,
@@ -2433,6 +2616,7 @@ async function saveClientLetterRecord({
     file_id: fileId || null,
     letter_type: letterType || "initial",
     parent_letter_id: parentLetterId || null,
+    case_root_id: caseRootId || null,
   };
   const missingSupport = {
     missingDeliveredDateSupport: false,
@@ -2470,12 +2654,16 @@ async function saveClientLetterRecord({
       continue;
     }
     if (
-      (missingColumn === "letter_type" || missingColumn === "parent_letter_id") &&
+      (missingColumn === "letter_type" ||
+        missingColumn === "parent_letter_id" ||
+        missingColumn === "case_root_id") &&
       (Object.prototype.hasOwnProperty.call(attemptPayload, "letter_type") ||
-        Object.prototype.hasOwnProperty.call(attemptPayload, "parent_letter_id"))
+        Object.prototype.hasOwnProperty.call(attemptPayload, "parent_letter_id") ||
+        Object.prototype.hasOwnProperty.call(attemptPayload, "case_root_id"))
     ) {
       delete attemptPayload.letter_type;
       delete attemptPayload.parent_letter_id;
+      delete attemptPayload.case_root_id;
       missingSupport.missingLetterThreadSupport = true;
       continue;
     }
@@ -3591,6 +3779,7 @@ function initialize() {
     }
     resetLetterForm();
   });
+  letterCaseSelect?.addEventListener("change", syncLetterCaseMeta);
   letterStatusInput?.addEventListener("change", () => {
     syncLetterDeadlineUi({ autofillDeliveredDate: true });
     syncLetterUpdateMeta();
@@ -4093,7 +4282,9 @@ function initialize() {
     if (!(await requireActiveClient())) return;
 
     const editId = Number(letterEditIdInput?.value || 0);
+    const existingRow = editId ? findActiveRow(activeLetterRows, editId) : null;
     const parentLetterId = Number(letterParentIdInput?.value || 0);
+    const selectedCaseRootId = Number(letterCaseSelect?.value || 0);
     const letterType = String(letterTypeInput?.value || "initial").trim().toLowerCase() === "follow_up"
       ? "follow_up"
       : "initial";
@@ -4110,9 +4301,18 @@ function initialize() {
       return;
     }
 
+    const followupSourceRow = parentLetterId ? findActiveRow(activeLetterRows, parentLetterId) : null;
+    const caseRootId =
+      selectedCaseRootId ||
+      Number(existingRow?.case_root_id || 0) ||
+      (letterType === "follow_up"
+        ? getLetterCaseRootId(followupSourceRow, activeLetterRows) || Number(followupSourceRow?.id || 0)
+        : 0);
+
     const { error, missingDeliveredDateSupport, missingLetterFileSupport, missingLetterThreadSupport } = await saveClientLetterRecord({
       editId,
       parentLetterId,
+      caseRootId,
       letterType,
       sentDate,
       deliveredDate,
