@@ -469,14 +469,32 @@ function getLetterCaseLatestRow(rows = [], caseRootId) {
   return [...getLetterCaseRows(rows, numericCaseId)].sort(compareLettersNewestFirst)[0] || null;
 }
 
+function getLetterThreadPosition(row, rows = activeLetterRows) {
+  const numericRowId = Number(row?.id || 0);
+  const caseRootId = getLetterCaseRootId(row, rows);
+  if (!numericRowId || !caseRootId) return -1;
+
+  const orderedRows = [...getLetterCaseRows(rows, caseRootId)].sort(compareLettersOldestFirst);
+  return orderedRows.findIndex((entry) => Number(entry?.id || 0) === numericRowId);
+}
+
+function getLetterThreadStepLabel(row, rows = activeLetterRows) {
+  const position = getLetterThreadPosition(row, rows);
+  if (position <= 0) return "Original letter";
+  return `Follow-up ${position}`;
+}
+
 function getLetterCaseOptionLabel(caseRootId, rows = activeLetterRows) {
   const anchorRow = getLetterCaseAnchorRow(rows, caseRootId);
   const caseRows = getLetterCaseRows(rows, caseRootId);
+  const latestRow = getLetterCaseLatestRow(rows, caseRootId);
   const parts = [
-    `Case #${caseRootId}`,
     anchorRow?.recipient || anchorRow?.bureau || "Letter case",
-    anchorRow?.sent_date ? formatDate(anchorRow.sent_date) : "",
-    caseRows.length > 1 ? `${caseRows.length} letters` : "",
+    anchorRow?.sent_date ? `Original sent ${formatDate(anchorRow.sent_date)}` : "",
+    latestRow && Number(latestRow?.id || 0) !== Number(anchorRow?.id || 0)
+      ? `Newest: ${getLetterThreadStepLabel(latestRow, rows)}`
+      : "",
+    caseRows.length > 1 ? `${caseRows.length} letters so far` : "",
   ].filter(Boolean);
   return parts.join(" · ");
 }
@@ -537,10 +555,8 @@ function renderLetterFollowupAlert(rows = activeLetterRows) {
   const summaryPreview = actionable
     .slice(0, 2)
     .map(({ row, deadline }) => {
-      const caseRootId = getLetterCaseRootId(row, rows);
       const parts = [
-        caseRootId ? `Case #${caseRootId}` : "",
-        `#${row.id}`,
+        getLetterThreadStepLabel(row, rows),
         row.recipient || row.bureau || "Letter",
         row.tracking_number || "",
         deadline?.headline || "",
@@ -561,9 +577,8 @@ function renderLetterFollowupAlert(rows = activeLetterRows) {
   letterFollowupCreateBtn.classList.remove("hidden");
   letterFollowupAlertBtn.dataset.rowId = String(firstMatch.row.id || "");
   letterFollowupCreateBtn.dataset.rowId = String(firstMatch.row.id || "");
-  letterFollowupAlertBtn.textContent = actionable.length > 1 ? "Open oldest due letter" : "Open due letter";
-  letterFollowupCreateBtn.textContent =
-    actionable.length > 1 ? "Create oldest follow-up" : "Create follow-up";
+  letterFollowupAlertBtn.textContent = actionable.length > 1 ? "Open oldest active letter" : "Open active letter";
+  letterFollowupCreateBtn.textContent = "Add next follow-up";
 }
 
 function buildClientLetterFollowupCounts(rows = []) {
@@ -589,17 +604,14 @@ function getLetterContextLabel(row, rows = activeLetterRows) {
   const caseRootId = getLetterCaseRootId(row, rows);
   if (!numericRowId || !caseRootId) return "";
 
+  const stepLabel = getLetterThreadStepLabel(row, rows);
+  const caseRows = getLetterCaseRows(rows, caseRootId);
   const latestRow = getLetterCaseLatestRow(rows, caseRootId);
   if (latestRow && Number(latestRow.id || 0) !== numericRowId) {
-    return `Case #${caseRootId} · handled by newer letter #${latestRow.id}`;
+    return `${stepLabel} · older letter in this dispute`;
   }
 
-  if (caseRootId !== numericRowId) {
-    return `Case #${caseRootId} · active follow-up`;
-  }
-
-  const caseRows = getLetterCaseRows(rows, caseRootId);
-  return caseRows.length > 1 ? `Case #${caseRootId} · active letter` : "";
+  return caseRows.length > 1 ? `${stepLabel} · current active letter` : stepLabel;
 }
 
 function safeText(value) {
@@ -1106,13 +1118,15 @@ function syncLetterFollowupDraftNotice() {
 
   if (!editId && parentLetterId) {
     const recipient = parentRow?.recipient || parentRow?.bureau || "this creditor";
-    letterFollowupDraftLabel.textContent = `Creating a follow-up letter for #${parentRow?.id || parentLetterId} · ${recipient}.`;
+    letterFollowupDraftLabel.textContent = `Creating the next follow-up for ${recipient}.`;
     letterFollowupDraft.classList.remove("hidden");
     return;
   }
 
   if (editId && String(currentRow?.letter_type || "").toLowerCase() === "follow_up" && parentLetterId) {
-    letterFollowupDraftLabel.textContent = `Editing follow-up letter #${currentRow?.id || editId} linked to #${parentRow?.id || parentLetterId}.`;
+    letterFollowupDraftLabel.textContent = `Editing ${getLetterThreadStepLabel(currentRow, activeLetterRows)} for ${
+      parentRow?.recipient || parentRow?.bureau || "this dispute"
+    }.`;
     letterFollowupDraft.classList.remove("hidden");
     return;
   }
@@ -1351,9 +1365,9 @@ function syncLetterCaseMeta() {
 
   if (selectedCaseId) {
     const caseRows = getLetterCaseRows(activeLetterRows, selectedCaseId);
-    letterCaseMeta.textContent = `${getLetterCaseOptionLabel(selectedCaseId)}${
-      caseRows.length ? ` · ${caseRows.length} letter${caseRows.length === 1 ? "" : "s"} in this case` : ""
-    }`;
+    letterCaseMeta.textContent = `This letter will be grouped with ${getLetterCaseOptionLabel(
+      selectedCaseId
+    )}.`;
     return;
   }
 
@@ -1361,12 +1375,12 @@ function syncLetterCaseMeta() {
     const caseRootId = getLetterCaseRootId(currentRow, activeLetterRows);
     const caseRows = getLetterCaseRows(activeLetterRows, caseRootId);
     if (caseRows.length > 1 && caseRootId === Number(currentRow.id || 0)) {
-      letterCaseMeta.textContent = `This letter currently starts Case #${caseRootId}. ${caseRows.length} letters are linked to it.`;
+      letterCaseMeta.textContent = `This is the first letter in this dispute. ${caseRows.length} letters are grouped with it so far.`;
       return;
     }
   }
 
-  letterCaseMeta.textContent = "Choose an existing case to link this letter to, or leave it standalone.";
+  letterCaseMeta.textContent = "Choose an earlier letter if this is a resend or follow-up for the same dispute.";
 }
 
 function syncLetterCaseChoices() {
@@ -1389,7 +1403,7 @@ function syncLetterCaseChoices() {
     return compareLettersNewestFirst(aLatest || {}, bLatest || {});
   });
 
-  letterCaseSelect.innerHTML = '<option value="">Standalone / start a new case</option>';
+  letterCaseSelect.innerHTML = '<option value="">This is the first letter in this dispute</option>';
   caseIds.forEach((caseId) => {
     const option = document.createElement("option");
     option.value = String(caseId);
@@ -2472,7 +2486,7 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
             followupState
               ? `<button class="btn primary sm" type="button" data-action="create-followup-letter" data-row-id="${safeText(
                   row.id
-                )}">Create Follow-up</button>`
+                )}">Add Next Follow-up</button>`
               : ""
           }
           <button class="btn danger sm" type="button" data-action="delete-letter" data-row-id="${safeText(

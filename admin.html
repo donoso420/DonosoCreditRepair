@@ -367,7 +367,7 @@
                         Open due letter
                       </button>
                       <button class="btn primary sm hidden" id="letter-followup-create-btn" type="button">
-                        Create follow-up
+                        Add next follow-up
                       </button>
                     </div>
                   </div>
@@ -384,14 +384,14 @@
                         <option value="">Add a new letter...</option>
                       </select>
                       <p class="muted sm" id="letter-update-selected-meta">Choose a letter to edit, or leave blank to add a new one.</p>
-                      <label for="letter-case-root-id">Letter Case</label>
+                      <label for="letter-case-root-id">Same Dispute As</label>
                       <select id="letter-case-root-id">
-                        <option value="">Standalone / start a new case</option>
+                        <option value="">This is the first letter in this dispute</option>
                       </select>
-                      <p class="muted sm" id="letter-case-meta">Choose an existing case to link this letter to, or leave it standalone.</p>
+                      <p class="muted sm" id="letter-case-meta">Choose an earlier letter if this is a resend or follow-up for the same dispute.</p>
                       <p class="letter-followup-draft hidden" id="letter-followup-draft">
                         <strong id="letter-followup-draft-label">Creating a follow-up letter.</strong>
-                        This will save as a new letter record and keep the original letter in history.
+                        This will save as a new letter in the same dispute and keep the earlier letters in history.
                       </p>
                       <div class="form-row">
                         <div>
