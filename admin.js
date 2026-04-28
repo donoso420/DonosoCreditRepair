@@ -1075,15 +1075,19 @@ function renderFileActionButtons(fileRow) {
   `;
 }
 
-function renderRecordActionButtons(id, editAction, deleteAction) {
+function renderRecordActionButtons(id, editAction, deleteAction, options = {}) {
+  const editLabel = options.editLabel || "Edit";
+  const deleteLabel = options.deleteLabel || "Delete";
+  const editClassName = options.editClassName || "btn secondary sm";
+  const deleteClassName = options.deleteClassName || "btn danger sm";
   return `
     <div class="file-actions-row">
-      <button class="btn secondary sm" type="button" data-action="${safeText(
+      <button class="${safeText(editClassName)}" type="button" data-action="${safeText(
         editAction
-      )}" data-row-id="${safeText(id)}">Edit</button>
-      <button class="btn danger sm" type="button" data-action="${safeText(
+      )}" data-row-id="${safeText(id)}">${safeText(editLabel)}</button>
+      <button class="${safeText(deleteClassName)}" type="button" data-action="${safeText(
         deleteAction
-      )}" data-row-id="${safeText(id)}">Delete</button>
+      )}" data-row-id="${safeText(id)}">${safeText(deleteLabel)}</button>
     </div>
   `;
 }
@@ -2403,7 +2407,9 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
             </div>
             <p class="file-record-meta">${safeText(status)}</p>
             ${note ? `<p class="negative-admin-note">${safeText(note)}</p>` : ""}
-            ${renderRecordActionButtons(row.id, "edit-negative-item", "delete-negative-item")}
+            ${renderRecordActionButtons(row.id, "edit-negative-item", "delete-negative-item", {
+              deleteLabel: "Delete Record",
+            })}
           `;
           previewNegativeDeleted.appendChild(li);
         }
@@ -2445,7 +2451,10 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
           ${disputeIssue ? `<p class="negative-admin-note"><strong>Issue:</strong> ${safeText(disputeIssue)}</p>` : ""}
           ${recommendedAction ? `<p class="negative-admin-note"><strong>Action:</strong> ${safeText(recommendedAction)}</p>` : ""}
           ${note ? `<p class="negative-admin-note">${safeText(note)}</p>` : ""}
-          ${renderRecordActionButtons(row.id, "edit-negative-item", "delete-negative-item")}
+          ${renderRecordActionButtons(row.id, "edit-negative-item", "resolve-negative-item", {
+            deleteLabel: "Mark Deleted",
+            deleteClassName: "btn secondary sm",
+          })}
         `;
         previewNegativeItems.appendChild(li);
       }
@@ -3229,6 +3238,47 @@ async function deleteClientRecord({ table, rowId, label, successMessage, activit
   await loadClientPreview(activeClientId);
 }
 
+async function markNegativeItemResolved(rowId, resolvedStatus = "Deleted") {
+  const row = findActiveRow(activeNegativeItemRows, rowId);
+  if (!row) {
+    setAdminStatus("Negative item not found. Refresh and try again.", true);
+    return;
+  }
+
+  const label = `${row.creditor} — ${row.item_type}`;
+  const confirmed = window.confirm(`Move ${label} to resolved items as ${resolvedStatus}?`);
+  if (!confirmed) return;
+
+  setAdminStatus(`Updating ${label}...`);
+
+  const nextNotes = String(row.notes || "").trim();
+  const nextVerificationNotes = String(row.verification_notes || "").trim();
+  const { error } = await supabase
+    .from("negative_items")
+    .update({
+      status: resolvedStatus,
+      is_active: false,
+      notes: nextNotes || null,
+      verification_notes: nextVerificationNotes || "Marked resolved by admin.",
+      verified_at: new Date().toISOString(),
+    })
+    .eq("user_id", activeClientId)
+    .eq("id", Number(row.id));
+
+  if (error) {
+    if (isMissingFeatureError(error)) {
+      setAdminStatus("Run the updated supabase-portal-schema.sql before using negative items.", true);
+      return;
+    }
+    setAdminStatus("Could not update negative item: " + error.message, true);
+    return;
+  }
+
+  await logClientActivity(`Negative item marked ${resolvedStatus.toLowerCase()}: ${row.creditor} — ${row.item_type}.`);
+  setAdminStatus(`Negative item moved to resolved items as ${resolvedStatus}.`);
+  await loadClientPreview(activeClientId);
+}
+
 async function deleteInvoice(rowId) {
   const row = findActiveRow(activeInvoiceRows, rowId);
   if (!row) {
@@ -3335,6 +3385,10 @@ async function handlePreviewRecordAction(action, rowId) {
         successMessage: "Negative item deleted.",
         activityMessage: `Negative item deleted: ${row.creditor} — ${row.item_type}.`,
       });
+      return;
+    }
+    case "resolve-negative-item": {
+      await markNegativeItemResolved(rowId, "Deleted");
       return;
     }
     case "edit-letter": {
