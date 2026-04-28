@@ -4292,24 +4292,35 @@ function initialize() {
         })
       );
 
-      for (const item of targetItems) {
-        const matchingRow =
-          findMatchingNegativeItemRow(item) ||
-          (existingRow &&
-          normalizeNegativeLookupValue(existingRow.bureau) === normalizeNegativeLookupValue(item.bureau)
-            ? existingRow
-            : null);
-
+      if (editId && existingRow && targetItems.length === 1) {
+        const payload = buildNegativeItemPersistencePayload(targetItems[0], existingRow);
         const { error } = await supabase
           .from("negative_items")
-          .upsert(buildNegativeItemPersistencePayload(item, matchingRow), {
-            onConflict: "user_id,fingerprint",
-          });
+          .update(payload)
+          .eq("user_id", activeClientId)
+          .eq("id", editId);
 
         if (error) throw error;
+      } else {
+        for (const item of targetItems) {
+          const matchingRow =
+            findMatchingNegativeItemRow(item) ||
+            (existingRow &&
+            normalizeNegativeLookupValue(existingRow.bureau) === normalizeNegativeLookupValue(item.bureau)
+              ? existingRow
+              : null);
+
+          const { error } = await supabase
+            .from("negative_items")
+            .upsert(buildNegativeItemPersistencePayload(item, matchingRow), {
+              onConflict: "user_id,fingerprint",
+            });
+
+          if (error) throw error;
+        }
       }
 
-      if (editId && existingRow) {
+      if (editId && existingRow && targetItems.length !== 1) {
         const existingFingerprint =
           existingRow.fingerprint ||
           buildManualNegativeItem({
