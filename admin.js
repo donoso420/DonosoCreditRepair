@@ -1271,7 +1271,7 @@ function applyNegativeOutcomePreset(outcome) {
 
   if (normalizedOutcome === "updated") {
     statusInput.value = "Updated";
-    activeCheckbox.checked = true;
+    activeCheckbox.checked = false;
   }
 }
 
@@ -1525,6 +1525,10 @@ function normalizeNegativeItemText(value) {
   return String(value || "").toLowerCase();
 }
 
+function isNegativeItemExplicitlyUpdated(row = {}) {
+  return /\b(updated?|corrected)\b/.test(normalizeNegativeItemText(row.status));
+}
+
 function isNegativeItemExplicitlyLogged(row = {}) {
   return /\b(logged?|active|re-?opened?)\b/.test(normalizeNegativeItemText(row.status));
 }
@@ -1532,12 +1536,16 @@ function isNegativeItemExplicitlyLogged(row = {}) {
 function isNegativeItemExplicitlyWorking(row = {}) {
   // Also check if a letter has been linked to this item
   if (row.letter_id || row.letter_sent_date) return true;
-  return /\b(letter sent|disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif|updated?)\w*\b/.test(
+  return /\b(letter sent|disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif)\w*\b/.test(
     normalizeNegativeItemText(row.status)
   );
 }
 
 function isNegativeItemExplicitlyResolved(row = {}) {
+  if (isNegativeItemExplicitlyUpdated(row)) {
+    return true;
+  }
+
   const combined = [row.status, row.evidence_excerpt, row.verification_notes]
     .map(normalizeNegativeItemText)
     .join(" ");
@@ -1550,7 +1558,7 @@ function isNegativeItemExplicitlyResolved(row = {}) {
 function getNegativeItemStage(row = {}) {
   // Priority 1: Explicitly resolved / deleted
   if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
-    return { label: "Deleted / Resolved", step: 4, className: "stage-resolved" };
+    return { label: "Resolved", step: 4, className: "stage-resolved" };
   }
 
   // Priority 2: Real letter data — check actual letter linkage first
@@ -1575,6 +1583,10 @@ function getNegativeItemStage(row = {}) {
 }
 
 function isDeletedNegativeItem(row = {}) {
+  if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
+    return true;
+  }
+
   if (isNegativeItemExplicitlyLogged(row) || isNegativeItemExplicitlyWorking(row)) {
     return false;
   }
@@ -1601,6 +1613,14 @@ function isDeletedNegativeItem(row = {}) {
   }
 
   return false;
+}
+
+function getNegativeItemResolvedLabel(row = {}) {
+  const status = normalizeNegativeItemText(row.status);
+  if (/\bupdated?|corrected\b/.test(status)) return "Updated";
+  if (/\bremoved?\b/.test(status)) return "Removed";
+  if (/\bdeleted?\b/.test(status)) return "Deleted";
+  return "Resolved";
 }
 
 function renderNegativeAdminStage(step) {
@@ -2335,17 +2355,18 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
   }
 
   if (previewNegativeItems) {
-    const deletedItems = (negativeItems || []).filter((row) => isDeletedNegativeItem(row));
-    const stillReportingCount = Math.max(0, (negativeItems?.length || 0) - deletedItems.length);
+    const resolvedItems = (negativeItems || []).filter((row) => isDeletedNegativeItem(row));
+    const activeNegativeItems = (negativeItems || []).filter((row) => !isDeletedNegativeItem(row));
+    const stillReportingCount = activeNegativeItems.length;
     const deletedProgressRate = negativeItems?.length
-      ? `${Math.round((deletedItems.length / negativeItems.length) * 100)}%`
+      ? `${Math.round((resolvedItems.length / negativeItems.length) * 100)}%`
       : "0%";
 
     if (previewNegativeProgress) {
       previewNegativeProgress.innerHTML = `
         <article class="preview-progress-card">
-          <span>Deleted Items</span>
-          <strong>${safeText(deletedItems.length)}</strong>
+          <span>Resolved Items</span>
+          <strong>${safeText(resolvedItems.length)}</strong>
         </article>
         <article class="preview-progress-card">
           <span>Still Reporting</span>
@@ -2359,16 +2380,17 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
     }
 
     if (previewNegativeDeleted) {
-      if (!deletedItems.length) {
-        previewNegativeDeleted.innerHTML = '<li class="preview-empty">No deleted or removed items recorded yet.</li>';
+      if (!resolvedItems.length) {
+        previewNegativeDeleted.innerHTML = '<li class="preview-empty">No resolved or updated items recorded yet.</li>';
       } else {
-        for (const row of deletedItems) {
+        for (const row of resolvedItems) {
           const li = document.createElement("li");
           li.className = "file-record deleted-admin-row";
           const bureau = row.bureau || "Shared / Unknown";
           const accountRef = row.account_reference ? ` • Acct ${safeText(row.account_reference)}` : "";
-          const status = row.status || "Deleted / removed";
+          const status = row.status || "Resolved";
           const note = row.notes || "";
+          const resolvedLabel = getNegativeItemResolvedLabel(row);
           li.innerHTML = `
             <div class="negative-admin-head">
               <div class="preview-item-main">
@@ -2377,7 +2399,7 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
                 )}</p>
                 <p class="file-record-meta">${safeText(bureau)}${accountRef}</p>
               </div>
-              <span class="negative-admin-pill stage-resolved">Deleted</span>
+              <span class="negative-admin-pill stage-resolved">${safeText(resolvedLabel)}</span>
             </div>
             <p class="file-record-meta">${safeText(status)}</p>
             ${note ? `<p class="negative-admin-note">${safeText(note)}</p>` : ""}
@@ -2388,10 +2410,10 @@ function renderPreview(scoreSnapshots, reports, negativeItems, letters, updates,
       }
     }
 
-    if (!negativeItems.length) {
-      previewNegativeItems.innerHTML = '<li class="preview-empty">No negative items yet.</li>';
+    if (!activeNegativeItems.length) {
+      previewNegativeItems.innerHTML = '<li class="preview-empty">No active negative items still reporting.</li>';
     } else {
-      for (const row of negativeItems) {
+      for (const row of activeNegativeItems) {
         const li = document.createElement("li");
         li.className = "file-record negative-admin-row";
         const stage = getNegativeItemStage(row);

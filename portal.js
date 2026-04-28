@@ -702,17 +702,25 @@ function normalizeNegativeItemText(value) {
   return String(value || "").toLowerCase();
 }
 
+function isNegativeItemExplicitlyUpdated(row = {}) {
+  return /\b(updated?|corrected)\b/.test(normalizeNegativeItemText(row.status));
+}
+
 function isNegativeItemExplicitlyLogged(row = {}) {
   return /\b(logged?|active|re-?opened?)\b/.test(normalizeNegativeItemText(row.status));
 }
 
 function isNegativeItemExplicitlyWorking(row = {}) {
-  return /\b(disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif|updated?)\w*\b/.test(
+  return /\b(disput|investigat|challeng|follow[- ]?up|mailed|sent|respond|pending|review|processing|verif)\w*\b/.test(
     normalizeNegativeItemText(row.status)
   );
 }
 
 function isNegativeItemExplicitlyResolved(row = {}) {
+  if (isNegativeItemExplicitlyUpdated(row)) {
+    return true;
+  }
+
   const combined = [row.status, row.evidence_excerpt, row.verification_notes]
     .map(normalizeNegativeItemText)
     .join(" ");
@@ -785,16 +793,16 @@ function getNegativeItemStage(row = {}) {
   const notes = normalizeNegativeItemText(row.notes);
   const combined = `${status} ${notes}`;
 
+  if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
+    return { key: "resolved", label: "Resolved", step: 3, badgeClass: "stage-resolved" };
+  }
+
   if (isNegativeItemExplicitlyLogged(row)) {
     return { key: "logged", label: "Logged", step: 1, badgeClass: "stage-logged" };
   }
 
   if (isNegativeItemExplicitlyWorking(row)) {
     return { key: "working", label: "In progress", step: 2, badgeClass: "stage-working" };
-  }
-
-  if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
-    return { key: "resolved", label: "Resolved", step: 3, badgeClass: "stage-resolved" };
   }
 
   if (
@@ -809,6 +817,10 @@ function getNegativeItemStage(row = {}) {
 }
 
 function isDeletedNegativeItem(row = {}) {
+  if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
+    return true;
+  }
+
   if (isNegativeItemExplicitlyLogged(row) || isNegativeItemExplicitlyWorking(row)) {
     return false;
   }
@@ -835,6 +847,14 @@ function isDeletedNegativeItem(row = {}) {
   }
 
   return false;
+}
+
+function getNegativeItemResolvedLabel(row = {}) {
+  const status = normalizeNegativeItemText(row.status);
+  if (/\bupdated?|corrected\b/.test(status)) return "Updated";
+  if (/\bremoved?\b/.test(status)) return "Removed";
+  if (/\bdeleted?\b/.test(status)) return "Deleted";
+  return "Resolved";
 }
 
 function renderNegativeStage(step) {
@@ -1422,7 +1442,7 @@ function renderNegativeItems(items) {
       shared: 0,
     },
   };
-  const deletedItems = (items || []).filter((row) => isDeletedNegativeItem(row));
+  const resolvedItems = (items || []).filter((row) => isDeletedNegativeItem(row));
 
   items.forEach((row) => {
     const stage = getNegativeItemStage(row);
@@ -1432,24 +1452,28 @@ function renderNegativeItems(items) {
     totals.total += 1;
     if (stage.key === "resolved") {
       totals.resolved += 1;
-    } else {
-      totals.active += 1;
+      return;
     }
+
+    totals.active += 1;
 
     if (bureauValue.includes("experian")) {
       groupedItems.get("experian").push(row);
-      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.experian += balance;
+      if (Number.isFinite(balance)) totals.balances.experian += balance;
     } else if (bureauValue.includes("equifax")) {
       groupedItems.get("equifax").push(row);
-      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.equifax += balance;
+      if (Number.isFinite(balance)) totals.balances.equifax += balance;
     } else if (bureauValue.includes("transunion")) {
       groupedItems.get("transunion").push(row);
-      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.transunion += balance;
+      if (Number.isFinite(balance)) totals.balances.transunion += balance;
     } else {
       groupedItems.get("shared").push(row);
-      if (Number.isFinite(balance) && stage.key !== "resolved") totals.balances.shared += balance;
+      if (Number.isFinite(balance)) totals.balances.shared += balance;
     }
   });
+
+  const activeBalanceTotal =
+    totals.balances.experian + totals.balances.equifax + totals.balances.transunion + totals.balances.shared;
 
   negativeTrackerStatsEl.innerHTML = `
     <article class="negative-stat-card">
@@ -1464,18 +1488,22 @@ function renderNegativeItems(items) {
       <span>Resolved</span>
       <strong>${escapeHtml(totals.resolved)}</strong>
     </article>
+    <article class="negative-stat-card">
+      <span>Active Balance</span>
+      <strong>${escapeHtml(formatCurrency(activeBalanceTotal))}</strong>
+    </article>
   `;
 
   if (deletedProgressSummaryEl && deletedProgressListEl) {
-    const stillReporting = Math.max(0, totals.total - deletedItems.length);
+    const stillReporting = Math.max(0, totals.total - resolvedItems.length);
     const progressRate = totals.total
-      ? `${Math.round((deletedItems.length / totals.total) * 100)}%`
+      ? `${Math.round((resolvedItems.length / totals.total) * 100)}%`
       : "0%";
 
     deletedProgressSummaryEl.innerHTML = `
       <article class="negative-stat-card deleted-stat-card">
-        <span>Deleted Items</span>
-        <strong>${escapeHtml(deletedItems.length)}</strong>
+        <span>Resolved Items</span>
+        <strong>${escapeHtml(resolvedItems.length)}</strong>
       </article>
       <article class="negative-stat-card deleted-stat-card">
         <span>Still Reporting</span>
@@ -1487,19 +1515,20 @@ function renderNegativeItems(items) {
       </article>
     `;
 
-    if (!deletedItems.length) {
+    if (!resolvedItems.length) {
       deletedProgressListEl.innerHTML = `
         <article class="deleted-progress-empty">
-          <p class="empty">No deleted items recorded yet.</p>
+          <p class="empty">No resolved items recorded yet.</p>
         </article>
       `;
     } else {
-      deletedProgressListEl.innerHTML = deletedItems
+      deletedProgressListEl.innerHTML = resolvedItems
         .map((row) => {
           const bureau = row.bureau || "Shared / Unknown";
           const accountRef = row.account_reference ? ` • Acct ${escapeHtml(row.account_reference)}` : "";
-          const status = row.status || "Deleted / removed";
+          const status = row.status || "Resolved";
           const note = row.notes || row.evidence_excerpt || "";
+          const resolvedLabel = getNegativeItemResolvedLabel(row);
           return `
             <article class="deleted-progress-item">
               <div class="deleted-progress-top">
@@ -1509,7 +1538,7 @@ function renderNegativeItems(items) {
                     row.item_type || "Negative Item"
                   )}${accountRef ? accountRef : ""}</p>
                 </div>
-                <span class="deleted-progress-pill">Deleted</span>
+                <span class="deleted-progress-pill">${escapeHtml(resolvedLabel)}</span>
               </div>
               <p class="deleted-progress-status">${escapeHtml(status)}</p>
               ${note ? `<p class="deleted-progress-note">${escapeHtml(note)}</p>` : ""}
@@ -1525,7 +1554,9 @@ function renderNegativeItems(items) {
   if (!visibleColumns.length) {
     negativeTrackerGridEl.dataset.activeBureau = "";
     negativeTrackerGridEl.innerHTML =
-      '<article class="negative-track-card empty-card"><p class="empty">No negative items logged yet.</p></article>';
+      `<article class="negative-track-card empty-card"><p class="empty">${
+        totals.total ? "No active negative items still reporting." : "No negative items logged yet."
+      }</p></article>`;
     return;
   }
 
