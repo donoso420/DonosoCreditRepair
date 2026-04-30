@@ -200,6 +200,10 @@ function formatAuthError(error, context = "auth") {
     return "This email already has an account. Sign in or use Forgot password.";
   }
 
+  if (normalized.includes("invalid login credentials") || normalized.includes("invalid credentials")) {
+    return "That email or password did not match. If this account was already created, use Forgot password or your setup email instead of creating it again.";
+  }
+
   return message || "Unexpected authentication error.";
 }
 
@@ -382,7 +386,7 @@ function getAuthModeCopy(mode) {
 
   return {
     title: "Sign In",
-    sub: "Use the email and password from your portal invite. Need access? Contact Donoso Credit Repair so we can send your setup email.",
+    sub: "Use the email and password from your setup email. If you already have portal access, use Forgot password instead of creating a second account.",
     submit: "Sign In",
     toggle: "Create account",
   };
@@ -2259,8 +2263,10 @@ function initializePortal() {
 
   authForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const email = String(document.getElementById("email")?.value || "").trim();
+    const email = String(document.getElementById("email")?.value || "").trim().toLowerCase();
     const password = String(document.getElementById("password")?.value || "");
+    const emailInput = document.getElementById("email");
+    if (emailInput) emailInput.value = email;
     if (!email || !password) {
       setAuthStatus(
         authMode === "signup"
@@ -2301,6 +2307,31 @@ function initializePortal() {
       setAuthNotice("", "");
       setAuthStatus("Creating your account...");
       try {
+        const signupCheckResponse = await fetch("/api/portal-signup-check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const signupCheckPayload = await signupCheckResponse.json().catch(() => ({}));
+
+        if (!signupCheckResponse.ok) {
+          if (signupCheckResponse.status === 409 || signupCheckPayload?.exists) {
+            setAuthMode("signin", { keepNotice: true });
+            if (signupConfirmPasswordInput) signupConfirmPasswordInput.value = "";
+            document.getElementById("password").value = "";
+            setAuthStatus("");
+            setAuthNotice(
+              "Account already exists",
+              signupCheckPayload?.error ||
+                "This email already has portal access. Use Forgot password or your setup email instead of creating a new account.",
+            );
+            return;
+          }
+
+          setAuthStatus(signupCheckPayload?.error || "Could not verify your portal access right now.", true);
+          return;
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -2374,7 +2405,9 @@ function initializePortal() {
   });
 
   resetBtn?.addEventListener("click", async () => {
-    const email = String(document.getElementById("email")?.value || "").trim();
+    const email = String(document.getElementById("email")?.value || "").trim().toLowerCase();
+    const emailInput = document.getElementById("email");
+    if (emailInput) emailInput.value = email;
     if (!email) { setAuthStatus("Enter your email first, then click reset.", true); return; }
     if (!requireAuthEmailCooldown("password reset")) return;
 
