@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Client Portal | Donoso Credit Repair</title>
+    <title>Portal del Cliente | Donoso Credit Repair</title>
     <meta
       name="description"
-      content="Secure client portal for credit snapshots, mailed letter tracking numbers, and account updates."
+      content="Portal seguro para clientes con puntajes, reportes, cartas enviadas y actualizaciones de cuenta."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -473,12 +473,12 @@
   <body>
     <header class="portal-nav">
       <div class="container nav-row">
-        <a class="brand" href="index.html">Donoso Credit Repair</a>
+        <a class="brand" href="es.html">Donoso Credit Repair</a>
         <div class="portal-nav-actions">
-          <a class="ghost-link" href="index.html">Back to Website</a>
-          <a class="ghost-link" id="portal-language-link" href="portal-es.html">Español</a>
-          <button class="theme-toggle" id="portal-theme-toggle" type="button" aria-label="Switch to dark mode">
-            Dark mode
+          <a class="ghost-link" href="es.html">Volver al sitio</a>
+          <a class="ghost-link" id="portal-language-link" href="portal.html">English</a>
+          <button class="theme-toggle" id="portal-theme-toggle" type="button" aria-label="Cambiar a modo oscuro">
+            Modo oscuro
           </button>
         </div>
       </div>
@@ -486,51 +486,51 @@
 
     <main class="portal-main">
       <section class="container intro">
-        <p class="eyebrow">Secure Client Access</p>
-        <h1>Client Tracker Portal</h1>
+        <p class="eyebrow">Acceso seguro para clientes</p>
+        <h1>Portal de seguimiento del cliente</h1>
         <p>
-          Sign in to view your latest credit snapshots, letter tracking numbers, and account
-          updates.
+          Inicia sesión para ver tus puntajes más recientes, números de rastreo de cartas y
+          actualizaciones de tu cuenta.
         </p>
       </section>
 
       <section class="container auth-grid">
         <article class="card" id="auth-card">
-          <h2 id="auth-title">Sign In</h2>
+          <h2 id="auth-title">Iniciar sesión</h2>
           <p class="sub" id="auth-sub">
-            Use the email and password from your setup email. If you already have portal access,
-            use Forgot password instead of creating a second account.
+            Usa el correo y la contraseña de tu correo de acceso. Si ya tienes acceso al portal,
+            usa ¿Olvidaste tu contraseña? en lugar de crear otra cuenta.
           </p>
           <div id="auth-notice" class="auth-notice hidden" role="status" aria-live="polite">
-            <strong id="auth-notice-title">Verify your email</strong>
-            <p id="auth-notice-text">Open the confirmation email we sent you, then sign in here.</p>
+            <strong id="auth-notice-title">Verifica tu correo</strong>
+            <p id="auth-notice-text">Abre el correo de confirmación que te enviamos y luego inicia sesión aquí.</p>
           </div>
           <form id="auth-form" novalidate>
             <div id="signup-fields" class="hidden">
-              <label for="signup-full-name">Full Name</label>
+              <label for="signup-full-name">Nombre completo</label>
               <input id="signup-full-name" name="signup-full-name" type="text" autocomplete="name" />
 
-              <label for="signup-phone">Phone</label>
+              <label for="signup-phone">Teléfono</label>
               <input id="signup-phone" name="signup-phone" type="tel" autocomplete="tel" />
 
-              <label for="signup-address">Address</label>
+              <label for="signup-address">Dirección</label>
               <textarea
                 id="signup-address"
                 name="signup-address"
                 rows="3"
                 autocomplete="street-address"
-                placeholder="Street, city, state, ZIP"
+                placeholder="Calle, ciudad, estado, código postal"
               ></textarea>
             </div>
 
-            <label for="email">Email</label>
+            <label for="email">Correo electrónico</label>
             <input id="email" name="email" type="email" required autocomplete="email" />
 
-            <label for="password">Password</label>
+            <label for="password">Contraseña</label>
             <input id="password" name="password" type="password" required minlength="8" autocomplete="current-password" />
 
             <div id="signup-confirm-wrap" class="hidden">
-              <label for="signup-confirm-password">Confirm Password</label>
+              <label for="signup-confirm-password">Confirmar contraseña</label>
               <input
                 id="signup-confirm-password"
                 name="signup-confirm-password"
@@ -541,26 +541,26 @@
             </div>
 
             <div class="auth-actions">
-              <button type="submit" class="btn primary" id="auth-submit-btn">Sign In</button>
+              <button type="submit" class="btn primary" id="auth-submit-btn">Iniciar sesión</button>
             </div>
           </form>
           <div class="auth-links">
-            <button type="button" id="reset-btn" class="inline-btn">Forgot password?</button>
-            <button type="button" id="toggle-auth-mode-btn" class="inline-btn">Create account</button>
+            <button type="button" id="reset-btn" class="inline-btn">¿Olvidaste tu contraseña?</button>
+            <button type="button" id="toggle-auth-mode-btn" class="inline-btn">Crear cuenta</button>
           </div>
           <p id="auth-status" class="status" role="status" aria-live="polite"></p>
         </article>
 
         <!-- Shown when client clicks their invite / password-reset link -->
         <article class="card hidden" id="set-password-card">
-          <h2>Create Your Password</h2>
-          <p class="sub">Welcome! Set a password below to activate your Donoso Credit Repair account.</p>
+          <h2>Crea tu contraseña</h2>
+          <p class="sub">¡Bienvenido! Crea una contraseña para activar tu cuenta de Donoso Credit Repair.</p>
           <form id="set-password-form" novalidate>
-            <label for="new-password">New Password</label>
-            <input id="new-password" name="new-password" type="password" minlength="8" required placeholder="At least 8 characters" />
-            <label for="confirm-password">Confirm Password</label>
-            <input id="confirm-password" name="confirm-password" type="password" minlength="8" required placeholder="Re-enter password" />
-            <button type="submit" class="btn primary" style="margin-top:0.5rem">Activate Account →</button>
+            <label for="new-password">Nueva contraseña</label>
+            <input id="new-password" name="new-password" type="password" minlength="8" required placeholder="Mínimo 8 caracteres" />
+            <label for="confirm-password">Confirmar contraseña</label>
+            <input id="confirm-password" name="confirm-password" type="password" minlength="8" required placeholder="Escribe la contraseña otra vez" />
+            <button type="submit" class="btn primary" style="margin-top:0.5rem">Activar cuenta →</button>
           </form>
           <p id="set-password-status" class="status" role="status" aria-live="polite"></p>
         </article>
@@ -568,96 +568,96 @@
         <article class="card hidden" id="dashboard-card">
           <div class="dash-head">
             <div>
-              <h2>Welcome, <span id="client-name">Client</span></h2>
+              <h2>Bienvenido, <span id="client-name">Cliente</span></h2>
               <p class="sub" id="client-email"></p>
             </div>
             <div class="dash-head-actions">
-              <button type="button" class="btn secondary" id="refresh-btn">Refresh</button>
-              <button type="button" class="btn danger" id="logout-btn">Sign Out</button>
+              <button type="button" class="btn secondary" id="refresh-btn">Actualizar</button>
+              <button type="button" class="btn danger" id="logout-btn">Cerrar sesión</button>
             </div>
           </div>
 
           <div class="preview-banner hidden" id="portal-preview-banner">
-            <strong>Admin Preview</strong>
-            <span id="portal-preview-meta">Read-only preview of the selected client portal.</span>
+            <strong>Vista previa del admin</strong>
+            <span id="portal-preview-meta">Vista de solo lectura del portal del cliente seleccionado.</span>
           </div>
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Contact Information</h3>
-              <p class="section-sub">The contact details currently on file for this portal account.</p>
+              <h3>Información de contacto</h3>
+              <p class="section-sub">Los datos de contacto actualmente guardados para esta cuenta del portal.</p>
             </div>
             <div class="contact-grid">
               <article class="contact-card">
-                <span class="contact-label">Email</span>
-                <strong class="contact-value" id="client-contact-email">Not set</strong>
+                <span class="contact-label">Correo electrónico</span>
+                <strong class="contact-value" id="client-contact-email">Sin configurar</strong>
               </article>
               <article class="contact-card">
-                <span class="contact-label">Phone</span>
-                <strong class="contact-value" id="client-contact-phone">Not added yet</strong>
+                <span class="contact-label">Teléfono</span>
+                <strong class="contact-value" id="client-contact-phone">Aún no agregado</strong>
               </article>
               <article class="contact-card contact-card-wide">
-                <span class="contact-label">Address</span>
-                <strong class="contact-value" id="client-contact-address">Not added yet</strong>
+                <span class="contact-label">Dirección</span>
+                <strong class="contact-value" id="client-contact-address">Aún no agregada</strong>
               </article>
             </div>
           </section>
 
-          <nav class="portal-dashboard-tabs" aria-label="Client portal sections">
-            <button type="button" class="portal-tab-btn active" data-portal-tab-button="overview">Overview</button>
-            <button type="button" class="portal-tab-btn" data-portal-tab-button="billing">Billing</button>
-            <button type="button" class="portal-tab-btn" data-portal-tab-button="letters">Letters</button>
-            <button type="button" class="portal-tab-btn" data-portal-tab-button="documents">Documents</button>
-            <button type="button" class="portal-tab-btn" data-portal-tab-button="upload">Upload</button>
-            <button type="button" class="portal-tab-btn" data-portal-tab-button="messages">Messages</button>
+          <nav class="portal-dashboard-tabs" aria-label="Secciones del portal del cliente">
+            <button type="button" class="portal-tab-btn active" data-portal-tab-button="overview">Resumen</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="billing">Facturación</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="letters">Cartas</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="documents">Documentos</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="upload">Cargar</button>
+            <button type="button" class="portal-tab-btn" data-portal-tab-button="messages">Mensajes</button>
           </nav>
 
           <section id="score-snapshot-section" class="dashboard-section" data-portal-panel="overview">
-            <h3>Credit Snapshot</h3>
+            <h3>Resumen de crédito</h3>
             <div class="score-grid" id="score-grid">
               <article class="score-card">
                 <p class="bureau">Experian</p>
                 <p class="score">--</p>
-                <p class="stamp">No data yet</p>
+                <p class="stamp">Aún no hay datos</p>
               </article>
               <article class="score-card">
                 <p class="bureau">Equifax</p>
                 <p class="score">--</p>
-                <p class="stamp">No data yet</p>
+                <p class="stamp">Aún no hay datos</p>
               </article>
               <article class="score-card">
                 <p class="bureau">TransUnion</p>
                 <p class="score">--</p>
-                <p class="stamp">No data yet</p>
+                <p class="stamp">Aún no hay datos</p>
               </article>
             </div>
           </section>
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Credit Reports</h3>
-              <p class="section-sub">Latest bureau reports currently on file.</p>
+              <h3>Reportes de crédito</h3>
+              <p class="section-sub">Los reportes más recientes actualmente guardados en tu expediente.</p>
             </div>
             <div class="report-grid" id="report-grid">
               <article class="report-card empty-card">
-                <p class="empty">No current credit reports uploaded yet.</p>
+                <p class="empty">Aún no se han cargado reportes de crédito actuales.</p>
               </article>
             </div>
           </section>
 
           <section class="dashboard-section hidden" data-portal-panel="billing">
             <div class="section-head">
-              <h3>Billing</h3>
-              <p class="section-sub">Your current plan and any Zelle invoices sent through the portal.</p>
+              <h3>Facturación</h3>
+              <p class="section-sub">Tu plan actual y cualquier factura enviada por Zelle a través del portal.</p>
             </div>
             <div class="billing-grid">
               <article class="billing-plan-card" id="billing-plan-card">
-                <p class="empty">No billing plan has been posted yet.</p>
+                <p class="empty">Aún no se ha publicado un plan de facturación.</p>
               </article>
               <article class="billing-invoices-card">
-                <h4>Invoices</h4>
+                <h4>Facturas</h4>
                 <div class="billing-invoices-list" id="billing-invoices-list">
-                  <p class="empty">No invoices have been sent yet.</p>
+                  <p class="empty">Aún no se han enviado facturas.</p>
                 </div>
               </article>
             </div>
@@ -665,78 +665,78 @@
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Negative Item Tracker</h3>
-              <p class="subtle">Track each negative account from intake through resolution.</p>
+              <h3>Seguimiento de cuentas negativas</h3>
+              <p class="subtle">Sigue cada cuenta negativa desde el ingreso hasta la resolución.</p>
             </div>
             <div class="negative-tracker-stats" id="negative-tracker-stats">
               <article class="negative-stat-card">
-                <span>Total Items</span>
+                <span>Total de cuentas</span>
                 <strong>0</strong>
               </article>
               <article class="negative-stat-card">
-                <span>Active Items</span>
+                <span>Cuentas activas</span>
                 <strong>0</strong>
               </article>
               <article class="negative-stat-card">
-                <span>Resolved</span>
+                <span>Resueltas</span>
                 <strong>0</strong>
               </article>
               <article class="negative-stat-card">
-                <span>Active Balance</span>
+                <span>Balance activo</span>
                 <strong>$0</strong>
               </article>
             </div>
             <div class="negative-tracker-grid" id="negative-tracker-grid">
               <article class="negative-track-card empty-card">
-                <p class="empty">No negative items logged yet.</p>
+                <p class="empty">Aún no hay cuentas negativas registradas.</p>
               </article>
             </div>
           </section>
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Resolved Item Progress</h3>
-              <p class="section-sub">Confirmed deletions, removals, and reporting updates already reflected on your credit file.</p>
+              <h3>Progreso de cuentas resueltas</h3>
+              <p class="section-sub">Eliminaciones, remociones y actualizaciones ya reflejadas en tu reporte de crédito.</p>
             </div>
             <div class="deleted-progress-summary" id="deleted-progress-summary">
               <article class="negative-stat-card">
-                <span>Resolved Items</span>
+                <span>Cuentas resueltas</span>
                 <strong>0</strong>
               </article>
               <article class="negative-stat-card">
-                <span>Still Reporting</span>
+                <span>Aún reportando</span>
                 <strong>0</strong>
               </article>
               <article class="negative-stat-card">
-                <span>Progress Rate</span>
+                <span>Porcentaje de progreso</span>
                 <strong>0%</strong>
               </article>
             </div>
             <div class="deleted-progress-list" id="deleted-progress-list">
               <article class="deleted-progress-empty">
-                <p class="empty">No deleted items recorded yet.</p>
+                <p class="empty">Aún no hay cuentas eliminadas registradas.</p>
               </article>
             </div>
           </section>
 
           <section class="dashboard-section hidden" data-portal-panel="letters">
             <div class="section-head">
-              <h3>Letters Sent + Tracking Numbers</h3>
+              <h3>Cartas enviadas y números de rastreo</h3>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Date Sent</th>
-                    <th>Bureau/Creditor</th>
-                    <th>Tracking Number</th>
-                    <th>Status</th>
-                    <th>Letter</th>
+                    <th>Fecha enviada</th>
+                    <th>Buró/Acreedor</th>
+                    <th>Número de rastreo</th>
+                    <th>Estado</th>
+                    <th>Carta</th>
                   </tr>
                 </thead>
                 <tbody id="letters-body">
                   <tr>
-                    <td colspan="5" class="empty">No letters posted yet.</td>
+                    <td colspan="5" class="empty">Aún no hay cartas publicadas.</td>
                   </tr>
                 </tbody>
               </table>
@@ -745,42 +745,42 @@
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Dispute Progress</h3>
+              <h3>Progreso de la disputa</h3>
             </div>
             <div class="tracker" id="progress-tracker">
               <div class="tracker-step" data-step="1">
                 <div class="tracker-dot"></div>
                 <div class="tracker-label">
-                  <strong>Enrollment</strong>
-                  <span>Account created</span>
+                  <strong>Inscripción</strong>
+                  <span>Cuenta creada</span>
                 </div>
               </div>
               <div class="tracker-step" data-step="2">
                 <div class="tracker-dot"></div>
                 <div class="tracker-label">
-                  <strong>Credit Review</strong>
-                  <span>Report analyzed &amp; strategy built</span>
+                  <strong>Revisión de crédito</strong>
+                  <span>Reporte analizado y estrategia preparada</span>
                 </div>
               </div>
               <div class="tracker-step" data-step="3">
                 <div class="tracker-dot"></div>
                 <div class="tracker-label">
-                  <strong>Disputes Filed</strong>
-                  <span>Letters sent to bureaus &amp; collectors</span>
+                  <strong>Disputas enviadas</strong>
+                  <span>Cartas enviadas a burós y cobradores</span>
                 </div>
               </div>
               <div class="tracker-step" data-step="4">
                 <div class="tracker-dot"></div>
                 <div class="tracker-label">
-                  <strong>Awaiting Response</strong>
-                  <span>Bureau investigation period (30–45 days)</span>
+                  <strong>Esperando respuesta</strong>
+                  <span>Periodo de investigación del buró (30–45 días)</span>
                 </div>
               </div>
               <div class="tracker-step" data-step="5">
                 <div class="tracker-dot"></div>
                 <div class="tracker-label">
-                  <strong>Results In</strong>
-                  <span>Responses received &amp; next cycle planned</span>
+                  <strong>Resultados recibidos</strong>
+                  <span>Respuestas recibidas y próximo ciclo planificado</span>
                 </div>
               </div>
             </div>
@@ -788,29 +788,29 @@
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Account Updates</h3>
+              <h3>Actualizaciones de la cuenta</h3>
             </div>
             <ul class="timeline" id="updates-list">
-              <li class="empty">No updates posted yet.</li>
+              <li class="empty">Aún no hay actualizaciones publicadas.</li>
             </ul>
           </section>
 
           <section class="dashboard-section" data-portal-panel="overview">
             <div class="section-head">
-              <h3>Record Activity</h3>
-              <p class="section-sub">Recent uploads, edits, and deletions on your file.</p>
+              <h3>Actividad del expediente</h3>
+              <p class="section-sub">Cargas, ediciones y eliminaciones recientes en tu archivo.</p>
             </div>
             <ul class="timeline activity-feed" id="activity-list">
-              <li class="empty">No record activity yet.</li>
+              <li class="empty">Aún no hay actividad en el expediente.</li>
             </ul>
           </section>
 
           <section class="dashboard-section hidden" data-portal-panel="documents">
             <div class="section-head">
-              <h3>Documents &amp; Letters</h3>
+              <h3>Documentos y cartas</h3>
             </div>
             <ul class="file-list" id="files-list">
-              <li class="empty">No files uploaded yet.</li>
+              <li class="empty">Aún no hay archivos cargados.</li>
             </ul>
           </section>
 
@@ -818,92 +818,92 @@
             <div class="reports-header">
               <span class="reports-icon">📋</span>
               <div>
-                <h3>Get Your Free Credit Reports</h3>
-                <p class="section-sub">Federal law entitles you to one free report from each bureau every year. Download all three so we can identify every item to dispute.</p>
+                <h3>Obtén tus reportes de crédito gratis</h3>
+                <p class="section-sub">La ley federal te da derecho a un reporte gratis de cada buró cada año. Descarga los tres para identificar todo lo que se puede disputar.</p>
               </div>
             </div>
             <ol class="reports-steps">
-              <li><strong>Visit AnnualCreditReport.com</strong> — the only federally authorized source for your free reports.</li>
-              <li><strong>Request all 3 reports</strong> — Experian, Equifax, and TransUnion. Download or save each one as a PDF.</li>
-              <li><strong>Upload them below</strong> — use the "Upload Documents" form to send each report to us so we can begin your review.</li>
+              <li><strong>Visita AnnualCreditReport.com</strong> — la única fuente federal autorizada para tus reportes gratis.</li>
+              <li><strong>Solicita los 3 reportes</strong> — Experian, Equifax y TransUnion. Descarga o guarda cada uno en PDF.</li>
+              <li><strong>Cárgalos abajo</strong> — usa el formulario "Cargar documentos" para enviarnos cada reporte y comenzar la revisión.</li>
             </ol>
             <a
               href="https://www.annualcreditreport.com"
               target="_blank"
               rel="noopener noreferrer"
               class="btn reports-btn"
-            >Visit AnnualCreditReport.com →</a>
-            <p class="reports-note">Opens in a new tab · This is the official, federally mandated free credit report site (no credit card required).</p>
+            >Visitar AnnualCreditReport.com →</a>
+            <p class="reports-note">Se abre en una nueva pestaña · Este es el sitio oficial y federal para reportes de crédito gratis (sin tarjeta de crédito).</p>
           </section>
 
           <section class="reports-callout onboarding-callout hidden" data-portal-panel="upload">
             <div class="reports-header">
               <span class="reports-icon">🪪</span>
               <div>
-                <h3>Required Verification Documents</h3>
-                <p class="section-sub">Please upload these onboarding documents so we can verify your identity and mailing address before we begin your file review.</p>
+                <h3>Documentos de verificación requeridos</h3>
+                <p class="section-sub">Carga estos documentos para verificar tu identidad y dirección postal antes de comenzar la revisión de tu expediente.</p>
               </div>
             </div>
             <div class="doc-checklist" id="required-docs-list">
               <article class="doc-status-card" data-doc-key="id">
                 <div>
-                  <p class="doc-title">Government-issued ID</p>
-                  <p class="doc-note">Driver license, state ID, or passport.</p>
+                  <p class="doc-title">Identificación oficial</p>
+                  <p class="doc-note">Licencia de conducir, identificación estatal o pasaporte.</p>
                 </div>
-                <span class="doc-badge pending" data-doc-status>Needed</span>
+                <span class="doc-badge pending" data-doc-status>Pendiente</span>
               </article>
               <article class="doc-status-card" data-doc-key="ssn">
                 <div>
-                  <p class="doc-title">Social Security card</p>
-                  <p class="doc-note">Upload a clear photo or PDF copy.</p>
+                  <p class="doc-title">Tarjeta de Seguro Social</p>
+                  <p class="doc-note">Carga una foto clara o una copia en PDF.</p>
                 </div>
-                <span class="doc-badge pending" data-doc-status>Needed</span>
+                <span class="doc-badge pending" data-doc-status>Pendiente</span>
               </article>
               <article class="doc-status-card" data-doc-key="address">
                 <div>
-                  <p class="doc-title">Proof of address</p>
-                  <p class="doc-note">Utility bill, bank statement, lease, or mortgage statement.</p>
+                  <p class="doc-title">Comprobante de dirección</p>
+                  <p class="doc-note">Recibo de servicios, estado de cuenta bancario, contrato de renta o hipoteca.</p>
                 </div>
-                <span class="doc-badge pending" data-doc-status>Needed</span>
+                <span class="doc-badge pending" data-doc-status>Pendiente</span>
               </article>
             </div>
           </section>
 
           <section class="dashboard-section hidden" data-portal-panel="upload">
             <div class="section-head">
-              <h3>Upload Documents</h3>
-              <p class="section-sub">Upload each required verification document separately, along with any bureau mail, creditor letters, or downloaded credit reports you want us to review.</p>
+              <h3>Cargar documentos</h3>
+              <p class="section-sub">Carga cada documento requerido por separado, junto con cualquier carta del buró, carta del acreedor o reporte de crédito que quieras que revisemos.</p>
             </div>
             <form id="client-upload-form" class="upload-form">
-              <label for="client-file-category">Document Type</label>
+              <label for="client-file-category">Tipo de documento</label>
               <select id="client-file-category" required>
-                <option value="">Choose document type</option>
-                <option value="Government ID">Government ID</option>
-                <option value="Social Security Card">Social Security Card</option>
-                <option value="Proof of Address">Proof of Address</option>
-                <option value="Credit Report">Credit Report</option>
-                <option value="Incoming Mail">Bureau / Creditor Letter</option>
-                <option value="Other Supporting Document">Other Supporting Document</option>
+                <option value="">Elige el tipo de documento</option>
+                <option value="Government ID">Identificación oficial</option>
+                <option value="Social Security Card">Tarjeta de Seguro Social</option>
+                <option value="Proof of Address">Comprobante de dirección</option>
+                <option value="Credit Report">Reporte de crédito</option>
+                <option value="Incoming Mail">Carta del buró / acreedor</option>
+                <option value="Other Supporting Document">Otro documento de apoyo</option>
               </select>
-              <label for="client-file-title">Description (optional)</label>
-              <input id="client-file-title" type="text" placeholder="e.g. Driver license front, March utility bill, or Experian response letter" />
-              <label for="client-file-input">Attachment (PDF / JPG / PNG / WebP / DOC / DOCX, max 500MB upload)</label>
+              <label for="client-file-title">Descripción (opcional)</label>
+              <input id="client-file-title" type="text" placeholder="Ej. frente de licencia, factura de luz de marzo o carta de respuesta de Experian" />
+              <label for="client-file-input">Adjunto (PDF / JPG / PNG / WebP / DOC / DOCX, máximo 500MB)</label>
               <input id="client-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
-              <button type="submit" class="btn primary">Upload Document</button>
+              <button type="submit" class="btn primary">Cargar documento</button>
             </form>
             <p id="upload-status" class="status" role="status" aria-live="polite"></p>
           </section>
 
           <section class="dashboard-section messages-section hidden" data-portal-panel="messages">
             <div class="section-head">
-              <h3>Messages</h3>
+              <h3>Mensajes</h3>
             </div>
             <ul class="message-thread" id="message-thread">
-              <li class="empty">No messages yet.</li>
+              <li class="empty">Aún no hay mensajes.</li>
             </ul>
             <form id="message-form" class="message-compose">
-              <textarea id="message-input" rows="3" placeholder="Send a message to your advisor..." required></textarea>
-              <button type="submit" class="btn primary">Send Message</button>
+              <textarea id="message-input" rows="3" placeholder="Envía un mensaje a tu asesor..." required></textarea>
+              <button type="submit" class="btn primary">Enviar mensaje</button>
             </form>
             <p id="message-status" class="status" role="status" aria-live="polite"></p>
           </section>

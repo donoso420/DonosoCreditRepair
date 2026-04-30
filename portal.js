@@ -28,6 +28,7 @@ const toggleAuthModeBtn = document.getElementById("toggle-auth-mode-btn");
 const logoutBtn = document.getElementById("logout-btn");
 const refreshBtn = document.getElementById("refresh-btn");
 const portalThemeToggleBtn = document.getElementById("portal-theme-toggle");
+const portalLanguageLink = document.getElementById("portal-language-link");
 const clientNameEl = document.getElementById("client-name");
 const clientEmailEl = document.getElementById("client-email");
 const clientContactEmailEl = document.getElementById("client-contact-email");
@@ -80,9 +81,384 @@ const REQUIRED_UPLOAD_DOCS = [
   { key: "ssn", category: "Social Security Card" },
   { key: "address", category: "Proof of Address" },
 ];
+const PORTAL_LOCALE = document.documentElement.lang?.toLowerCase().startsWith("es") ? "es" : "en";
+const DISPLAY_LOCALE = PORTAL_LOCALE === "es" ? "es-US" : undefined;
+const PORTAL_COPY = {
+  en: {
+    "theme.darkMode": "Dark mode",
+    "theme.lightMode": "Light mode",
+    "theme.switchToDark": "Switch to dark mode",
+    "theme.switchToLight": "Switch to light mode",
+    "config.notReady": "Portal is not configured yet. Add Supabase values in portal-config.js before using this page.",
+    "auth.cooldown": "Please wait {seconds} seconds before requesting another {actionLabel} email.",
+    "auth.error.rateLimitReset": "Supabase blocked another password email because the project email limit was hit. Wait a minute and try again.",
+    "auth.error.rateLimitSignup": "Supabase blocked another confirmation email because the project email limit was hit. Wait a minute and try again. If this keeps happening, use the admin invite flow or configure custom SMTP in Supabase.",
+    "auth.error.userExists": "This email already has an account. Sign in or use Forgot password.",
+    "auth.error.invalidCredentials": "That email or password did not match. If this account was already created, use Forgot password or your setup email instead of creating it again.",
+    "auth.error.unexpected": "Unexpected authentication error.",
+    "auth.mode.signup.title": "Create Account",
+    "auth.mode.signup.sub": "Create your portal account to get started. After signup, you can sign in and track your progress here.",
+    "auth.mode.signup.submit": "Create Account",
+    "auth.mode.signup.toggle": "Already have an account? Sign in",
+    "auth.mode.signin.title": "Sign In",
+    "auth.mode.signin.sub": "Use the email and password from your setup email. If you already have portal access, use Forgot password instead of creating a second account.",
+    "auth.mode.signin.submit": "Sign In",
+    "auth.mode.signin.toggle": "Create account",
+    "auth.validation.signup": "Please enter your name, phone, address, email, and password.",
+    "auth.validation.signin": "Please enter email and password.",
+    "auth.validation.fullName": "Please enter your full name.",
+    "auth.validation.phone": "Please enter your phone number.",
+    "auth.validation.address": "Please enter your address.",
+    "auth.validation.passwordLength": "Password must be at least 8 characters.",
+    "auth.validation.passwordMismatch": "Passwords do not match.",
+    "auth.status.creating": "Creating your account...",
+    "auth.status.signingIn": "Signing in...",
+    "auth.notice.verifyTitle": "Verify your email",
+    "auth.notice.verifyMessage": "We sent a confirmation link to {email}. Open that email, tap the link, then sign in here.",
+    "auth.notice.verifySignin": "Please open the confirmation email sent to {email}, tap the link, then sign in here.",
+    "auth.notice.emailVerifiedTitle": "Email verified",
+    "auth.notice.emailVerifiedMessage": "Your email is confirmed. Sign in below with the password you created.",
+    "auth.notice.accountExistsTitle": "Account already exists",
+    "auth.notice.accountExistsMessage": "This email already has portal access. Use Forgot password or your setup email instead of creating a new account.",
+    "auth.reset.enterEmail": "Enter your email first, then click reset.",
+    "auth.reset.sent": "Password reset email sent.",
+    "auth.reset.actionLabel": "password reset",
+    "auth.signup.actionLabel": "signup confirmation",
+    "setPassword.createTitle": "Create Your Password",
+    "setPassword.createSub": "Welcome! Set a password below to activate your Donoso Credit Repair account.",
+    "setPassword.createSubmit": "Activate Account",
+    "setPassword.resetTitle": "Reset Your Password",
+    "setPassword.resetSub": "Set a new password to regain access to your Donoso Credit Repair account.",
+    "setPassword.resetSubmit": "Save New Password",
+    "setPassword.activating": "Activating…",
+    "preview.banner": "Read-only preview for client user_id {userId}. Uploads and messages are disabled here.",
+    "preview.authRequired": "Preview links require an active admin session.",
+    "preview.disabledMessage": "Messaging is disabled in admin preview.",
+    "preview.disabledUploads": "Uploads are disabled in admin preview.",
+    "preview.exit": "Exit Preview",
+    "nav.logout": "Sign Out",
+    "nav.refresh": "Refresh",
+    "general.client": "Client",
+    "general.clientPreview": "Client Preview",
+    "general.notSet": "Not set",
+    "general.notAddedYet": "Not added yet",
+    "general.notAvailablePreview": "Not available in preview",
+    "general.other": "Other",
+    "general.custom": "Custom",
+    "general.na": "N/A",
+    "general.fileUnavailable": "File link unavailable",
+    "general.manual": "Manual",
+    "general.monthly": "Monthly",
+    "general.weekly": "Weekly",
+    "general.biweekly": "Biweekly",
+    "general.oneTime": "One time",
+    "general.active": "Active",
+    "general.paused": "Paused",
+    "general.canceled": "Canceled",
+    "general.completed": "Completed",
+    "general.pastDue": "Past due",
+    "general.trial": "Trial",
+    "scores.updated": "Updated {date}",
+    "scores.noData": "No data yet",
+    "letters.noRows": "No letters posted yet.",
+    "letters.inTransit": "In Transit",
+    "letters.followUp": "Follow-up letter",
+    "letters.view": "View Letter",
+    "letters.openFile": "Open File",
+    "letters.downloadPdf": "Download PDF",
+    "letters.preparingPdf": "Preparing PDF...",
+    "letters.defaultLabel": "Letter",
+    "letters.modal.copy": "📋 Copy Letter",
+    "letters.modal.copied": "✅ Copied!",
+    "letters.modal.close": "Close",
+    "letters.pdfUnavailable": "PDF download is available for linked PDF files, linked DOCX files, or letters saved with text content.",
+    "letters.pdfToolsLoading": "PDF tools are still loading. Try again in a moment.",
+    "letters.downloadError": "Could not prepare the PDF for this letter.",
+    "reports.noReports": "No current credit reports uploaded yet.",
+    "reports.open": "Open report",
+    "billing.noPlan": "No billing plan has been posted yet.",
+    "billing.currentPlan": "Current Plan",
+    "billing.amount": "Amount",
+    "billing.interval": "Interval",
+    "billing.started": "Started",
+    "billing.nextBilling": "Next Billing",
+    "billing.terms": "Terms",
+    "billing.zelle": "Zelle",
+    "billing.zelleMemo": "Zelle memo",
+    "billing.noInvoices": "No invoices have been sent yet.",
+    "billing.payByZelleTo": "Pay by Zelle to:",
+    "billing.zelleContact": "Zelle email/phone:",
+    "billing.memo": "Memo:",
+    "billing.zellePending": "Zelle instructions will be posted here once added by the admin team.",
+    "billing.invoice": "Invoice",
+    "billing.serviceInvoice": "Service invoice",
+    "billing.issued": "Issued {date}",
+    "billing.due": "Due {date}",
+    "billing.brand": "Billing",
+    "invoice.sent": "Sent",
+    "invoice.paid": "Paid",
+    "invoice.overdue": "Overdue",
+    "invoice.void": "Void",
+    "invoice.draft": "Draft",
+    "verification.reviewed": "Reviewed",
+    "verification.verified": "Verified",
+    "verification.rejected": "Rejected",
+    "verification.needsReview": "Needs review",
+    "verification.pending": "Pending review",
+    "verification.pdfReview": "PDF review",
+    "verification.docScan": "Document scan",
+    "negative.totalItems": "Total Items",
+    "negative.activeItems": "Active Items",
+    "negative.resolved": "Resolved",
+    "negative.activeBalance": "Active Balance",
+    "negative.resolvedItems": "Resolved Items",
+    "negative.stillReporting": "Still Reporting",
+    "negative.progressRate": "Progress Rate",
+    "negative.noResolved": "No resolved items recorded yet.",
+    "negative.noActive": "No active negative items still reporting.",
+    "negative.noItems": "No negative items logged yet.",
+    "negative.tabAria": "Negative item bureaus",
+    "negative.sharedUnknown": "Shared / Unknown",
+    "negative.item": "item",
+    "negative.items": "items",
+    "negative.activeBalanceLabel": "Active balance {amount}",
+    "negative.bureauBalanceNote": "Bureau balance is separated here so repeated accounts do not look overstated.",
+    "negative.status": "Status:",
+    "negative.balance": "Balance:",
+    "negative.source": "Source:",
+    "negative.underReview": "Under review",
+    "negative.unknownCreditor": "Unknown creditor",
+    "negative.itemLabel": "Negative Item",
+    "negative.acctShort": "Acct {value}",
+    "negative.stage.logged": "Logged",
+    "negative.stage.working": "In progress",
+    "negative.stage.resolved": "Resolved",
+    "negative.status.updated": "Updated",
+    "negative.status.removed": "Removed",
+    "negative.status.deleted": "Deleted",
+    "updates.none": "No updates posted yet.",
+    "activity.none": "No record activity yet.",
+    "docs.received": "Received",
+    "docs.needed": "Needed",
+    "files.none": "No files uploaded yet.",
+    "files.document": "Document",
+    "files.attachment": "Attachment",
+    "files.uploadedByYou": " • Uploaded by you",
+    "files.open": "Open file",
+    "messages.none": "No messages yet.",
+    "messages.you": "You",
+    "messages.client": "Client",
+    "messages.brand": "Donoso Credit Repair",
+    "messages.sending": "Sending...",
+    "messages.failed": "Could not send message. Try again.",
+    "messages.summary": "A client sent a new portal message.",
+    "messages.placeholder": "Send a message to your advisor...",
+    "messages.previewPlaceholder": "Messaging is disabled in admin preview.",
+    "upload.chooseType": "Choose the type of document you are uploading.",
+    "upload.chooseFile": "Please choose a file.",
+    "upload.allowedTypes": "Only PDF, PNG, JPG, WebP, DOC, or DOCX files are allowed.",
+    "upload.tooLarge": "File must be {limit} or smaller.",
+    "upload.uploading": "Uploading...",
+    "upload.failed": "Upload failed: {message}",
+    "upload.rowFailed": "File uploaded but could not save record: {message}",
+    "upload.summary": "A client uploaded a new portal document.",
+    "upload.success": "{category} uploaded successfully.",
+    "session.loadFailed": "Could not load your portal data right now.",
+  },
+  es: {
+    "theme.darkMode": "Modo oscuro",
+    "theme.lightMode": "Modo claro",
+    "theme.switchToDark": "Cambiar a modo oscuro",
+    "theme.switchToLight": "Cambiar a modo claro",
+    "config.notReady": "El portal aún no está configurado. Agrega los valores de Supabase en portal-config.js antes de usar esta página.",
+    "auth.cooldown": "Espera {seconds} segundos antes de solicitar otro correo de {actionLabel}.",
+    "auth.error.rateLimitReset": "Supabase bloqueó otro correo de restablecimiento porque se alcanzó el límite del proyecto. Espera un minuto y vuelve a intentarlo.",
+    "auth.error.rateLimitSignup": "Supabase bloqueó otro correo de confirmación porque se alcanzó el límite del proyecto. Espera un minuto y vuelve a intentarlo. Si sigue pasando, usa la invitación del admin o configura SMTP personalizado en Supabase.",
+    "auth.error.userExists": "Este correo ya tiene una cuenta. Inicia sesión o usa ¿Olvidaste tu contraseña?.",
+    "auth.error.invalidCredentials": "Ese correo o contraseña no coincide. Si esta cuenta ya fue creada, usa ¿Olvidaste tu contraseña? o tu correo de acceso en lugar de crearla otra vez.",
+    "auth.error.unexpected": "Error inesperado de autenticación.",
+    "auth.mode.signup.title": "Crear cuenta",
+    "auth.mode.signup.sub": "Crea tu cuenta del portal para comenzar. Después podrás iniciar sesión y seguir tu progreso aquí.",
+    "auth.mode.signup.submit": "Crear cuenta",
+    "auth.mode.signup.toggle": "¿Ya tienes una cuenta? Inicia sesión",
+    "auth.mode.signin.title": "Iniciar sesión",
+    "auth.mode.signin.sub": "Usa el correo y la contraseña de tu correo de acceso. Si ya tienes acceso al portal, usa ¿Olvidaste tu contraseña? en lugar de crear una segunda cuenta.",
+    "auth.mode.signin.submit": "Iniciar sesión",
+    "auth.mode.signin.toggle": "Crear cuenta",
+    "auth.validation.signup": "Ingresa tu nombre, teléfono, dirección, correo y contraseña.",
+    "auth.validation.signin": "Ingresa tu correo y contraseña.",
+    "auth.validation.fullName": "Ingresa tu nombre completo.",
+    "auth.validation.phone": "Ingresa tu número de teléfono.",
+    "auth.validation.address": "Ingresa tu dirección.",
+    "auth.validation.passwordLength": "La contraseña debe tener al menos 8 caracteres.",
+    "auth.validation.passwordMismatch": "Las contraseñas no coinciden.",
+    "auth.status.creating": "Creando tu cuenta...",
+    "auth.status.signingIn": "Iniciando sesión...",
+    "auth.notice.verifyTitle": "Verifica tu correo",
+    "auth.notice.verifyMessage": "Enviamos un enlace de confirmación a {email}. Abre ese correo, toca el enlace y luego inicia sesión aquí.",
+    "auth.notice.verifySignin": "Abre el correo de confirmación enviado a {email}, toca el enlace y luego inicia sesión aquí.",
+    "auth.notice.emailVerifiedTitle": "Correo verificado",
+    "auth.notice.emailVerifiedMessage": "Tu correo ya fue confirmado. Inicia sesión abajo con la contraseña que creaste.",
+    "auth.notice.accountExistsTitle": "La cuenta ya existe",
+    "auth.notice.accountExistsMessage": "Este correo ya tiene acceso al portal. Usa ¿Olvidaste tu contraseña? o tu correo de acceso en lugar de crear una cuenta nueva.",
+    "auth.reset.enterEmail": "Primero ingresa tu correo y luego haz clic en restablecer.",
+    "auth.reset.sent": "Correo de restablecimiento enviado.",
+    "auth.reset.actionLabel": "restablecimiento de contraseña",
+    "auth.signup.actionLabel": "confirmación de registro",
+    "setPassword.createTitle": "Crea tu contraseña",
+    "setPassword.createSub": "¡Bienvenido! Crea una contraseña para activar tu cuenta de Donoso Credit Repair.",
+    "setPassword.createSubmit": "Activar cuenta",
+    "setPassword.resetTitle": "Restablece tu contraseña",
+    "setPassword.resetSub": "Crea una nueva contraseña para recuperar el acceso a tu cuenta de Donoso Credit Repair.",
+    "setPassword.resetSubmit": "Guardar nueva contraseña",
+    "setPassword.activating": "Activando…",
+    "preview.banner": "Vista previa de solo lectura para el cliente con user_id {userId}. Las cargas y los mensajes están deshabilitados aquí.",
+    "preview.authRequired": "Los enlaces de vista previa requieren una sesión activa de administrador.",
+    "preview.disabledMessage": "La mensajería está deshabilitada en la vista previa del admin.",
+    "preview.disabledUploads": "Las cargas están deshabilitadas en la vista previa del admin.",
+    "preview.exit": "Salir de vista previa",
+    "nav.logout": "Cerrar sesión",
+    "nav.refresh": "Actualizar",
+    "general.client": "Cliente",
+    "general.clientPreview": "Vista previa del cliente",
+    "general.notSet": "Sin configurar",
+    "general.notAddedYet": "Aún no agregado",
+    "general.notAvailablePreview": "No disponible en vista previa",
+    "general.other": "Otro",
+    "general.custom": "Personalizado",
+    "general.na": "N/A",
+    "general.fileUnavailable": "Enlace de archivo no disponible",
+    "general.manual": "Manual",
+    "general.monthly": "Mensual",
+    "general.weekly": "Semanal",
+    "general.biweekly": "Quincenal",
+    "general.oneTime": "Pago único",
+    "general.active": "Activo",
+    "general.paused": "Pausado",
+    "general.canceled": "Cancelado",
+    "general.completed": "Completado",
+    "general.pastDue": "Vencido",
+    "general.trial": "Prueba",
+    "scores.updated": "Actualizado {date}",
+    "scores.noData": "Aún no hay datos",
+    "letters.noRows": "Aún no hay cartas publicadas.",
+    "letters.inTransit": "En tránsito",
+    "letters.followUp": "Carta de seguimiento",
+    "letters.view": "Ver carta",
+    "letters.openFile": "Abrir archivo",
+    "letters.downloadPdf": "Descargar PDF",
+    "letters.preparingPdf": "Preparando PDF...",
+    "letters.defaultLabel": "Carta",
+    "letters.modal.copy": "📋 Copiar carta",
+    "letters.modal.copied": "✅ ¡Copiada!",
+    "letters.modal.close": "Cerrar",
+    "letters.pdfUnavailable": "La descarga en PDF está disponible para archivos PDF vinculados, archivos DOCX vinculados o cartas guardadas con texto.",
+    "letters.pdfToolsLoading": "Las herramientas PDF aún se están cargando. Inténtalo de nuevo en un momento.",
+    "letters.downloadError": "No se pudo preparar el PDF de esta carta.",
+    "reports.noReports": "Aún no se han cargado reportes de crédito actuales.",
+    "reports.open": "Abrir reporte",
+    "billing.noPlan": "Aún no se ha publicado un plan de facturación.",
+    "billing.currentPlan": "Plan actual",
+    "billing.amount": "Monto",
+    "billing.interval": "Frecuencia",
+    "billing.started": "Inicio",
+    "billing.nextBilling": "Próximo cobro",
+    "billing.terms": "Términos",
+    "billing.zelle": "Zelle",
+    "billing.zelleMemo": "Memo de Zelle",
+    "billing.noInvoices": "Aún no se han enviado facturas.",
+    "billing.payByZelleTo": "Paga por Zelle a:",
+    "billing.zelleContact": "Correo/teléfono de Zelle:",
+    "billing.memo": "Memo:",
+    "billing.zellePending": "Las instrucciones de Zelle aparecerán aquí cuando el equipo administrativo las agregue.",
+    "billing.invoice": "Factura",
+    "billing.serviceInvoice": "Factura de servicio",
+    "billing.issued": "Emitida {date}",
+    "billing.due": "Vence {date}",
+    "billing.brand": "Facturación",
+    "invoice.sent": "Enviada",
+    "invoice.paid": "Pagada",
+    "invoice.overdue": "Vencida",
+    "invoice.void": "Anulada",
+    "invoice.draft": "Borrador",
+    "verification.reviewed": "Revisado",
+    "verification.verified": "Verificado",
+    "verification.rejected": "Rechazado",
+    "verification.needsReview": "Necesita revisión",
+    "verification.pending": "Pendiente de revisión",
+    "verification.pdfReview": "Revisión PDF",
+    "verification.docScan": "Escaneo de documento",
+    "negative.totalItems": "Total de cuentas",
+    "negative.activeItems": "Cuentas activas",
+    "negative.resolved": "Resueltas",
+    "negative.activeBalance": "Balance activo",
+    "negative.resolvedItems": "Cuentas resueltas",
+    "negative.stillReporting": "Aún reportando",
+    "negative.progressRate": "Porcentaje de avance",
+    "negative.noResolved": "Aún no hay cuentas resueltas registradas.",
+    "negative.noActive": "No hay cuentas negativas activas reportando en este momento.",
+    "negative.noItems": "Aún no hay cuentas negativas registradas.",
+    "negative.tabAria": "Burós de cuentas negativas",
+    "negative.sharedUnknown": "Compartido / no especificado",
+    "negative.item": "cuenta",
+    "negative.items": "cuentas",
+    "negative.activeBalanceLabel": "Balance activo {amount}",
+    "negative.bureauBalanceNote": "El balance por buró se separa aquí para que las cuentas repetidas no parezcan infladas.",
+    "negative.status": "Estado:",
+    "negative.balance": "Balance:",
+    "negative.source": "Fuente:",
+    "negative.underReview": "En revisión",
+    "negative.unknownCreditor": "Acreedor no identificado",
+    "negative.itemLabel": "Cuenta negativa",
+    "negative.acctShort": "Cta {value}",
+    "negative.stage.logged": "Registrada",
+    "negative.stage.working": "En proceso",
+    "negative.stage.resolved": "Resuelta",
+    "negative.status.updated": "Actualizada",
+    "negative.status.removed": "Eliminada",
+    "negative.status.deleted": "Borrada",
+    "updates.none": "Aún no hay actualizaciones publicadas.",
+    "activity.none": "Aún no hay actividad en el expediente.",
+    "docs.received": "Recibido",
+    "docs.needed": "Pendiente",
+    "files.none": "Aún no hay archivos cargados.",
+    "files.document": "Documento",
+    "files.attachment": "Adjunto",
+    "files.uploadedByYou": " • Cargado por ti",
+    "files.open": "Abrir archivo",
+    "messages.none": "Aún no hay mensajes.",
+    "messages.you": "Tú",
+    "messages.client": "Cliente",
+    "messages.brand": "Donoso Credit Repair",
+    "messages.sending": "Enviando...",
+    "messages.failed": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
+    "messages.summary": "Un cliente envió un nuevo mensaje del portal.",
+    "messages.placeholder": "Envía un mensaje a tu asesor...",
+    "messages.previewPlaceholder": "La mensajería está deshabilitada en la vista previa del admin.",
+    "upload.chooseType": "Elige el tipo de documento que vas a cargar.",
+    "upload.chooseFile": "Selecciona un archivo.",
+    "upload.allowedTypes": "Solo se permiten archivos PDF, PNG, JPG, WebP, DOC o DOCX.",
+    "upload.tooLarge": "El archivo debe ser de {limit} o menos.",
+    "upload.uploading": "Subiendo...",
+    "upload.failed": "La carga falló: {message}",
+    "upload.rowFailed": "El archivo se cargó, pero no se pudo guardar el registro: {message}",
+    "upload.summary": "Un cliente cargó un nuevo documento del portal.",
+    "upload.success": "{category} se cargó correctamente.",
+    "session.loadFailed": "No se pudo cargar la información del portal en este momento.",
+  },
+};
 
 const requiredConfig = ["supabaseUrl", "supabaseAnonKey"];
 const missingConfig = requiredConfig.filter((k) => !config[k]);
+
+function resolveCopy(locale, key) {
+  return PORTAL_COPY[locale]?.[key];
+}
+
+function t(key, vars = {}) {
+  const template = resolveCopy(PORTAL_LOCALE, key) ?? resolveCopy("en", key) ?? key;
+  return String(template).replace(/\{(\w+)\}/g, (_, token) => String(vars[token] ?? ""));
+}
 
 function getStoredThemePreference() {
   try {
@@ -100,10 +476,10 @@ function applyThemePreference(theme) {
 
   if (portalThemeToggleBtn) {
     const switchToDark = nextTheme !== "dark";
-    portalThemeToggleBtn.textContent = switchToDark ? "Dark mode" : "Light mode";
+    portalThemeToggleBtn.textContent = switchToDark ? t("theme.darkMode") : t("theme.lightMode");
     portalThemeToggleBtn.setAttribute(
       "aria-label",
-      switchToDark ? "Switch to dark mode" : "Switch to light mode"
+      switchToDark ? t("theme.switchToDark") : t("theme.switchToLight")
     );
     portalThemeToggleBtn.setAttribute("aria-pressed", String(nextTheme === "dark"));
   }
@@ -121,13 +497,17 @@ function initializeThemeToggle() {
   });
 }
 
+function initializeLanguageSwitchLink() {
+  if (!portalLanguageLink) return;
+  const nextPath = PORTAL_LOCALE === "es" ? "portal.html" : "portal-es.html";
+  portalLanguageLink.href = `${nextPath}${window.location.search}${window.location.hash}`;
+}
+
 initializeThemeToggle();
+initializeLanguageSwitchLink();
 
 if (missingConfig.length > 0) {
-  setAuthStatus(
-    "Portal is not configured yet. Add Supabase values in portal-config.js before using this page.",
-    true
-  );
+  setAuthStatus(t("config.notReady"), true);
   if (authForm) authForm.querySelectorAll("input,button").forEach((el) => { el.disabled = true; });
   if (resetBtn) resetBtn.disabled = true;
 } else {
@@ -175,10 +555,7 @@ function requireAuthEmailCooldown(actionLabel) {
   if (!remainingMs) return true;
 
   const seconds = Math.ceil(remainingMs / 1000);
-  setAuthStatus(
-    `Please wait ${seconds} seconds before requesting another ${actionLabel} email.`,
-    true,
-  );
+  setAuthStatus(t("auth.cooldown", { seconds, actionLabel }), true);
   return false;
 }
 
@@ -192,19 +569,19 @@ function formatAuthError(error, context = "auth") {
 
   if (normalized.includes("rate limit")) {
     return context === "reset"
-      ? "Supabase blocked another password email because the project email limit was hit. Wait a minute and try again."
-      : "Supabase blocked another confirmation email because the project email limit was hit. Wait a minute and try again. If this keeps happening, use the admin invite flow or configure custom SMTP in Supabase.";
+      ? t("auth.error.rateLimitReset")
+      : t("auth.error.rateLimitSignup");
   }
 
   if (normalized.includes("user already registered")) {
-    return "This email already has an account. Sign in or use Forgot password.";
+    return t("auth.error.userExists");
   }
 
   if (normalized.includes("invalid login credentials") || normalized.includes("invalid credentials")) {
-    return "That email or password did not match. If this account was already created, use Forgot password or your setup email instead of creating it again.";
+    return t("auth.error.invalidCredentials");
   }
 
-  return message || "Unexpected authentication error.";
+  return message || t("auth.error.unexpected");
 }
 
 function isEmailConfirmationError(error) {
@@ -310,15 +687,15 @@ function configureSetPasswordFlow(flowType) {
   const isRecovery = normalized === "recovery";
 
   if (setPasswordTitle) {
-    setPasswordTitle.textContent = isRecovery ? "Reset Your Password" : "Create Your Password";
+    setPasswordTitle.textContent = isRecovery ? t("setPassword.resetTitle") : t("setPassword.createTitle");
   }
   if (setPasswordSub) {
     setPasswordSub.textContent = isRecovery
-      ? "Set a new password to regain access to your Donoso Credit Repair account."
-      : "Welcome! Set a password below to activate your Donoso Credit Repair account.";
+      ? t("setPassword.resetSub")
+      : t("setPassword.createSub");
   }
   if (setPasswordSubmitBtn) {
-    setPasswordSubmitBtn.textContent = isRecovery ? "Save New Password" : "Activate Account";
+    setPasswordSubmitBtn.textContent = isRecovery ? t("setPassword.resetSubmit") : t("setPassword.createSubmit");
   }
 }
 
@@ -377,18 +754,18 @@ function updateAuthModeUrl(mode) {
 function getAuthModeCopy(mode) {
   if (mode === "signup") {
     return {
-      title: "Create Account",
-      sub: "Create your portal account to get started. After signup, you can sign in and track your progress here.",
-      submit: "Create Account",
-      toggle: "Already have an account? Sign in",
+      title: t("auth.mode.signup.title"),
+      sub: t("auth.mode.signup.sub"),
+      submit: t("auth.mode.signup.submit"),
+      toggle: t("auth.mode.signup.toggle"),
     };
   }
 
   return {
-    title: "Sign In",
-    sub: "Use the email and password from your setup email. If you already have portal access, use Forgot password instead of creating a second account.",
-    submit: "Sign In",
-    toggle: "Create account",
+    title: t("auth.mode.signin.title"),
+    sub: t("auth.mode.signin.sub"),
+    submit: t("auth.mode.signin.submit"),
+    toggle: t("auth.mode.signin.toggle"),
   };
 }
 
@@ -549,14 +926,14 @@ function parseDisplayDate(value) {
 
 function formatDate(value) {
   const date = parseDisplayDate(value);
-  if (!date) return "N/A";
-  return date.toLocaleDateString();
+  if (!date) return t("general.na");
+  return date.toLocaleDateString(DISPLAY_LOCALE);
 }
 
 function formatDateTime(value) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
-  return date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return t("general.na");
+  return date.toLocaleString(DISPLAY_LOCALE);
 }
 
 let jsZipPromise = null;
@@ -583,7 +960,7 @@ function getLinkedLetterFileName(fileRow = {}) {
 function getJsPdfCtor() {
   const ctor = window.jspdf?.jsPDF;
   if (!ctor) {
-    throw new Error("PDF tools are still loading. Try again in a moment.");
+    throw new Error(t("letters.pdfToolsLoading"));
   }
   return ctor;
 }
@@ -600,32 +977,32 @@ async function getJsZip() {
 function formatBillingInterval(value) {
   switch (String(value || "").toLowerCase()) {
     case "biweekly":
-      return "Biweekly";
+      return t("general.biweekly");
     case "weekly":
-      return "Weekly";
+      return t("general.weekly");
     case "one_time":
-      return "One time";
+      return t("general.oneTime");
     case "custom":
-      return "Custom";
+      return t("general.custom");
     default:
-      return "Monthly";
+      return t("general.monthly");
   }
 }
 
 function formatBillingStatus(value) {
   switch (String(value || "").toLowerCase()) {
     case "trial":
-      return "Trial";
+      return t("general.trial");
     case "past_due":
-      return "Past due";
+      return t("general.pastDue");
     case "paused":
-      return "Paused";
+      return t("general.paused");
     case "canceled":
-      return "Canceled";
+      return t("general.canceled");
     case "completed":
-      return "Completed";
+      return t("general.completed");
     default:
-      return "Active";
+      return t("general.active");
   }
 }
 
@@ -664,41 +1041,41 @@ function billingStatusClass(value) {
 function formatInvoiceStatus(value) {
   switch (String(value || "").toLowerCase()) {
     case "sent":
-      return "Sent";
+      return t("invoice.sent");
     case "paid":
-      return "Paid";
+      return t("invoice.paid");
     case "overdue":
-      return "Overdue";
+      return t("invoice.overdue");
     case "void":
-      return "Void";
+      return t("invoice.void");
     default:
-      return "Draft";
+      return t("invoice.draft");
   }
 }
 
 function formatVerificationStatus(value) {
   switch (String(value || "").toLowerCase()) {
     case "reviewed":
-      return "Reviewed";
+      return t("verification.reviewed");
     case "verified":
-      return "Verified";
+      return t("verification.verified");
     case "rejected":
-      return "Rejected";
+      return t("verification.rejected");
     case "needs_review":
-      return "Needs review";
+      return t("verification.needsReview");
     default:
-      return "Pending review";
+      return t("verification.pending");
   }
 }
 
 function formatVerificationMethod(value) {
   switch (String(value || "").toLowerCase()) {
     case "ai_pdf":
-      return "PDF review";
+      return t("verification.pdfReview");
     case "browser_scan":
-      return "Document scan";
+      return t("verification.docScan");
     default:
-      return "Manual";
+      return t("general.manual");
   }
 }
 
@@ -786,7 +1163,7 @@ async function markClientReportReviewed(supabase, reportId) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload?.error || "Could not update report status.");
+    throw new Error(payload?.error || t("session.loadFailed"));
   }
 
   return Boolean(payload?.updated);
@@ -798,15 +1175,15 @@ function getNegativeItemStage(row = {}) {
   const combined = `${status} ${notes}`;
 
   if (row.is_active === false || isNegativeItemExplicitlyResolved(row)) {
-    return { key: "resolved", label: "Resolved", step: 3, badgeClass: "stage-resolved" };
+    return { key: "resolved", label: t("negative.stage.resolved"), step: 3, badgeClass: "stage-resolved" };
   }
 
   if (isNegativeItemExplicitlyLogged(row)) {
-    return { key: "logged", label: "Logged", step: 1, badgeClass: "stage-logged" };
+    return { key: "logged", label: t("negative.stage.logged"), step: 1, badgeClass: "stage-logged" };
   }
 
   if (isNegativeItemExplicitlyWorking(row)) {
-    return { key: "working", label: "In progress", step: 2, badgeClass: "stage-working" };
+    return { key: "working", label: t("negative.stage.working"), step: 2, badgeClass: "stage-working" };
   }
 
   if (
@@ -814,10 +1191,10 @@ function getNegativeItemStage(row = {}) {
       combined
     )
   ) {
-    return { key: "working", label: "In progress", step: 2, badgeClass: "stage-working" };
+    return { key: "working", label: t("negative.stage.working"), step: 2, badgeClass: "stage-working" };
   }
 
-  return { key: "logged", label: "Logged", step: 1, badgeClass: "stage-logged" };
+  return { key: "logged", label: t("negative.stage.logged"), step: 1, badgeClass: "stage-logged" };
 }
 
 function isDeletedNegativeItem(row = {}) {
@@ -855,14 +1232,14 @@ function isDeletedNegativeItem(row = {}) {
 
 function getNegativeItemResolvedLabel(row = {}) {
   const status = normalizeNegativeItemText(row.status);
-  if (/\bupdated?|corrected\b/.test(status)) return "Updated";
-  if (/\bremoved?\b/.test(status)) return "Removed";
-  if (/\bdeleted?\b/.test(status)) return "Deleted";
-  return "Resolved";
+  if (/\bupdated?|corrected\b/.test(status)) return t("negative.status.updated");
+  if (/\bremoved?\b/.test(status)) return t("negative.status.removed");
+  if (/\bdeleted?\b/.test(status)) return t("negative.status.deleted");
+  return t("negative.stage.resolved");
 }
 
 function renderNegativeStage(step) {
-  return ["Logged", "Working", "Resolved"]
+  return [t("negative.stage.logged"), t("negative.stage.working"), t("negative.stage.resolved")]
     .map((label, index) => {
       const stateClass = index + 1 <= step ? "complete" : "";
       return `
@@ -877,8 +1254,8 @@ function renderNegativeStage(step) {
 
 function formatCurrency(value) {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return "N/A";
-  return amount.toLocaleString(undefined, {
+  if (!Number.isFinite(amount)) return t("general.na");
+  return amount.toLocaleString(DISPLAY_LOCALE, {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2,
@@ -969,7 +1346,7 @@ function downloadBlob(blob, fileName) {
 async function fetchBlobFromSignedUrl(url) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("Could not download the linked letter file.");
+    throw new Error(t("general.fileUnavailable"));
   }
   return response.blob();
 }
@@ -1021,7 +1398,7 @@ async function createLetterPdfBlob({ title, text, metadata = [] }) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   ensureSpace(20);
-  doc.text(title || "Letter", left, y);
+  doc.text(title || t("letters.defaultLabel"), left, y);
   y += 24;
 
   if (metadata.length) {
@@ -1043,7 +1420,7 @@ async function createLetterPdfBlob({ title, text, metadata = [] }) {
     .map((paragraph) => paragraph.replace(/\n/g, " ").trim())
     .filter(Boolean);
 
-  const printableParagraphs = paragraphs.length ? paragraphs : ["Letter text unavailable."];
+  const printableParagraphs = paragraphs.length ? paragraphs : [t("general.fileUnavailable")];
   printableParagraphs.forEach((paragraph) => {
     const lines = doc.splitTextToSize(paragraph, maxWidth);
     lines.forEach((line) => {
@@ -1077,9 +1454,7 @@ async function downloadLetterAsPdf(row) {
   }
 
   if (!text) {
-    throw new Error(
-      "PDF download is available for linked PDF files, linked DOCX files, or letters saved with text content."
-    );
+    throw new Error(t("letters.pdfUnavailable"));
   }
 
   const pdfBlob = await createLetterPdfBlob({
@@ -1087,8 +1462,8 @@ async function downloadLetterAsPdf(row) {
     text,
     metadata: [
       `Sent: ${formatDate(row.sent_date)}`,
-      `Tracking: ${row.tracking_number || "N/A"}`,
-      `Status: ${row.status || "In Transit"}`,
+      `Tracking: ${row.tracking_number || t("general.na")}`,
+      `Status: ${formatLetterStatus(row.status || "In Transit")}`,
     ],
   });
 
@@ -1102,6 +1477,40 @@ function statusBadgeClass(status) {
   return "in-transit";
 }
 
+function formatLetterStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  switch (normalized) {
+    case "in transit":
+      return t("letters.inTransit");
+    case "delivered":
+      return PORTAL_LOCALE === "es" ? "Entregada" : "Delivered";
+    case "response received":
+      return PORTAL_LOCALE === "es" ? "Respuesta recibida" : "Response Received";
+    case "returned mail":
+      return PORTAL_LOCALE === "es" ? "Correo devuelto" : "Returned Mail";
+    default:
+      return String(value || "");
+  }
+}
+
+function formatNegativeItemStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  switch (normalized) {
+    case "updated":
+      return t("negative.status.updated");
+    case "removed":
+      return t("negative.status.removed");
+    case "deleted":
+      return t("negative.status.deleted");
+    case "logged":
+      return t("negative.stage.logged");
+    case "disputed":
+      return PORTAL_LOCALE === "es" ? "Disputada" : "Disputed";
+    default:
+      return String(value || "");
+  }
+}
+
 function renderScores(snapshots) {
   const bureauOrder = ["Experian", "Equifax", "TransUnion"];
   const latestByBureau = new Map();
@@ -1112,7 +1521,7 @@ function renderScores(snapshots) {
   const cards = bureauOrder.map((bureau) => {
     const item = latestByBureau.get(bureau);
     const score = item ? String(item.score) : "--";
-    const stamp = item ? `Updated ${formatDate(item.reported_at)}` : "No data yet";
+    const stamp = item ? t("scores.updated", { date: formatDate(item.reported_at) }) : t("scores.noData");
     return `
       <article class="score-card">
         <p class="bureau">${escapeHtml(bureau)}</p>
@@ -1160,35 +1569,35 @@ function renderTracker(letters, snapshots, reports) {
 function renderLetters(letters) {
   if (!lettersBodyEl) return;
   if (!letters.length) {
-    lettersBodyEl.innerHTML = '<tr><td colspan="5" class="empty">No letters posted yet.</td></tr>';
+    lettersBodyEl.innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(t("letters.noRows"))}</td></tr>`;
     return;
   }
 
   lettersBodyEl.innerHTML = letters
     .map((row, index) => {
-      const status = row.status || "In Transit";
+      const status = formatLetterStatus(row.status || "In Transit");
       const badgeClass = statusBadgeClass(status);
-      const typeLabel = String(row.letter_type || "").toLowerCase() === "follow_up" ? "Follow-up letter" : "";
+      const typeLabel = String(row.letter_type || "").toLowerCase() === "follow_up" ? t("letters.followUp") : "";
       const linkedFile = row.linked_file || null;
       const viewBtn = row.letter_content
-        ? `<button class="btn sm secondary view-letter-btn" type="button" data-content="${escapeHtml(row.letter_content)}" data-label="${escapeHtml(row.recipient || row.bureau || "Letter")}">View Letter</button>`
+        ? `<button class="btn sm secondary view-letter-btn" type="button" data-content="${escapeHtml(row.letter_content)}" data-label="${escapeHtml(row.recipient || row.bureau || t("letters.defaultLabel"))}">${escapeHtml(t("letters.view"))}</button>`
         : "";
       const openFileBtn = linkedFile?.signed_url
         ? `<a class="btn sm secondary" href="${escapeHtml(
             linkedFile.signed_url
-          )}" target="_blank" rel="noopener noreferrer">Open File</a>`
+          )}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("letters.openFile"))}</a>`
         : "";
       const canDownloadPdf = Boolean(row.letter_content) || isPdfFileRow(linkedFile) || isDocxFileRow(linkedFile);
       const downloadPdfBtn = canDownloadPdf
         ? `<button class="btn sm secondary download-letter-pdf-btn" type="button" data-letter-index="${escapeHtml(
             index
-          )}">Download PDF</button>`
+          )}">${escapeHtml(t("letters.downloadPdf"))}</button>`
         : "";
       const actionMarkup = [openFileBtn, viewBtn, downloadPdfBtn].filter(Boolean).join(" ");
       return `
         <tr>
           <td>${escapeHtml(formatDate(row.sent_date))}</td>
-          <td>${escapeHtml(row.recipient || row.bureau || "N/A")}${typeLabel ? `<div class="letter-row-type">${escapeHtml(typeLabel)}</div>` : ""}</td>
+          <td>${escapeHtml(row.recipient || row.bureau || t("general.na"))}${typeLabel ? `<div class="letter-row-type">${escapeHtml(typeLabel)}</div>` : ""}</td>
           <td>${escapeHtml(row.tracking_number && row.tracking_number !== "PENDING" ? row.tracking_number : "—")}</td>
           <td><span class="badge ${escapeHtml(badgeClass)}">${escapeHtml(status)}</span></td>
           <td>${actionMarkup ? `<div class="letter-actions">${actionMarkup}</div>` : "—"}</td>
@@ -1201,7 +1610,7 @@ function renderLetters(letters) {
   lettersBodyEl.querySelectorAll(".view-letter-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const content = btn.dataset.content || "";
-      const label = btn.dataset.label || "Dispute Letter";
+      const label = btn.dataset.label || t("letters.defaultLabel");
       showLetterModal(label, content);
     });
   });
@@ -1213,11 +1622,11 @@ function renderLetters(letters) {
       if (!row) return;
       const originalLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = "Preparing PDF...";
+      btn.textContent = t("letters.preparingPdf");
       try {
         await downloadLetterAsPdf(row);
       } catch (error) {
-        window.alert(error?.message || "Could not prepare the PDF for this letter.");
+        window.alert(error?.message || t("letters.downloadError"));
       } finally {
         btn.disabled = false;
         btn.textContent = originalLabel;
@@ -1251,8 +1660,8 @@ function showLetterModal(title, content) {
                     white-space:pre-wrap;margin:0;color:var(--ink,#1f1830);">${escapeHtml(content)}</pre>
       </div>
       <div style="padding:1rem 1.25rem;border-top:1px solid var(--line,#e4d9ef);display:flex;gap:0.5rem;">
-        <button id="letter-modal-copy" class="btn secondary" style="flex:1;">📋 Copy Letter</button>
-        <button id="letter-modal-close2" class="btn primary" style="flex:1;">Close</button>
+        <button id="letter-modal-copy" class="btn secondary" style="flex:1;">${escapeHtml(t("letters.modal.copy"))}</button>
+        <button id="letter-modal-close2" class="btn primary" style="flex:1;">${escapeHtml(t("letters.modal.close"))}</button>
       </div>
     </div>
   `;
@@ -1265,8 +1674,8 @@ function showLetterModal(title, content) {
   modal.querySelector("#letter-modal-copy").addEventListener("click", async () => {
     await navigator.clipboard.writeText(content).catch(() => {});
     const copyBtn = modal.querySelector("#letter-modal-copy");
-    copyBtn.textContent = "✅ Copied!";
-    setTimeout(() => (copyBtn.textContent = "📋 Copy Letter"), 1800);
+    copyBtn.textContent = t("letters.modal.copied");
+    setTimeout(() => (copyBtn.textContent = t("letters.modal.copy")), 1800);
   });
 }
 
@@ -1275,22 +1684,22 @@ function renderReports(reports) {
   if (!reports.length) {
     reportGridEl.innerHTML = `
       <article class="report-card empty-card">
-        <p class="empty">No current credit reports uploaded yet.</p>
+        <p class="empty">${escapeHtml(t("reports.noReports"))}</p>
       </article>
     `;
     return;
   }
 
-  const preferredOrder = ["Experian", "Equifax", "TransUnion", "Other"];
+  const preferredOrder = ["Experian", "Equifax", "TransUnion", t("general.other")];
   const latestByBureau = new Map();
   reports.forEach((row) => {
-    const bureau = row.bureau || "Other";
+    const bureau = row.bureau || t("general.other");
     if (!latestByBureau.has(bureau)) latestByBureau.set(bureau, row);
   });
 
   const orderedReports = [
     ...preferredOrder.map((bureau) => latestByBureau.get(bureau)).filter(Boolean),
-    ...Array.from(latestByBureau.values()).filter((row) => !preferredOrder.includes(row.bureau || "Other")),
+    ...Array.from(latestByBureau.values()).filter((row) => !preferredOrder.includes(row.bureau || t("general.other"))),
   ];
 
   reportGridEl.innerHTML = orderedReports
@@ -1307,11 +1716,11 @@ function renderReports(reports) {
             row.signed_url
           )}" target="_blank" rel="noopener noreferrer" data-action="open-report" data-report-id="${escapeHtml(
             row.id
-          )}">Open report</a>`
-        : "File link unavailable";
+          )}">${escapeHtml(t("reports.open"))}</a>`
+        : escapeHtml(t("general.fileUnavailable"));
       return `
         <article class="report-card">
-          <p class="bureau">${escapeHtml(row.bureau || "Other")}</p>
+          <p class="bureau">${escapeHtml(row.bureau || t("general.other"))}</p>
           <p class="report-review"><span class="badge ${escapeHtml(
             verificationBadgeClass(row.verification_status)
           )}">${escapeHtml(reviewLabel)}</span> ${escapeHtml(reviewMethod)}</p>
@@ -1328,21 +1737,21 @@ function renderReports(reports) {
 function renderBilling(profile, invoices) {
   if (billingPlanCardEl) {
     if (!profile?.plan_name) {
-      billingPlanCardEl.innerHTML = '<p class="empty">No billing plan has been posted yet.</p>';
+      billingPlanCardEl.innerHTML = `<p class="empty">${escapeHtml(t("billing.noPlan"))}</p>`;
     } else {
       const amountLabel =
         profile.plan_amount != null && profile.plan_amount !== ""
           ? formatCurrency(profile.plan_amount)
-          : "Custom";
+          : t("general.custom");
       const zelleLine = profile.zelle_handle
         ? `<p class="billing-plan-note"><strong>Zelle:</strong> ${escapeHtml(
-            profile.zelle_display_name || "Billing"
+            profile.zelle_display_name || t("billing.brand")
           )} · ${escapeHtml(profile.zelle_handle)}</p>`
         : "";
       billingPlanCardEl.innerHTML = `
         <div class="billing-plan-head">
           <div>
-            <p class="billing-plan-eyebrow">Current Plan</p>
+            <p class="billing-plan-eyebrow">${escapeHtml(t("billing.currentPlan"))}</p>
             <h4>${escapeHtml(profile.plan_name)}</h4>
           </div>
           <span class="badge ${escapeHtml(billingStatusClass(profile.billing_status))}">${escapeHtml(
@@ -1351,25 +1760,25 @@ function renderBilling(profile, invoices) {
         </div>
         <div class="billing-plan-grid">
           <div>
-            <span>Amount</span>
+            <span>${escapeHtml(t("billing.amount"))}</span>
             <strong>${escapeHtml(amountLabel)}</strong>
           </div>
           <div>
-            <span>Interval</span>
+            <span>${escapeHtml(t("billing.interval"))}</span>
             <strong>${escapeHtml(formatBillingInterval(profile.billing_interval))}</strong>
           </div>
           <div>
-            <span>Started</span>
-            <strong>${escapeHtml(profile.started_at ? formatDate(profile.started_at) : "Not set")}</strong>
+            <span>${escapeHtml(t("billing.started"))}</span>
+            <strong>${escapeHtml(profile.started_at ? formatDate(profile.started_at) : t("general.notSet"))}</strong>
           </div>
           <div>
-            <span>Next Billing</span>
-            <strong>${escapeHtml(profile.renewal_date ? formatDate(profile.renewal_date) : "Not set")}</strong>
+            <span>${escapeHtml(t("billing.nextBilling"))}</span>
+            <strong>${escapeHtml(profile.renewal_date ? formatDate(profile.renewal_date) : t("general.notSet"))}</strong>
           </div>
         </div>
-        <p class="billing-plan-terms"><strong>Terms:</strong> ${escapeHtml(profile.payment_terms || "Not set")}</p>
+        <p class="billing-plan-terms"><strong>${escapeHtml(t("billing.terms"))}:</strong> ${escapeHtml(profile.payment_terms || t("general.notSet"))}</p>
         ${zelleLine}
-        ${profile.zelle_note ? `<p class="billing-plan-note"><strong>Zelle memo:</strong> ${escapeHtml(profile.zelle_note)}</p>` : ""}
+        ${profile.zelle_note ? `<p class="billing-plan-note"><strong>${escapeHtml(t("billing.zelleMemo"))}:</strong> ${escapeHtml(profile.zelle_note)}</p>` : ""}
         ${profile.notes ? `<p class="billing-plan-note">${escapeHtml(profile.notes)}</p>` : ""}
       `;
     }
@@ -1379,30 +1788,30 @@ function renderBilling(profile, invoices) {
 
   const visibleInvoices = (invoices || []).filter((row) => String(row.status || "").toLowerCase() !== "draft");
   if (!visibleInvoices.length) {
-    billingInvoicesListEl.innerHTML = '<p class="empty">No invoices have been sent yet.</p>';
+    billingInvoicesListEl.innerHTML = `<p class="empty">${escapeHtml(t("billing.noInvoices"))}</p>`;
     return;
   }
 
   billingInvoicesListEl.innerHTML = visibleInvoices
     .map((row) => {
       const zelleHandle = row.zelle_handle || profile?.zelle_handle || "";
-      const zelleName = row.zelle_display_name || profile?.zelle_display_name || "Billing";
+      const zelleName = row.zelle_display_name || profile?.zelle_display_name || t("billing.brand");
       const zelleMemo = row.zelle_memo || profile?.zelle_note || row.invoice_number || "";
       const zelleInstructions = zelleHandle
         ? `
           <div class="billing-invoice-zelle">
-            <p><strong>Pay by Zelle to:</strong> ${escapeHtml(zelleName)}</p>
-            <p><strong>Zelle email/phone:</strong> ${escapeHtml(zelleHandle)}</p>
-            ${zelleMemo ? `<p><strong>Memo:</strong> ${escapeHtml(zelleMemo)}</p>` : ""}
+            <p><strong>${escapeHtml(t("billing.payByZelleTo"))}</strong> ${escapeHtml(zelleName)}</p>
+            <p><strong>${escapeHtml(t("billing.zelleContact"))}</strong> ${escapeHtml(zelleHandle)}</p>
+            ${zelleMemo ? `<p><strong>${escapeHtml(t("billing.memo"))}</strong> ${escapeHtml(zelleMemo)}</p>` : ""}
           </div>
         `
-        : '<p class="billing-invoice-note">Zelle instructions will be posted here once added by the admin team.</p>';
+        : `<p class="billing-invoice-note">${escapeHtml(t("billing.zellePending"))}</p>`;
       return `
         <article class="billing-invoice-item">
           <div class="billing-invoice-item-top">
             <div>
-              <p class="billing-invoice-number">${escapeHtml(row.invoice_number || "Invoice")}</p>
-              <h4>${escapeHtml(row.title || "Service invoice")}</h4>
+              <p class="billing-invoice-number">${escapeHtml(row.invoice_number || t("billing.invoice"))}</p>
+              <h4>${escapeHtml(row.title || t("billing.serviceInvoice"))}</h4>
             </div>
             <div class="billing-invoice-amount">
               <span class="badge ${escapeHtml(invoiceStatusClass(row.status))}">${escapeHtml(
@@ -1412,10 +1821,10 @@ function renderBilling(profile, invoices) {
             </div>
           </div>
           <p class="billing-invoice-meta">${escapeHtml(
-            row.plan_name || profile?.plan_name || "Billing"
-          )} · Issued ${escapeHtml(formatDate(row.invoice_date || row.created_at))} · Due ${escapeHtml(
-            row.due_date ? formatDate(row.due_date) : "Not set"
-          )}</p>
+            row.plan_name || profile?.plan_name || t("billing.brand")
+          )} · ${escapeHtml(t("billing.issued", { date: formatDate(row.invoice_date || row.created_at) }))} · ${escapeHtml(t("billing.due", {
+            date: row.due_date ? formatDate(row.due_date) : t("general.notSet"),
+          }))}</p>
           ${zelleInstructions}
           ${row.notes ? `<p class="billing-invoice-note">${escapeHtml(row.notes)}</p>` : ""}
         </article>
@@ -1431,7 +1840,7 @@ function renderNegativeItems(items) {
     { key: "experian", label: "Experian" },
     { key: "equifax", label: "Equifax" },
     { key: "transunion", label: "TransUnion" },
-    { key: "shared", label: "Shared / Unknown" },
+    { key: "shared", label: t("negative.sharedUnknown") },
   ];
 
   const groupedItems = new Map(bureauColumns.map((column) => [column.key, []]));
@@ -1481,19 +1890,19 @@ function renderNegativeItems(items) {
 
   negativeTrackerStatsEl.innerHTML = `
     <article class="negative-stat-card">
-      <span>Total Items</span>
+      <span>${escapeHtml(t("negative.totalItems"))}</span>
       <strong>${escapeHtml(totals.total)}</strong>
     </article>
     <article class="negative-stat-card">
-      <span>Active Items</span>
+      <span>${escapeHtml(t("negative.activeItems"))}</span>
       <strong>${escapeHtml(totals.active)}</strong>
     </article>
     <article class="negative-stat-card">
-      <span>Resolved</span>
+      <span>${escapeHtml(t("negative.resolved"))}</span>
       <strong>${escapeHtml(totals.resolved)}</strong>
     </article>
     <article class="negative-stat-card">
-      <span>Active Balance</span>
+      <span>${escapeHtml(t("negative.activeBalance"))}</span>
       <strong>${escapeHtml(formatCurrency(activeBalanceTotal))}</strong>
     </article>
   `;
@@ -1506,15 +1915,15 @@ function renderNegativeItems(items) {
 
     deletedProgressSummaryEl.innerHTML = `
       <article class="negative-stat-card deleted-stat-card">
-        <span>Resolved Items</span>
+        <span>${escapeHtml(t("negative.resolvedItems"))}</span>
         <strong>${escapeHtml(resolvedItems.length)}</strong>
       </article>
       <article class="negative-stat-card deleted-stat-card">
-        <span>Still Reporting</span>
+        <span>${escapeHtml(t("negative.stillReporting"))}</span>
         <strong>${escapeHtml(stillReporting)}</strong>
       </article>
       <article class="negative-stat-card deleted-stat-card">
-        <span>Progress Rate</span>
+        <span>${escapeHtml(t("negative.progressRate"))}</span>
         <strong>${escapeHtml(progressRate)}</strong>
       </article>
     `;
@@ -1522,24 +1931,24 @@ function renderNegativeItems(items) {
     if (!resolvedItems.length) {
       deletedProgressListEl.innerHTML = `
         <article class="deleted-progress-empty">
-          <p class="empty">No resolved items recorded yet.</p>
+          <p class="empty">${escapeHtml(t("negative.noResolved"))}</p>
         </article>
       `;
     } else {
       deletedProgressListEl.innerHTML = resolvedItems
         .map((row) => {
-          const bureau = row.bureau || "Shared / Unknown";
-          const accountRef = row.account_reference ? ` • Acct ${escapeHtml(row.account_reference)}` : "";
-          const status = row.status || "Resolved";
+          const bureau = row.bureau || t("negative.sharedUnknown");
+          const accountRef = row.account_reference ? ` • ${escapeHtml(t("negative.acctShort", { value: row.account_reference }))}` : "";
+          const status = row.status ? formatNegativeItemStatus(row.status) : t("negative.stage.resolved");
           const note = row.notes || row.evidence_excerpt || "";
           const resolvedLabel = getNegativeItemResolvedLabel(row);
           return `
             <article class="deleted-progress-item">
               <div class="deleted-progress-top">
                 <div>
-                  <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
+                  <h4>${escapeHtml(row.creditor || t("negative.unknownCreditor"))}</h4>
                   <p class="deleted-progress-meta">${escapeHtml(bureau)} • ${escapeHtml(
-                    row.item_type || "Negative Item"
+                    row.item_type || t("negative.itemLabel")
                   )}${accountRef ? accountRef : ""}</p>
                 </div>
                 <span class="deleted-progress-pill">${escapeHtml(resolvedLabel)}</span>
@@ -1559,7 +1968,7 @@ function renderNegativeItems(items) {
     negativeTrackerGridEl.dataset.activeBureau = "";
     negativeTrackerGridEl.innerHTML =
       `<article class="negative-track-card empty-card"><p class="empty">${
-        totals.total ? "No active negative items still reporting." : "No negative items logged yet."
+        totals.total ? t("negative.noActive") : t("negative.noItems")
       }</p></article>`;
     return;
   }
@@ -1571,7 +1980,7 @@ function renderNegativeItems(items) {
 
   negativeTrackerGridEl.dataset.activeBureau = activeKey;
   negativeTrackerGridEl.innerHTML = `
-    <div class="negative-bureau-tabs" role="tablist" aria-label="Negative item bureaus">
+    <div class="negative-bureau-tabs" role="tablist" aria-label="${escapeHtml(t("negative.tabAria"))}">
       ${visibleColumns
         .map((column) => {
           const count = (groupedItems.get(column.key) || []).length;
@@ -1593,22 +2002,26 @@ function renderNegativeItems(items) {
     ${visibleColumns
       .map((column) => {
         const bureauItems = groupedItems.get(column.key) || [];
-        const itemCountLabel = `${bureauItems.length} item${bureauItems.length === 1 ? "" : "s"}`;
+        const itemCountLabel = `${bureauItems.length} ${bureauItems.length === 1 ? t("negative.item") : t("negative.items")}`;
         const bureauBalance = formatCurrency(totals.balances[column.key]);
         const cards = bureauItems
           .map((row) => {
             const stage = getNegativeItemStage(row);
-            const status = row.status || (row.is_active === false ? "Resolved / removed" : "Under review");
-            const balance = row.balance == null ? "N/A" : formatCurrency(row.balance);
+            const status = row.status
+              ? formatNegativeItemStatus(row.status)
+              : row.is_active === false
+                ? t("negative.stage.resolved")
+                : t("negative.underReview");
+            const balance = row.balance == null ? t("general.na") : formatCurrency(row.balance);
             const reviewLabel = formatVerificationMethod(row.verification_method);
-            const accountRef = row.account_reference ? `Acct ${row.account_reference}` : "";
+            const accountRef = row.account_reference ? t("negative.acctShort", { value: row.account_reference }) : "";
             const note = row.notes || row.evidence_excerpt || "";
             return `
               <article class="negative-track-card">
                 <div class="negative-track-top">
                   <div>
-                    <h4>${escapeHtml(row.creditor || "Unknown creditor")}</h4>
-                    <p class="negative-track-meta">${escapeHtml(row.item_type || "Negative Item")}${
+                    <h4>${escapeHtml(row.creditor || t("negative.unknownCreditor"))}</h4>
+                    <p class="negative-track-meta">${escapeHtml(row.item_type || t("negative.itemLabel"))}${
                       accountRef ? ` • ${escapeHtml(accountRef)}` : ""
                     }</p>
                   </div>
@@ -1617,9 +2030,9 @@ function renderNegativeItems(items) {
                   )}</span>
                 </div>
                 <div class="negative-track-details">
-                  <span><strong>Status:</strong> ${escapeHtml(status)}</span>
-                  <span><strong>Balance:</strong> ${escapeHtml(balance)}</span>
-                  <span><strong>Source:</strong> ${escapeHtml(reviewLabel)}</span>
+                  <span><strong>${escapeHtml(t("negative.status"))}</strong> ${escapeHtml(status)}</span>
+                  <span><strong>${escapeHtml(t("negative.balance"))}</strong> ${escapeHtml(balance)}</span>
+                  <span><strong>${escapeHtml(t("negative.source"))}</strong> ${escapeHtml(reviewLabel)}</span>
                 </div>
                 ${note ? `<p class="negative-track-note">${escapeHtml(note)}</p>` : ""}
               </article>
@@ -1636,10 +2049,10 @@ function renderNegativeItems(items) {
             <div class="negative-bureau-head">
               <div>
                 <p class="bureau">${escapeHtml(column.label)}</p>
-                <p class="negative-bureau-count">${escapeHtml(itemCountLabel)} • Active balance ${escapeHtml(
-                  bureauBalance
+                <p class="negative-bureau-count">${escapeHtml(itemCountLabel)} • ${escapeHtml(
+                  t("negative.activeBalanceLabel", { amount: bureauBalance })
                 )}</p>
-                <p class="negative-bureau-note">Bureau balance is separated here so repeated accounts do not look overstated.</p>
+                <p class="negative-bureau-note">${escapeHtml(t("negative.bureauBalanceNote"))}</p>
               </div>
             </div>
             <div class="negative-bureau-scroll">
@@ -1657,7 +2070,7 @@ function renderUpdates(updates) {
   const manualUpdates = (updates || []).filter((row) => !String(row.details || "").startsWith(ACTIVITY_PREFIX));
 
   if (!manualUpdates.length) {
-    updatesListEl.innerHTML = '<li class="empty">No updates posted yet.</li>';
+    updatesListEl.innerHTML = `<li class="empty">${escapeHtml(t("updates.none"))}</li>`;
     return;
   }
 
@@ -1678,7 +2091,7 @@ function renderActivity(updates) {
   const activityRows = (updates || []).filter((row) => String(row.details || "").startsWith(ACTIVITY_PREFIX));
 
   if (!activityRows.length) {
-    activityListEl.innerHTML = '<li class="empty">No record activity yet.</li>';
+    activityListEl.innerHTML = `<li class="empty">${escapeHtml(t("activity.none"))}</li>`;
     return;
   }
 
@@ -1712,7 +2125,7 @@ function renderRequiredDocuments(files) {
       if (!config || !statusEl) return;
 
       const isComplete = uploadedCategories.has(normalizeUploadCategory(config.category));
-      statusEl.textContent = isComplete ? "Received" : "Needed";
+      statusEl.textContent = isComplete ? t("docs.received") : t("docs.needed");
       statusEl.classList.toggle("complete", isComplete);
       statusEl.classList.toggle("pending", !isComplete);
     });
@@ -1721,20 +2134,20 @@ function renderRequiredDocuments(files) {
 function renderFiles(files) {
   if (!filesListEl) return;
   if (!files.length) {
-    filesListEl.innerHTML = '<li class="empty">No files uploaded yet.</li>';
+    filesListEl.innerHTML = `<li class="empty">${escapeHtml(t("files.none"))}</li>`;
     return;
   }
 
   filesListEl.innerHTML = files
     .map((row) => {
-      const category = row.category || "Document";
+      const category = row.category || t("files.document");
       const created = formatDate(row.created_at);
-      const title = row.title || row.file_name || "Attachment";
+      const title = row.title || row.file_name || t("files.attachment");
       const note = row.notes || "";
-      const uploadedBy = row.uploaded_by === "client" ? " • Uploaded by you" : "";
+      const uploadedBy = row.uploaded_by === "client" ? t("files.uploadedByYou") : "";
       const link = row.signed_url
-        ? `<a href="${escapeHtml(row.signed_url)}" target="_blank" rel="noopener noreferrer">Open file</a>`
-        : "File link unavailable";
+        ? `<a href="${escapeHtml(row.signed_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("files.open"))}</a>`
+        : escapeHtml(t("general.fileUnavailable"));
 
       return `
         <li>
@@ -1751,7 +2164,7 @@ function renderMessages(messages, currentUserId, options = {}) {
   if (!messageThreadEl) return;
   const isPreviewMode = options.preview === true;
   if (!messages.length) {
-    messageThreadEl.innerHTML = '<li class="empty">No messages yet.</li>';
+    messageThreadEl.innerHTML = `<li class="empty">${escapeHtml(t("messages.none"))}</li>`;
     return;
   }
 
@@ -1759,7 +2172,7 @@ function renderMessages(messages, currentUserId, options = {}) {
     .map((row) => {
       const isClient = row.sender_role === "client";
       const sideClass = isClient ? "msg-client" : "msg-admin";
-      const label = isClient ? (isPreviewMode ? "Client" : "You") : "Donoso Credit Repair";
+      const label = isClient ? (isPreviewMode ? t("messages.client") : t("messages.you")) : t("messages.brand");
       return `
         <li class="msg-bubble ${escapeHtml(sideClass)}">
           <p class="msg-label">${escapeHtml(label)} · ${escapeHtml(formatDateTime(row.created_at))}</p>
@@ -1789,8 +2202,8 @@ function setPreviewModeUi(enabled, targetUserId = "") {
   previewBannerEl?.classList.toggle("hidden", !enabled);
   if (previewMetaEl) {
     previewMetaEl.textContent = enabled
-      ? `Read-only preview for client user_id ${targetUserId}. Uploads and messages are disabled here.`
-      : "Read-only preview of the selected client portal.";
+      ? t("preview.banner", { userId: targetUserId })
+      : "";
   }
 
   clientUploadForm?.querySelectorAll("input,button").forEach((el) => {
@@ -1802,12 +2215,12 @@ function setPreviewModeUi(enabled, targetUserId = "") {
 
   if (messageInput) {
     messageInput.placeholder = enabled
-      ? "Messaging is disabled in admin preview."
-      : "Send a message to your advisor...";
+      ? t("messages.previewPlaceholder")
+      : t("messages.placeholder");
   }
 
   if (logoutBtn) {
-    logoutBtn.textContent = enabled ? "Exit Preview" : "Sign Out";
+    logoutBtn.textContent = enabled ? t("preview.exit") : t("nav.logout");
   }
 }
 
@@ -1827,7 +2240,7 @@ function initializePortal() {
     const { data, error } = await supabase.auth.getSession();
     const accessToken = data.session?.access_token;
     if (error || !accessToken) {
-      throw new Error(error?.message || "No active portal session.");
+      throw new Error(error?.message || t("session.loadFailed"));
     }
 
     const response = await fetch("/api/portal-notify", {
@@ -1841,7 +2254,7 @@ function initializePortal() {
 
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(result.error || "Could not send portal notification.");
+      throw new Error(result.error || t("session.loadFailed"));
     }
 
     return result;
@@ -1850,12 +2263,12 @@ function initializePortal() {
   function getCurrentClientNotificationProfile() {
     const metadata = currentSessionUser?.user_metadata || {};
     const fallbackName = String(
-      clientNameEl?.textContent || metadata.full_name || metadata.fullName || "Client"
+      clientNameEl?.textContent || metadata.full_name || metadata.fullName || t("general.client")
     ).trim();
 
     return {
       userId: currentPortalUserId || currentSessionUser?.id || "",
-      name: fallbackName || "Client",
+      name: fallbackName || t("general.client"),
       email: String(currentSessionUser?.email || "").trim().toLowerCase(),
     };
   }
@@ -2009,7 +2422,7 @@ function initializePortal() {
       profile?.full_name ||
       metadata.full_name ||
       metadata.fullName ||
-      (isPreviewMode ? "Client Preview" : "Client");
+      (isPreviewMode ? t("general.clientPreview") : t("general.client"));
     const displayEmail = profile?.contact_email || user.email || "";
     const phone = profile?.phone || metadata.phone || "";
     const address = profile?.address || metadata.address || "";
@@ -2025,7 +2438,7 @@ function initializePortal() {
     setContactValue(
       clientContactEmailEl,
       isPreviewMode ? displayEmail : displayEmail,
-      isPreviewMode ? "Not available in preview" : "Not added yet"
+      isPreviewMode ? t("general.notAvailablePreview") : t("general.notAddedYet")
     );
     setContactValue(clientContactPhoneEl, phone);
     setContactValue(clientContactAddressEl, address);
@@ -2067,7 +2480,7 @@ function initializePortal() {
       const access = await checkAdminAccess(supabase, user.id);
       if (!access.allowed) {
         showAuth();
-        setAuthStatus(access.error || "Preview links require an active admin session.", true);
+        setAuthStatus(access.error || t("preview.authRequired"), true);
         return false;
       }
 
@@ -2148,13 +2561,13 @@ function initializePortal() {
     event.preventDefault();
     if (!currentSessionUser || !currentPortalUserId) return;
     if (isPreviewMode) {
-      setMessageStatus("Messaging is disabled in admin preview.", true);
+      setMessageStatus(t("preview.disabledMessage"), true);
       return;
     }
     const content = String(messageInput?.value || "").trim();
     if (!content) return;
 
-    setMessageStatus("Sending...");
+    setMessageStatus(t("messages.sending"));
     const { error } = await supabase.from("portal_messages").insert({
       user_id: currentPortalUserId,
       sender_role: "client",
@@ -2162,14 +2575,14 @@ function initializePortal() {
     });
 
     if (error) {
-      setMessageStatus("Could not send message. Try again.", true);
+      setMessageStatus(t("messages.failed"), true);
       return;
     }
 
     if (messageInput) messageInput.value = "";
     await notifyAdminPortalAlert({
       eventType: "client_message",
-      summary: "A client sent a new portal message.",
+      summary: t("messages.summary"),
       details: content,
     });
     setMessageStatus("");
@@ -2188,7 +2601,7 @@ function initializePortal() {
     event.preventDefault();
     if (!currentSessionUser || !currentPortalUserId) return;
     if (isPreviewMode) {
-      setUploadStatus("Uploads are disabled in admin preview.", true);
+      setUploadStatus(t("preview.disabledUploads"), true);
       return;
     }
 
@@ -2198,22 +2611,22 @@ function initializePortal() {
     const category = String(clientFileCategoryInput?.value || "").trim();
 
     if (!category) {
-      setUploadStatus("Choose the type of document you are uploading.", true);
+      setUploadStatus(t("upload.chooseType"), true);
       return;
     }
 
-    if (!file) { setUploadStatus("Please choose a file.", true); return; }
+    if (!file) { setUploadStatus(t("upload.chooseFile"), true); return; }
 
     if (!fileHasAllowedUploadType(file)) {
-      setUploadStatus("Only PDF, PNG, JPG, WebP, DOC, or DOCX files are allowed.", true);
+      setUploadStatus(t("upload.allowedTypes"), true);
       return;
     }
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-      setUploadStatus(`File must be ${formatMbLimit(MAX_UPLOAD_SIZE_MB)} or smaller.`, true);
+      setUploadStatus(t("upload.tooLarge", { limit: formatMbLimit(MAX_UPLOAD_SIZE_MB) }), true);
       return;
     }
 
-    setUploadStatus("Uploading...");
+    setUploadStatus(t("upload.uploading"));
     const bucket = "client-docs";
     const safeName = sanitizeFileName(file.name);
     const categoryFolder = sanitizeFileName(category);
@@ -2225,7 +2638,7 @@ function initializePortal() {
     });
 
     if (uploadError) {
-      setUploadStatus("Upload failed: " + uploadError.message, true);
+      setUploadStatus(t("upload.failed", { message: uploadError.message }), true);
       return;
     }
 
@@ -2242,19 +2655,19 @@ function initializePortal() {
     });
 
     if (rowError) {
-      setUploadStatus("File uploaded but could not save record: " + rowError.message, true);
+      setUploadStatus(t("upload.rowFailed", { message: rowError.message }), true);
       return;
     }
 
     clientUploadForm.reset();
     await notifyAdminPortalAlert({
       eventType: "client_upload",
-      summary: "A client uploaded a new portal document.",
+      summary: t("upload.summary"),
       details: title || file.name,
       fileTitle: title || file.name,
       category,
     });
-    setUploadStatus(`${category} uploaded successfully.`);
+    setUploadStatus(t("upload.success", { category }));
     await loadDashboard(currentSessionUser, {
       targetUserId: currentPortalUserId,
       preview: false,
@@ -2270,8 +2683,8 @@ function initializePortal() {
     if (!email || !password) {
       setAuthStatus(
         authMode === "signup"
-          ? "Please enter your name, phone, address, email, and password."
-          : "Please enter email and password.",
+          ? t("auth.validation.signup")
+          : t("auth.validation.signin"),
         true
       );
       return;
@@ -2282,30 +2695,30 @@ function initializePortal() {
       const confirmPassword = String(signupConfirmPasswordInput?.value || "");
 
       if (!draft.fullName) {
-        setAuthStatus("Please enter your full name.", true);
+        setAuthStatus(t("auth.validation.fullName"), true);
         return;
       }
       if (!draft.phone) {
-        setAuthStatus("Please enter your phone number.", true);
+        setAuthStatus(t("auth.validation.phone"), true);
         return;
       }
       if (!draft.address) {
-        setAuthStatus("Please enter your address.", true);
+        setAuthStatus(t("auth.validation.address"), true);
         return;
       }
       if (password.length < 8) {
-        setAuthStatus("Password must be at least 8 characters.", true);
+        setAuthStatus(t("auth.validation.passwordLength"), true);
         return;
       }
       if (password !== confirmPassword) {
-        setAuthStatus("Passwords do not match.", true);
+        setAuthStatus(t("auth.validation.passwordMismatch"), true);
         return;
       }
-      if (!requireAuthEmailCooldown("signup confirmation")) return;
+      if (!requireAuthEmailCooldown(t("auth.signup.actionLabel"))) return;
 
       setAuthControlsDisabled(true);
       setAuthNotice("", "");
-      setAuthStatus("Creating your account...");
+      setAuthStatus(t("auth.status.creating"));
       try {
         const signupCheckResponse = await fetch("/api/portal-signup-check", {
           method: "POST",
@@ -2321,14 +2734,13 @@ function initializePortal() {
             document.getElementById("password").value = "";
             setAuthStatus("");
             setAuthNotice(
-              "Account already exists",
-              signupCheckPayload?.error ||
-                "This email already has portal access. Use Forgot password or your setup email instead of creating a new account.",
+              t("auth.notice.accountExistsTitle"),
+              t("auth.notice.accountExistsMessage"),
             );
             return;
           }
 
-          setAuthStatus(signupCheckPayload?.error || "Could not verify your portal access right now.", true);
+          setAuthStatus(signupCheckPayload?.error || t("session.loadFailed"), true);
           return;
         }
 
@@ -2336,7 +2748,7 @@ function initializePortal() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/portal.html`,
+            emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
             data: {
               full_name: draft.fullName,
               phone: draft.phone,
@@ -2368,8 +2780,8 @@ function initializePortal() {
         document.getElementById("password").value = "";
         setAuthStatus("");
         setAuthNotice(
-          "Verify your email",
-          `We sent a confirmation link to ${email}. Open that email, tap the link, then sign in here.`,
+          t("auth.notice.verifyTitle"),
+          t("auth.notice.verifyMessage", { email }),
         );
         return;
       } finally {
@@ -2378,14 +2790,14 @@ function initializePortal() {
     }
 
     setAuthNotice("", "");
-    setAuthStatus("Signing in...");
+    setAuthStatus(t("auth.status.signingIn"));
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error || !data.user) {
       if (isEmailConfirmationError(error)) {
         setAuthStatus("");
         setAuthNotice(
-          "Verify your email",
-          `Please open the confirmation email sent to ${email}, tap the link, then sign in here.`,
+          t("auth.notice.verifyTitle"),
+          t("auth.notice.verifySignin", { email }),
         );
         return;
       }
@@ -2408,13 +2820,13 @@ function initializePortal() {
     const email = String(document.getElementById("email")?.value || "").trim().toLowerCase();
     const emailInput = document.getElementById("email");
     if (emailInput) emailInput.value = email;
-    if (!email) { setAuthStatus("Enter your email first, then click reset.", true); return; }
-    if (!requireAuthEmailCooldown("password reset")) return;
+    if (!email) { setAuthStatus(t("auth.reset.enterEmail"), true); return; }
+    if (!requireAuthEmailCooldown(t("auth.reset.actionLabel"))) return;
 
     setAuthControlsDisabled(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/portal.html",
+        redirectTo: window.location.origin + window.location.pathname,
       });
       if (error) {
         if (String(error.message || "").toLowerCase().includes("rate limit")) {
@@ -2424,7 +2836,7 @@ function initializePortal() {
         return;
       }
       startAuthEmailCooldown();
-      setAuthStatus("Password reset email sent.");
+      setAuthStatus(t("auth.reset.sent"));
     } finally {
       setAuthControlsDisabled(false);
     }
@@ -2436,7 +2848,7 @@ function initializePortal() {
       return;
     }
     logoutBtn.disabled = true;
-    logoutBtn.textContent = "Signing out…";
+    logoutBtn.textContent = `${t("nav.logout")}…`;
     // Give signOut up to 1s to clear the local session; redirect regardless.
     try {
       await Promise.race([
@@ -2453,13 +2865,13 @@ function initializePortal() {
     currentSessionUser = null;
     currentPortalUserId = "";
     isPreviewMode = false;
-    window.location.href = "portal.html";
+    window.location.href = PORTAL_LOCALE === "es" ? "portal-es.html" : "portal.html";
   });
 
   refreshBtn?.addEventListener("click", async () => {
     if (!currentSessionUser) return;
     refreshBtn.disabled = true;
-    refreshBtn.textContent = "Refreshing…";
+    refreshBtn.textContent = `${t("nav.refresh")}…`;
     try {
       await loadDashboard(currentSessionUser, {
         targetUserId: currentPortalUserId || currentSessionUser.id,
@@ -2469,7 +2881,7 @@ function initializePortal() {
       // silently ignore
     } finally {
       refreshBtn.disabled = false;
-      refreshBtn.textContent = "Refresh";
+      refreshBtn.textContent = t("nav.refresh");
     }
   });
 
@@ -2479,15 +2891,15 @@ function initializePortal() {
     const newPass = String(document.getElementById("new-password")?.value || "");
     const confirmPass = String(document.getElementById("confirm-password")?.value || "");
     if (newPass.length < 8) {
-      if (setPasswordStatus) { setPasswordStatus.textContent = "Password must be at least 8 characters."; setPasswordStatus.classList.add("error"); }
+      if (setPasswordStatus) { setPasswordStatus.textContent = t("auth.validation.passwordLength"); setPasswordStatus.classList.add("error"); }
       return;
     }
     if (newPass !== confirmPass) {
-      if (setPasswordStatus) { setPasswordStatus.textContent = "Passwords do not match."; setPasswordStatus.classList.add("error"); }
+      if (setPasswordStatus) { setPasswordStatus.textContent = t("auth.validation.passwordMismatch"); setPasswordStatus.classList.add("error"); }
       return;
     }
     const submitBtn = setPasswordForm.querySelector("button[type=submit]");
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Activating…"; }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t("setPassword.activating"); }
     if (setPasswordStatus) { setPasswordStatus.textContent = ""; setPasswordStatus.classList.remove("error"); }
 
     const { error } = await supabase.auth.updateUser({ password: newPass });
@@ -2523,7 +2935,7 @@ function initializePortal() {
 
       window.setTimeout(() => {
         loadSessionOrPreview(session.user).catch(() => {
-          setAuthStatus("Could not load your portal data right now.", true);
+          setAuthStatus(t("session.loadFailed"), true);
         });
       }, 0);
       return;
@@ -2532,7 +2944,7 @@ function initializePortal() {
     showAuth();
     setPreviewModeUi(false);
     if (requestedPreviewUserId) {
-      setAuthStatus("Admin preview requires an active admin session. Sign in to the admin portal first.", true);
+      setAuthStatus(t("preview.authRequired"), true);
       return;
     }
     if (authLandingState.error) {
@@ -2544,8 +2956,8 @@ function initializePortal() {
       setAuthMode("signin");
       setAuthStatus("");
       setAuthNotice(
-        "Email verified",
-        "Your email is confirmed. Sign in below with the password you created.",
+        t("auth.notice.emailVerifiedTitle"),
+        t("auth.notice.emailVerifiedMessage"),
         "success",
       );
       return;
@@ -2568,7 +2980,7 @@ function initializePortal() {
     showAuth();
     setPreviewModeUi(false);
     if (requestedPreviewUserId) {
-      setAuthStatus("Admin preview requires an active admin session. Sign in to the admin portal first.", true);
+      setAuthStatus(t("preview.authRequired"), true);
       return;
     }
     if (authLandingState.error) {
@@ -2580,8 +2992,8 @@ function initializePortal() {
       setAuthMode("signin");
       setAuthStatus("");
       setAuthNotice(
-        "Email verified",
-        "Your email is confirmed. Sign in below with the password you created.",
+        t("auth.notice.emailVerifiedTitle"),
+        t("auth.notice.emailVerifiedMessage"),
         "success",
       );
       return;
